@@ -1,0 +1,29 @@
+{
+  "name": "@enforra/sdk-node",
+  "version": "0.1.0",
+  "description": "Node.js SDK for local Enforra tool-call enforcement.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --sourcemap",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@enforra/local-audit": "workspace:*",
+    "@enforra/policy-core": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.6"
+  }
+}

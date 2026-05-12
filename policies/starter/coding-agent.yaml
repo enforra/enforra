@@ -1,0 +1,64 @@
+version: 1
+defaults:
+  decision: block
+policies:
+  - id: block-env-read
+    description: Block reading .env files
+    match:
+      agent: coding-agent
+      tool: file.read
+      contains:
+        field: path
+        value: ".env"
+    decision: block
+
+  - id: block-private-key-read
+    description: Block accessing private keys
+    match:
+      agent: coding-agent
+      tool: file.read
+      contains:
+        field: path
+        value: "private_key"
+    decision: block
+
+  - id: allow-repo-search
+    description: Allow repository search
+    match:
+      agent: coding-agent
+      tool: repo.search
+    decision: allow
+
+  - id: allow-workspace-read
+    description: Allow reading files in the workspace
+    match:
+      agent: coding-agent
+      tool: file.read
+      contains:
+        field: path
+        value: "/workspace/"
+    decision: allow
+
+  - id: approve-package-install
+    description: Require approval for package installation
+    match:
+      agent: coding-agent
+      tool: package.install
+    decision: require_approval
+
+  - id: approve-production-shell
+    description: Require approval for shell commands in production
+    match:
+      agent: coding-agent
+      tool: shell.run
+      field_equals:
+        field: environment
+        value: production
+    decision: require_approval
+
+  - id: block-file-delete
+    description: Block deleting files
+    match:
+      agent: coding-agent
+      tool: file.delete
+    decision: block
