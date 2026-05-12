@@ -14,34 +14,30 @@ const refundPolicy: PolicyFile = {
       id: "allow-small-refunds",
       match: {
         agent: "support-agent",
-        tool: "stripe.refund",
-        args: {
-          amount_lte: 50
-        }
+        tool: "stripe.refund"
       },
+      conditions: [{ field: "args.amount", operator: "lte", value: 50 }],
       decision: "allow"
     },
     {
       id: "approve-medium-refunds",
       match: {
         agent: "support-agent",
-        tool: "stripe.refund",
-        args: {
-          amount_gt: 50,
-          amount_lte: 500
-        }
+        tool: "stripe.refund"
       },
+      conditions: [
+        { field: "args.amount", operator: "gt", value: 50 },
+        { field: "args.amount", operator: "lte", value: 500 }
+      ],
       decision: "require_approval"
     },
     {
       id: "block-large-refunds",
       match: {
         agent: "support-agent",
-        tool: "stripe.refund",
-        args: {
-          amount_gt: 500
-        }
+        tool: "stripe.refund"
       },
+      conditions: [{ field: "args.amount", operator: "gt", value: 500 }],
       decision: "block"
     }
   ]
@@ -59,7 +55,7 @@ describe("policy-core", () => {
     expect(result.matchedPolicyId).toBe("allow-small-refunds");
   });
 
-  it("requires approval for medium refunds", () => {
+  it("supports generic gt and lte conditions", () => {
     const result = evaluatePolicy(refundPolicy, {
       agent: "support-agent",
       tool: "stripe.refund",
@@ -131,7 +127,90 @@ policies: []
     ).toThrow();
   });
 
-  it("supports generic field_equals conditions", () => {
+  it("rejects empty condition arrays", () => {
+    expect(() =>
+      parsePolicyYaml(`
+version: 1
+policies:
+  - id: empty-conditions
+    match:
+      agent: support-agent
+      tool: stripe.refund
+    conditions: []
+    decision: allow
+`)
+    ).toThrow();
+  });
+
+  it("rejects policies without match fields or conditions", () => {
+    expect(() =>
+      parsePolicyYaml(`
+version: 1
+policies:
+  - id: accidental-global-allow
+    match: {}
+    decision: allow
+`)
+    ).toThrow();
+  });
+
+  it("supports generic contains conditions with dot path lookup from args", () => {
+    const result = evaluatePolicy(
+      {
+        version: 1,
+        policies: [
+          {
+            id: "workspace-read",
+            match: {
+              agent: "coding-agent",
+              tool: "file.read"
+            },
+            conditions: [{ field: "args.path", operator: "contains", value: "/workspace/" }],
+            decision: "allow"
+          }
+        ]
+      },
+      {
+        agent: "coding-agent",
+        tool: "file.read",
+        args: { path: "/workspace/src/index.ts" }
+      }
+    );
+
+    expect(result.decision).toBe("allow");
+    expect(result.matchedPolicyId).toBe("workspace-read");
+  });
+
+  it("supports generic not_contains conditions", () => {
+    const result = evaluatePolicy(
+      {
+        version: 1,
+        policies: [
+          {
+            id: "external-email",
+            match: {
+              agent: "support-agent",
+              tool: "email.send"
+            },
+            conditions: [
+              { field: "args.recipient", operator: "not_contains", value: "@example.com" }
+            ],
+            decision: "require_approval"
+          }
+        ]
+      },
+      {
+        agent: "support-agent",
+        tool: "email.send",
+        args: { recipient: "recipient@external.test" }
+      }
+    );
+
+    expect(result.decision).toBe("require_approval");
+    expect(result.matchedPolicyId).toBe("external-email");
+  });
+
+  it("supports dot path lookup from context", () => {
     const result = evaluatePolicy(
       {
         version: 1,
@@ -140,12 +219,9 @@ policies: []
             id: "production-delete",
             match: {
               agent: "support-agent",
-              tool: "account.delete",
-              field_equals: {
-                field: "environment",
-                value: "production"
-              }
+              tool: "account.delete"
             },
+            conditions: [{ field: "context.environment", operator: "eq", value: "production" }],
             decision: "block"
           }
         ]
@@ -162,34 +238,32 @@ policies: []
     expect(result.matchedPolicyId).toBe("production-delete");
   });
 
-  it("supports generic contains conditions", () => {
+  it("does not match unknown fields", () => {
     const result = evaluatePolicy(
       {
         version: 1,
+        defaults: { decision: "block" },
         policies: [
           {
-            id: "external-email",
+            id: "missing-field",
             match: {
               agent: "support-agent",
-              tool: "email.send",
-              not_contains: {
-                field: "recipient",
-                value: "@example.com"
-              }
+              tool: "stripe.refund"
             },
-            decision: "require_approval"
+            conditions: [{ field: "args.missing", operator: "neq", value: "never" }],
+            decision: "allow"
           }
         ]
       },
       {
         agent: "support-agent",
-        tool: "email.send",
-        args: { recipient: "recipient@external.test" }
+        tool: "stripe.refund",
+        args: { amount: 20 }
       }
     );
 
-    expect(result.decision).toBe("require_approval");
-    expect(result.matchedPolicyId).toBe("external-email");
+    expect(result.decision).toBe("block");
+    expect(result.matchedPolicyId).toBeUndefined();
   });
 
   it("loads and evaluates a custom YAML policy file from any path", async () => {
@@ -207,6 +281,10 @@ policies:
     match:
       agent: research-agent
       tool: crm.lookup
+    conditions:
+      - field: args.accountId
+        operator: eq
+        value: acct_123
     decision: allow
 `,
       "utf8"

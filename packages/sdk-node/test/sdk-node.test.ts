@@ -26,22 +26,60 @@ function createMemoryAuditLogger(events: AuditEventInput[]): LocalAuditLogger {
   };
 }
 
+function createFailingAuditLogger(): LocalAuditLogger {
+  return {
+    async append() {
+      throw new Error("audit write failed");
+    }
+  };
+}
+
+function createAuditLoggerFailingOnCall(failingCall: number): LocalAuditLogger {
+  let calls = 0;
+  return {
+    async append(event) {
+      calls += 1;
+      if (calls === failingCall) {
+        throw new Error("audit write failed");
+      }
+
+      return {
+        id: `audit-${calls}`,
+        timestamp: "2026-05-12T00:00:00.000Z",
+        agent: event.agent,
+        tool: event.tool,
+        decision: event.decision,
+        matchedPolicyId: event.matchedPolicyId,
+        status: event.status,
+        argsRedacted: event.args,
+        contextRedacted: event.context,
+        durationMs: event.durationMs,
+        error: event.error
+      };
+    }
+  };
+}
+
 const policyFile = {
   version: 1,
   defaults: { decision: "block" },
   policies: [
     {
       id: "allow-small-refunds",
-      match: { agent: "support-agent", tool: "stripe.refund", args: { amount_lte: 50 } },
+      match: { agent: "support-agent", tool: "stripe.refund" },
+      conditions: [{ field: "args.amount", operator: "lte", value: 50 }],
       decision: "allow"
     },
     {
       id: "approve-medium-refunds",
       match: {
         agent: "support-agent",
-        tool: "stripe.refund",
-        args: { amount_gt: 50, amount_lte: 500 }
+        tool: "stripe.refund"
       },
+      conditions: [
+        { field: "args.amount", operator: "gt", value: 50 },
+        { field: "args.amount", operator: "lte", value: 500 }
+      ],
       decision: "require_approval"
     },
     {
@@ -72,7 +110,7 @@ describe("sdk-node", () => {
       executed: true,
       matchedPolicyId: "allow-small-refunds"
     });
-    expect(events[0]?.status).toBe("executed");
+    expect(events.map((event) => event.status)).toEqual(["decision_logged", "executed"]);
   });
 
   it("does not execute callback when blocked", async () => {
@@ -97,6 +135,28 @@ describe("sdk-node", () => {
     expect(events[0]?.status).toBe("blocked");
   });
 
+  it("returns a typed audit failure when blocked audit logging fails", async () => {
+    const client = createClient(policyFile, createFailingAuditLogger());
+    const execute = vi.fn(async () => ({ refunded: true }));
+
+    const result = await client.enforceToolCall({
+      agent: "support-agent",
+      tool: "stripe.refund",
+      args: { amount: 1000 },
+      execute
+    });
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      ok: false,
+      decision: "block",
+      executed: false,
+      blocked: true,
+      auditFailed: true
+    });
+    expect(result.error?.message).toBe("audit write failed");
+  });
+
   it("does not execute callback when approval is required", async () => {
     const events: AuditEventInput[] = [];
     const client = createClient(policyFile, createMemoryAuditLogger(events));
@@ -119,6 +179,28 @@ describe("sdk-node", () => {
     expect(events[0]?.status).toBe("pending_approval");
   });
 
+  it("returns a typed audit failure when approval audit logging fails", async () => {
+    const client = createClient(policyFile, createFailingAuditLogger());
+    const execute = vi.fn(async () => ({ refunded: true }));
+
+    const result = await client.enforceToolCall({
+      agent: "support-agent",
+      tool: "stripe.refund",
+      args: { amount: 250 },
+      execute
+    });
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      ok: false,
+      decision: "require_approval",
+      executed: false,
+      approvalRequired: true,
+      auditFailed: true
+    });
+    expect(result.error?.message).toBe("audit write failed");
+  });
+
   it("executes callback for log_only", async () => {
     const events: AuditEventInput[] = [];
     const client = createClient(policyFile, createMemoryAuditLogger(events));
@@ -133,7 +215,7 @@ describe("sdk-node", () => {
 
     expect(execute).toHaveBeenCalledOnce();
     expect(result).toMatchObject({ ok: true, decision: "log_only", executed: true });
-    expect(events[0]?.status).toBe("logged");
+    expect(events.map((event) => event.status)).toEqual(["decision_logged", "logged"]);
   });
 
   it("logs failed execution", async () => {
@@ -155,9 +237,53 @@ describe("sdk-node", () => {
       executed: true
     });
     expect(events[0]).toMatchObject({
+      status: "decision_logged"
+    });
+    expect(events[1]).toMatchObject({
       status: "failed",
       error: "refund failed"
     });
+  });
+
+  it("preserves execution errors when failed audit logging also fails", async () => {
+    const client = createClient(policyFile, createAuditLoggerFailingOnCall(2));
+
+    const result = await client.enforceToolCall({
+      agent: "support-agent",
+      tool: "stripe.refund",
+      args: { amount: 20 },
+      execute: async () => {
+        throw new Error("refund failed");
+      }
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      decision: "allow",
+      executed: true,
+      auditFailed: true
+    });
+    expect(result.error.message).toBe("refund failed");
+  });
+
+  it("returns execution data when post-execution audit logging fails", async () => {
+    const client = createClient(policyFile, createAuditLoggerFailingOnCall(2));
+
+    const result = await client.enforceToolCall({
+      agent: "support-agent",
+      tool: "stripe.refund",
+      args: { amount: 20 },
+      execute: async () => ({ refundId: "ref_123", status: "created" })
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      decision: "allow",
+      executed: true,
+      auditFailed: true,
+      data: { refundId: "ref_123", status: "created" }
+    });
+    expect(result.error.message).toBe("audit write failed");
   });
 
   it("includes the matched policy id", async () => {
@@ -173,6 +299,27 @@ describe("sdk-node", () => {
 
     expect(result.matchedPolicyId).toBe("allow-small-refunds");
     expect(events[0]?.matchedPolicyId).toBe("allow-small-refunds");
+    expect(events[0]?.status).toBe("decision_logged");
+  });
+
+  it("does not execute allowed callbacks when pre-execution audit logging fails", async () => {
+    const client = createClient(policyFile, createFailingAuditLogger());
+    const execute = vi.fn(async () => ({ refunded: true }));
+
+    const result = await client.enforceToolCall({
+      agent: "support-agent",
+      tool: "stripe.refund",
+      args: { amount: 20 },
+      execute
+    });
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      ok: false,
+      decision: "allow",
+      executed: false,
+      auditFailed: true
+    });
   });
 
   it("loads a custom YAML policy path without requiring starter policies", async () => {
@@ -192,6 +339,10 @@ policies:
     match:
       agent: research-agent
       tool: crm.lookup
+    conditions:
+      - field: args.accountId
+        operator: eq
+        value: acct_123
     decision: allow
 `,
       "utf8"
@@ -231,14 +382,83 @@ policies:
     });
 
     const auditLines = (await readFile(auditPath, "utf8")).trim().split("\n");
-    expect(auditLines).toHaveLength(2);
+    expect(auditLines).toHaveLength(3);
     expect(JSON.parse(auditLines[0] ?? "{}")).toMatchObject({
+      tool: "crm.lookup",
+      status: "decision_logged"
+    });
+    expect(JSON.parse(auditLines[1] ?? "{}")).toMatchObject({
       tool: "crm.lookup",
       status: "executed"
     });
-    expect(JSON.parse(auditLines[1] ?? "{}")).toMatchObject({
+    expect(JSON.parse(auditLines[2] ?? "{}")).toMatchObject({
       tool: "crm.delete",
       status: "blocked"
     });
+  });
+
+  it("redacts secrets from audit log but returns original error to caller on failed execution", async () => {
+    const events: AuditEventInput[] = [];
+    const client = createClient(policyFile, createMemoryAuditLogger(events));
+    const secretKey = "sk_live_1234567890abcdef";
+    const bearerToken = "Bearer ya29.Gl0zBL_abcdefghijklmnopqrstuvwxyz";
+    const apiKey = "api_key=secret-api-key";
+    const password = "password=super-secret-password";
+
+    const errorMessage = `Failed to call API: ${secretKey}, ${bearerToken}, ${apiKey}, ${password}`;
+
+    const result = await client.enforceToolCall({
+      agent: "support-agent",
+      tool: "stripe.refund",
+      args: { amount: 20 },
+      execute: async () => {
+        throw new Error(errorMessage);
+      }
+    });
+
+    // 1. enforceToolCall returns the original Error object or original error message to the caller
+    expect(result.ok).toBe(false);
+    expect(result.error?.message).toBe(errorMessage);
+    expect(result.error?.message).toContain(secretKey);
+
+    // 2. the tool call result keeps executed: true
+    expect(result.executed).toBe(true);
+
+    // 3. the decision is allow or log_only depending on the test policy
+    expect(result.decision).toBe("allow");
+
+    // 4. the audit log writes a redacted error message
+    expect(events[1].status).toBe("failed");
+    expect(events[1].error).not.toBe(errorMessage);
+    expect(events[1].error).toContain("[REDACTED]");
+
+    // 5. the audit log does not contain the raw secret
+    expect(events[1].error).not.toContain(secretKey);
+    expect(events[1].error).not.toContain("ya29.Gl0zBL");
+    expect(events[1].error).not.toContain("secret-api-key");
+    expect(events[1].error).not.toContain("super-secret-password");
+  });
+
+  it("redacts secrets from audit log for log_only decision on failed execution", async () => {
+    const events: AuditEventInput[] = [];
+    const client = createClient(policyFile, createMemoryAuditLogger(events));
+    const secretKey = "sk_test_4eC39HqLyjWDarjtT1zdp7dc";
+
+    const result = await client.enforceToolCall({
+      agent: "support-agent",
+      tool: "health.check",
+      args: {},
+      execute: async () => {
+        throw new Error(`Auth failed with ${secretKey}`);
+      }
+    });
+
+    expect(result.decision).toBe("log_only");
+    expect(result.executed).toBe(true);
+    expect(result.error?.message).toContain(secretKey);
+
+    expect(events[1].status).toBe("failed");
+    expect(events[1].error).toBe("Auth failed with [REDACTED]");
+    expect(events[1].error).not.toContain(secretKey);
   });
 });

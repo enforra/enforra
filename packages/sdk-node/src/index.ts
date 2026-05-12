@@ -1,5 +1,9 @@
 import { performance } from "node:perf_hooks";
-import { createLocalAuditLogger, type LocalAuditLogger } from "@enforra/local-audit";
+import {
+  createLocalAuditLogger,
+  redactErrorMessage,
+  type LocalAuditLogger
+} from "@enforra/local-audit";
 import {
   evaluatePolicy,
   loadPolicyFile,
@@ -33,6 +37,8 @@ export type EnforceToolCallResult<TData> =
       reason: string;
       executed: false;
       blocked: true;
+      auditFailed?: true;
+      error?: Error;
     }
   | {
       ok: false;
@@ -41,6 +47,8 @@ export type EnforceToolCallResult<TData> =
       reason: string;
       executed: false;
       approvalRequired: true;
+      auditFailed?: true;
+      error?: Error;
     }
   | {
       ok: false;
@@ -48,6 +56,26 @@ export type EnforceToolCallResult<TData> =
       matchedPolicyId?: string;
       reason: string;
       executed: true;
+      auditFailed?: true;
+      error: Error;
+    }
+  | {
+      ok: false;
+      decision: "allow" | "log_only";
+      matchedPolicyId?: string;
+      reason: string;
+      executed: true;
+      auditFailed: true;
+      data: TData;
+      error: Error;
+    }
+  | {
+      ok: false;
+      decision: "allow" | "log_only";
+      matchedPolicyId?: string;
+      reason: string;
+      executed: false;
+      auditFailed: true;
       error: Error;
     };
 
@@ -73,11 +101,24 @@ export function createClient(policyFile: PolicyFile, auditLogger: LocalAuditLogg
       const evaluation = evaluatePolicy(policyFile, input);
 
       if (evaluation.decision === "block") {
-        await auditLogger.append({
-          ...auditFields(input, evaluation.decision, evaluation.matchedPolicyId),
-          status: "blocked",
-          durationMs: durationSince(startedAt)
-        });
+        try {
+          await auditLogger.append({
+            ...auditFields(input, evaluation.decision, evaluation.matchedPolicyId),
+            status: "blocked",
+            durationMs: durationSince(startedAt)
+          });
+        } catch (error) {
+          return {
+            ok: false,
+            decision: "block",
+            matchedPolicyId: evaluation.matchedPolicyId,
+            reason: evaluation.reason,
+            executed: false,
+            blocked: true,
+            auditFailed: true,
+            error: normalizeError(error)
+          };
+        }
 
         return {
           ok: false,
@@ -90,11 +131,24 @@ export function createClient(policyFile: PolicyFile, auditLogger: LocalAuditLogg
       }
 
       if (evaluation.decision === "require_approval") {
-        await auditLogger.append({
-          ...auditFields(input, evaluation.decision, evaluation.matchedPolicyId),
-          status: "pending_approval",
-          durationMs: durationSince(startedAt)
-        });
+        try {
+          await auditLogger.append({
+            ...auditFields(input, evaluation.decision, evaluation.matchedPolicyId),
+            status: "pending_approval",
+            durationMs: durationSince(startedAt)
+          });
+        } catch (error) {
+          return {
+            ok: false,
+            decision: "require_approval",
+            matchedPolicyId: evaluation.matchedPolicyId,
+            reason: evaluation.reason,
+            executed: false,
+            approvalRequired: true,
+            auditFailed: true,
+            error: normalizeError(error)
+          };
+        }
 
         return {
           ok: false,
@@ -107,12 +161,44 @@ export function createClient(policyFile: PolicyFile, auditLogger: LocalAuditLogg
       }
 
       try {
-        const data = await input.execute();
         await auditLogger.append({
           ...auditFields(input, evaluation.decision, evaluation.matchedPolicyId),
-          status: evaluation.decision === "log_only" ? "logged" : "executed",
+          status: "decision_logged",
           durationMs: durationSince(startedAt)
         });
+      } catch (error) {
+        return {
+          ok: false,
+          decision: evaluation.decision,
+          matchedPolicyId: evaluation.matchedPolicyId,
+          reason: evaluation.reason,
+          executed: false,
+          auditFailed: true,
+          error: normalizeError(error)
+        };
+      }
+
+      try {
+        const data = await input.execute();
+
+        try {
+          await auditLogger.append({
+            ...auditFields(input, evaluation.decision, evaluation.matchedPolicyId),
+            status: evaluation.decision === "log_only" ? "logged" : "executed",
+            durationMs: durationSince(startedAt)
+          });
+        } catch (error) {
+          return {
+            ok: false,
+            decision: evaluation.decision,
+            matchedPolicyId: evaluation.matchedPolicyId,
+            reason: evaluation.reason,
+            executed: true,
+            auditFailed: true,
+            data,
+            error: normalizeError(error)
+          };
+        }
 
         return {
           ok: true,
@@ -123,13 +209,25 @@ export function createClient(policyFile: PolicyFile, auditLogger: LocalAuditLogg
           data
         };
       } catch (error) {
-        const normalizedError = error instanceof Error ? error : new Error(String(error));
-        await auditLogger.append({
-          ...auditFields(input, evaluation.decision, evaluation.matchedPolicyId),
-          status: "failed",
-          durationMs: durationSince(startedAt),
-          error: normalizedError.message
-        });
+        const normalizedError = normalizeError(error);
+        try {
+          await auditLogger.append({
+            ...auditFields(input, evaluation.decision, evaluation.matchedPolicyId),
+            status: "failed",
+            durationMs: durationSince(startedAt),
+            error: redactErrorMessage(normalizedError.message)
+          });
+        } catch {
+          return {
+            ok: false,
+            decision: evaluation.decision,
+            matchedPolicyId: evaluation.matchedPolicyId,
+            reason: evaluation.reason,
+            executed: true,
+            auditFailed: true,
+            error: normalizedError
+          };
+        }
 
         return {
           ok: false,
@@ -161,4 +259,8 @@ function auditFields(
 
 function durationSince(startedAt: number): number {
   return Math.round(performance.now() - startedAt);
+}
+
+function normalizeError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
 }

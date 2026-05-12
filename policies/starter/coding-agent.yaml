@@ -7,8 +7,9 @@ policies:
     match:
       agent: coding-agent
       tool: file.read
-      contains:
-        field: path
+    conditions:
+      - field: args.path
+        operator: contains
         value: ".env"
     decision: block
 
@@ -17,8 +18,9 @@ policies:
     match:
       agent: coding-agent
       tool: file.read
-      contains:
-        field: path
+    conditions:
+      - field: args.path
+        operator: contains
         value: "private_key"
     decision: block
 
@@ -34,8 +36,9 @@ policies:
     match:
       agent: coding-agent
       tool: file.read
-      contains:
-        field: path
+    conditions:
+      - field: args.path
+        operator: contains
         value: "/workspace/"
     decision: allow
 
@@ -51,8 +54,9 @@ policies:
     match:
       agent: coding-agent
       tool: shell.run
-      field_equals:
-        field: environment
+    conditions:
+      - field: context.environment
+        operator: eq
         value: production
     decision: require_approval
 

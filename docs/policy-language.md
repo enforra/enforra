@@ -1,6 +1,6 @@
 # Policy Language
 
-Policy version 1 supports exact matches on `agent` and `tool`, numeric `amount` conditions, and generic field conditions over `args` and `context`.
+Policy version 1 supports exact matches on `agent` and `tool` plus generic conditions over dot paths in `args` and `context`.
 
 ```yaml
 version: 1
@@ -11,17 +11,18 @@ policies:
     match:
       agent: coding-agent
       tool: shell.run
-      field_equals:
-        field: environment
+    conditions:
+      - field: context.environment
+        operator: eq
         value: production
     decision: require_approval
 ```
 
 Supported decisions are `allow`, `block`, `require_approval`, and `log_only`.
 
-Supported numeric conditions are `amount_gt`, `amount_gte`, `amount_lt`, and `amount_lte`.
+Supported condition operators are `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contains`, and `not_contains`.
 
-Supported generic field conditions are `field_equals`, `field_not_equals`, `contains`, and `not_contains`.
+Condition fields use dot paths rooted at `args` or `context`, such as `args.amount`, `args.recipient`, or `context.environment`. Conditions are ANDed together.
 
 ## Creating your own policy
 
@@ -37,6 +38,10 @@ policies:
     match:
       agent: research-agent
       tool: crm.lookup
+    conditions:
+      - field: args.accountId
+        operator: contains
+        value: acct_
     decision: allow
 
   - id: approve-production-write
@@ -44,8 +49,9 @@ policies:
     match:
       agent: research-agent
       tool: crm.update
-      field_equals:
-        field: environment
+    conditions:
+      - field: context.environment
+        operator: eq
         value: production
     decision: require_approval
 ```

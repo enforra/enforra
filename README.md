@@ -119,25 +119,29 @@ policies:
     match:
       agent: support-agent
       tool: stripe.refund
-      args:
-        amount_lte: 50
+    conditions:
+      - field: args.amount
+        operator: lte
+        value: 50
     decision: allow
 ```
 
+Conditions use dot paths rooted at `args` or `context`, such as `args.amount`, `args.recipient`, or `context.environment`. Supported operators are `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contains`, and `not_contains`.
+
 ## The four decisions
 
-- `allow`: execute the callback and log `executed`.
+- `allow`: write a pre-execution decision audit event, execute the callback, and log `executed`.
 - `block`: do not execute the callback and log `blocked`.
 - `require_approval`: do not execute in the open source local runtime and log `pending_approval`.
-- `log_only`: execute the callback and log `logged`.
+- `log_only`: write a pre-execution decision audit event, execute the callback, and log `logged`.
 
 ## What gets logged
 
-Audit events are appended to `.enforra/audit.jsonl`. Arguments and context are recursively redacted for common secret fields before they are written.
+Audit events are appended to `.enforra/audit.jsonl`. Arguments and context are recursively redacted for common secret fields before they are written. For `allow` and `log_only`, the runtime writes a decision audit event before calling `execute`; if that audit write fails, the callback is not run. Successful executed tool calls can create more than one audit event: a pre-execution `decision_logged` event and a final `executed` or `logged` event.
 
 ## Security model
 
-This open source runtime loads policies from local YAML files so developers can inspect and run the enforcement logic without a hosted service.
+This open source runtime loads policies from local YAML files so developers can inspect and run the enforcement logic without a hosted service. Policy decisions are deterministic for the same policy and tool-call input.
 
 The runtime performs no network calls, telemetry, analytics, database writes, or hidden background work. The customer application owns actual tool execution. Enforra only decides whether the local `execute` callback should run.
 

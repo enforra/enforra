@@ -7,8 +7,9 @@ policies:
     match:
       agent: mcp-agent
       tool: mcp.read
-      field_equals:
-        field: approved
+    conditions:
+      - field: args.approved
+        operator: eq
         value: true
     decision: allow
 
@@ -37,7 +38,8 @@ policies:
     description: Block unknown MCP servers by default
     match:
       agent: mcp-agent
-      field_not_equals:
-        field: approved
+    conditions:
+      - field: args.approved
+        operator: neq
         value: true
     decision: block

@@ -7,8 +7,10 @@ policies:
     match:
       agent: support-agent
       tool: stripe.refund
-      args:
-        amount_lte: 50
+    conditions:
+      - field: args.amount
+        operator: lte
+        value: 50
     decision: allow
 
   - id: approve-medium-refunds
@@ -16,9 +18,13 @@ policies:
     match:
       agent: support-agent
       tool: stripe.refund
-      args:
-        amount_gt: 50
-        amount_lte: 500
+    conditions:
+      - field: args.amount
+        operator: gt
+        value: 50
+      - field: args.amount
+        operator: lte
+        value: 500
     decision: require_approval
 
   - id: block-large-refunds
@@ -26,8 +32,10 @@ policies:
     match:
       agent: support-agent
       tool: stripe.refund
-      args:
-        amount_gt: 500
+    conditions:
+      - field: args.amount
+        operator: gt
+        value: 500
     decision: block
 
   - id: block-account-deletion-production
@@ -35,8 +43,9 @@ policies:
     match:
       agent: support-agent
       tool: account.delete
-      field_equals:
-        field: environment
+    conditions:
+      - field: context.environment
+        operator: eq
         value: production
     decision: block
 
@@ -45,7 +54,8 @@ policies:
     match:
       agent: support-agent
       tool: email.send
-      not_contains:
-        field: recipient
+    conditions:
+      - field: args.recipient
+        operator: not_contains
         value: "@example.com"
     decision: require_approval
