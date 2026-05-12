@@ -1,0 +1,61 @@
+version: 1
+defaults:
+  decision: block
+policies:
+  - id: allow-small-refunds
+    description: Allow small refunds automatically
+    match:
+      agent: support-agent
+      tool: stripe.refund
+    conditions:
+      - field: args.amount
+        operator: lte
+        value: 50
+    decision: allow
+
+  - id: approve-medium-refunds
+    description: Require approval for medium refunds
+    match:
+      agent: support-agent
+      tool: stripe.refund
+    conditions:
+      - field: args.amount
+        operator: gt
+        value: 50
+      - field: args.amount
+        operator: lte
+        value: 500
+    decision: require_approval
+
+  - id: block-large-refunds
+    description: Block large refunds
+    match:
+      agent: support-agent
+      tool: stripe.refund
+    conditions:
+      - field: args.amount
+        operator: gt
+        value: 500
+    decision: block
+
+  - id: block-account-deletion-production
+    description: Block account deletion in production
+    match:
+      agent: support-agent
+      tool: account.delete
+    conditions:
+      - field: context.environment
+        operator: eq
+        value: production
+    decision: block
+
+  - id: approve-external-email
+    description: Require approval before sending external email
+    match:
+      agent: support-agent
+      tool: email.send
+    conditions:
+      - field: args.recipient
+        operator: not_contains
+        value: "@example.com"
+    decision: require_approval

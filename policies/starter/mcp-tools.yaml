@@ -1,0 +1,45 @@
+version: 1
+defaults:
+  decision: block
+policies:
+  - id: allow-approved-read-only-tools
+    description: Allow approved read-only MCP tools
+    match:
+      agent: mcp-agent
+      tool: mcp.read
+    conditions:
+      - field: args.approved
+        operator: eq
+        value: true
+    decision: allow
+
+  - id: approve-write-tools
+    description: Require approval for write MCP tools
+    match:
+      agent: mcp-agent
+      tool: mcp.write
+    decision: require_approval
+
+  - id: block-filesystem-delete
+    description: Block filesystem delete operations
+    match:
+      agent: mcp-agent
+      tool: filesystem.delete
+    decision: block
+
+  - id: block-shell-execution
+    description: Block shell execution through MCP tools
+    match:
+      agent: mcp-agent
+      tool: shell.execute
+    decision: block
+
+  - id: block-unknown-mcp-servers
+    description: Block unknown MCP servers by default
+    match:
+      agent: mcp-agent
+    conditions:
+      - field: args.approved
+        operator: neq
+        value: true
+    decision: block
