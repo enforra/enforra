@@ -24,6 +24,22 @@ Supported condition operators are `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contai
 
 Condition fields use dot paths rooted at `args` or `context`, such as `args.amount`, `args.recipient`, or `context.environment`. Conditions are ANDed together.
 
+## Policy reference
+
+- `match.agent`: optional exact string match on the incoming agent name.
+- `match.tool`: optional exact string match on the incoming tool name.
+- `conditions`: optional list of condition checks; all listed conditions must match.
+- `field`: dot-path into either `args.*` or `context.*`.
+- `operator`: one of `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contains`, `not_contains`.
+- `value`: literal value used by the operator.
+
+Evaluation behavior:
+
+1. Policies are evaluated top-to-bottom.
+2. First matching policy wins.
+3. If no policy matches, Enforra uses `defaults.decision`.
+4. If no default decision is configured, Enforra returns `block`.
+
 ## Creating your own policy
 
 Create a YAML file in your application and pass its path to `createEnforraClient`. Starter policies are examples only; the SDK is not hardcoded to them.

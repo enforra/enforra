@@ -43,6 +43,12 @@ The customer application owns actual tool execution. The Enforra runtime does no
 
 Agent instructions are useful, but they are not a security boundary. Runtime control gives developers a typed enforcement point immediately before side effects happen.
 
+## Why not just use a system prompt?
+
+System prompts can guide model behavior, but they should not be the final security boundary for tool calls.
+
+Enforra evaluates policy immediately before the tool callback runs. Even if an agent is manipulated, the runtime can still block, require approval, or log the action before side effects happen.
+
 ## Prerequisites
 
 - Node.js 20 or newer
@@ -126,6 +132,32 @@ policies:
     decision: allow
 ```
 
+## Coding-agent policy example
+
+```yaml
+version: 1
+defaults:
+  decision: block
+policies:
+  - id: block-env-file-access
+    match:
+      tool: filesystem.read
+    conditions:
+      - field: args.path
+        operator: contains
+        value: ".env"
+    decision: block
+
+  - id: approve-package-install
+    match:
+      tool: terminal.run
+    conditions:
+      - field: args.command
+        operator: contains
+        value: "npm install"
+    decision: require_approval
+```
+
 Conditions use dot paths rooted at `args` or `context`, such as `args.amount`, `args.recipient`, or `context.environment`. Supported operators are `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contains`, and `not_contains`.
 
 ## The four decisions
@@ -152,6 +184,18 @@ This repository is focused on local runtime enforcement. Policy management, team
 This repository contains the local runtime core only.
 
 It does not include a hosted API, cloud dashboard, hosted audit retention, team approvals, auth, billing, RBAC, SSO, Slack or email approvals, compliance reports, remote tool execution, or MCP gateway behavior.
+
+## What is included
+
+This repository includes:
+
+- policy loading, validation, and evaluation
+- Node SDK wrapper for agent tool calls
+- local JSONL audit logging with redaction
+- starter policy examples
+- support refund demo
+- tests for policy evaluation, audit redaction, and SDK behavior
+- CI for build, test, and lint
 
 ## Project structure
 
