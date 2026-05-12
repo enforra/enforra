@@ -47,5 +47,5 @@ policies:
       tool: email.send
       not_contains:
         field: recipient
-        value: "@company.com"
+        value: "@example.com"
     decision: require_approval

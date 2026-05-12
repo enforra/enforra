@@ -1,5 +1,8 @@
+import { mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { evaluatePolicy, parsePolicyYaml, type PolicyFile } from "../src/index.js";
+import { evaluatePolicy, loadPolicyFile, parsePolicyYaml, type PolicyFile } from "../src/index.js";
 
 const refundPolicy: PolicyFile = {
   version: 1,
@@ -171,7 +174,7 @@ policies: []
               tool: "email.send",
               not_contains: {
                 field: "recipient",
-                value: "@company.com"
+                value: "@example.com"
               }
             },
             decision: "require_approval"
@@ -181,11 +184,55 @@ policies: []
       {
         agent: "support-agent",
         tool: "email.send",
-        args: { recipient: "customer@example.com" }
+        args: { recipient: "recipient@external.test" }
       }
     );
 
     expect(result.decision).toBe("require_approval");
     expect(result.matchedPolicyId).toBe("external-email");
+  });
+
+  it("loads and evaluates a custom YAML policy file from any path", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "enforra-policy-"));
+    const policyPath = join(dir, "custom-policy.yaml");
+
+    await writeFile(
+      policyPath,
+      `
+version: 1
+defaults:
+  decision: block
+policies:
+  - id: allow-custom-tool
+    match:
+      agent: research-agent
+      tool: crm.lookup
+    decision: allow
+`,
+      "utf8"
+    );
+
+    const customPolicy = await loadPolicyFile(policyPath);
+
+    const allowedResult = evaluatePolicy(customPolicy, {
+      agent: "research-agent",
+      tool: "crm.lookup",
+      args: { accountId: "acct_123" }
+    });
+
+    const unknownToolResult = evaluatePolicy(customPolicy, {
+      agent: "research-agent",
+      tool: "crm.delete",
+      args: { accountId: "acct_123" }
+    });
+
+    expect(allowedResult).toMatchObject({
+      decision: "allow",
+      matchedPolicyId: "allow-custom-tool"
+    });
+    expect(unknownToolResult).toMatchObject({
+      decision: "block",
+      matchedPolicyId: undefined
+    });
   });
 });

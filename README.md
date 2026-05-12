@@ -4,20 +4,23 @@ Enforra adds a local policy boundary before tool calls execute.
 
 # Enforra
 
+[![CI](https://github.com/enforra/enforra/actions/workflows/ci.yml/badge.svg)](https://github.com/enforra/enforra/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
 ```ts
 import { createEnforraClient } from "@enforra/sdk-node";
 
 const enforra = await createEnforraClient({
-  policyPath: "./policies/starter/support-agent.yaml",
+  policyPath: "./policies/my-agent.yaml",
   auditPath: ".enforra/audit.jsonl"
 });
 
 const result = await enforra.enforceToolCall({
-  agent: "support-agent",
-  tool: "stripe.refund",
-  args: { customerId: "cus_123", amount: 250 },
+  agent: "research-agent",
+  tool: "crm.lookup",
+  args: { accountId: "acct_123" },
   context: { environment: "production" },
-  execute: async () => fakeRefund()
+  execute: async () => lookupAccount()
 });
 ```
 
@@ -62,6 +65,8 @@ Call `enforceToolCall` with `agent`, `tool`, `args`, optional `context`, and an 
 
 ## Policy example
 
+Starter policies live in `policies/starter` as examples. They are not required runtime configuration. In a real application, pass `createEnforraClient` the path to your own YAML policy file.
+
 ```yaml
 version: 1
 defaults:
@@ -94,8 +99,6 @@ Enforra is local-first and deterministic. Policies are loaded from local YAML fi
 ## What Enforra does not do
 
 This open source core does not include a cloud dashboard, hosted audit retention, team approvals, auth, billing, RBAC, SSO, Slack or email approvals, compliance reports, a hosted API, Supabase, Postgres, Redis, remote tool execution, or MCP gateway behavior.
-
-The cloud product may later add hosted audit logs, team approvals, policy management, RBAC, SSO, and compliance reporting.
 
 ## Project structure
 

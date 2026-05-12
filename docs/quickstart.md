@@ -13,7 +13,7 @@ Create a client:
 import { createEnforraClient } from "@enforra/sdk-node";
 
 const enforra = await createEnforraClient({
-  policyPath: "./policies/starter/support-agent.yaml",
+  policyPath: "./policies/my-agent.yaml",
   auditPath: ".enforra/audit.jsonl"
 });
 ```
@@ -24,13 +24,15 @@ Wrap a tool call:
 import { createEnforraClient } from "@enforra/sdk-node";
 
 const enforra = await createEnforraClient({
-  policyPath: "./policies/starter/support-agent.yaml"
+  policyPath: "./policies/my-agent.yaml"
 });
 
 await enforra.enforceToolCall({
-  agent: "support-agent",
-  tool: "stripe.refund",
-  args: { amount: 20 },
-  execute: async () => refundCustomer()
+  agent: "research-agent",
+  tool: "crm.lookup",
+  args: { accountId: "acct_123" },
+  execute: async () => lookupAccount()
 });
 ```
+
+Starter policies in `policies/starter` are examples. The SDK accepts any local YAML policy path that matches the policy schema.
