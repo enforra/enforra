@@ -35,4 +35,4 @@ await enforra.enforceToolCall({
 });
 ```
 
-Starter policies in `policies/starter` are examples. The SDK accepts any local YAML policy path that matches the policy schema.
+Starter policies in `policies/starter` are examples. They are not required runtime configuration, and the SDK is not hardcoded to them. The SDK accepts any local YAML policy path that matches the policy schema.

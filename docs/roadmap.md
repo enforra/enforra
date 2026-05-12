@@ -1,5 +1,7 @@
 # Roadmap
 
+This roadmap is scoped to the open source local runtime core.
+
 Near-term open source work:
 
 - More policy condition operators

@@ -25,7 +25,7 @@ Supported generic field conditions are `field_equals`, `field_not_equals`, `cont
 
 ## Creating your own policy
 
-Create a YAML file in your application and pass its path to `createEnforraClient`.
+Create a YAML file in your application and pass its path to `createEnforraClient`. Starter policies are examples only; the SDK is not hardcoded to them.
 
 ```yaml
 version: 1

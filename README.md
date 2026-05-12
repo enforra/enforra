@@ -1,49 +1,66 @@
-AI agents can now call tools, access data, and create real side effects.
-System prompts are not a reliable security boundary.
-Enforra adds a local policy boundary before tool calls execute.
-
 # Enforra
 
 [![CI](https://github.com/enforra/enforra/actions/workflows/ci.yml/badge.svg)](https://github.com/enforra/enforra/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
+AI agents can now call tools, access data, and create real side effects. System prompts are not a reliable security boundary. Enforra adds a local policy boundary before tool calls execute.
+
 ```ts
 import { createEnforraClient } from "@enforra/sdk-node";
 
 const enforra = await createEnforraClient({
-  policyPath: "./policies/my-agent.yaml",
+  policyPath: "./policies/starter/support-agent.yaml",
   auditPath: ".enforra/audit.jsonl"
 });
 
 const result = await enforra.enforceToolCall({
-  agent: "research-agent",
-  tool: "crm.lookup",
-  args: { accountId: "acct_123" },
-  context: { environment: "production" },
-  execute: async () => lookupAccount()
+  agent: "support-agent",
+  tool: "stripe.refund",
+  args: {
+    customerId: "cus_123",
+    amount: 250
+  },
+  context: {
+    environment: "production"
+  },
+  execute: async () => {
+    return { refundId: "ref_123", status: "created" };
+  }
 });
+
+// execute only runs when policy returns allow or log_only.
+console.log(result.decision);
+// "require_approval"
 ```
 
 ## What is Enforra?
 
-Enforra is a local-first runtime control layer for AI agent tool calls. It evaluates policy before a tool callback runs and returns one of four decisions: `allow`, `block`, `require_approval`, or `log_only`.
+This open source repository contains the local runtime core for Enforra. It evaluates policy before a tool callback runs and returns one of four decisions: `allow`, `block`, `require_approval`, or `log_only`.
 
-The customer application owns actual tool execution. Enforra does not execute tools remotely, does not need your secrets, and does not call a hosted API.
+The customer application owns actual tool execution. The Enforra runtime does not execute tools remotely, does not require your secrets, and does not call a hosted API.
 
 ## Why runtime control?
 
 Agent instructions are useful, but they are not a security boundary. Runtime control gives developers a typed enforcement point immediately before side effects happen.
 
+## Prerequisites
+
+- Node.js 20 or newer
+- pnpm via Corepack
+
 ## Quickstart
 
 ```bash
+git clone https://github.com/enforra/enforra.git
+cd enforra
+corepack enable
 pnpm install
 pnpm build
 pnpm test
 pnpm demo:support-refund
 ```
 
-## Install
+## Develop from source
 
 This repository is a pnpm monorepo. Packages are currently developed from source:
 
@@ -59,13 +76,39 @@ pnpm demo:support-refund
 
 The demo runs three fake refund calls: a small allowed refund, a medium refund requiring approval, and a large blocked refund.
 
+```text
+Enforra support refund demo
+
+Tool call: stripe.refund
+Agent: support-agent
+Amount: 20
+Decision: allow
+Executed: yes
+
+Tool call: stripe.refund
+Agent: support-agent
+Amount: 250
+Decision: require_approval
+Executed: no
+Reason: matched policy approve-medium-refunds
+
+Tool call: stripe.refund
+Agent: support-agent
+Amount: 1000
+Decision: block
+Executed: no
+Reason: matched policy block-large-refunds
+
+Audit log written to .enforra/audit.jsonl
+```
+
 ## Basic usage
 
 Call `enforceToolCall` with `agent`, `tool`, `args`, optional `context`, and an `execute` callback. Enforra only calls `execute` when the decision is `allow` or `log_only`.
 
 ## Policy example
 
-Starter policies live in `policies/starter` as examples. They are not required runtime configuration. In a real application, pass `createEnforraClient` the path to your own YAML policy file.
+Starter YAML policies live in `policies/starter` as examples. They are not required runtime configuration. In a real application, pass `createEnforraClient` the path to your own YAML policy file. The SDK is not hardcoded to the starter policies.
 
 ```yaml
 version: 1
@@ -94,11 +137,17 @@ Audit events are appended to `.enforra/audit.jsonl`. Arguments and context are r
 
 ## Security model
 
-Enforra is local-first and deterministic. Policies are loaded from local YAML files. The open source core is inspectable and performs no network calls, telemetry, analytics, database writes, or hidden background work.
+This open source runtime loads policies from local YAML files so developers can inspect and run the enforcement logic without a hosted service.
 
-## What Enforra does not do
+The runtime performs no network calls, telemetry, analytics, database writes, or hidden background work. The customer application owns actual tool execution. Enforra only decides whether the local `execute` callback should run.
 
-This open source core does not include a cloud dashboard, hosted audit retention, team approvals, auth, billing, RBAC, SSO, Slack or email approvals, compliance reports, a hosted API, Supabase, Postgres, Redis, remote tool execution, or MCP gateway behavior.
+This repository is focused on local runtime enforcement. Policy management, team workflows, and hosted audit retention are outside the scope of this OSS core.
+
+## What this repository does not include
+
+This repository contains the local runtime core only.
+
+It does not include a hosted API, cloud dashboard, hosted audit retention, team approvals, auth, billing, RBAC, SSO, Slack or email approvals, compliance reports, remote tool execution, or MCP gateway behavior.
 
 ## Project structure
 
@@ -109,6 +158,7 @@ packages/local-audit       Local JSONL audit logging and redaction
 examples/support-refund-agent
 policies/starter
 docs
+packages/*/test
 ```
 
 ## Roadmap

@@ -1,6 +1,6 @@
 # Limitations
 
-The open source core intentionally does not include:
+This open source repository contains the local runtime core only. It does not include:
 
 - Cloud dashboard
 - Hosted audit retention
@@ -18,3 +18,5 @@ The open source core intentionally does not include:
 - MCP gateway behavior
 
 `require_approval` is a local decision. It does not execute the callback and does not contact an approval service.
+
+This repository is focused on local runtime enforcement. Policy management, team workflows, and hosted audit retention are outside the scope of this OSS core.
