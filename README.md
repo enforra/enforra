@@ -126,6 +126,7 @@ Audit log written to .enforra/audit.jsonl
 - `examples/mcp-style-tool-policy`: starter policy pattern for MCP-style tool names at the application boundary; this repository does not implement an MCP gateway.
 - `examples/approval-evidence-demo`: local evidence demo for allow, require approval, block, and log-only decisions.
 
+
 ## Basic usage
 
 Call `enforceToolCall` with `agent`, `tool`, `args`, optional `context`, and an `execute` callback. Enforra only calls `execute` when the decision is `allow` or `log_only`.
