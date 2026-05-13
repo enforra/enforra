@@ -43,6 +43,12 @@ The customer application owns actual tool execution. The Enforra runtime does no
 
 Agent instructions are useful, but they are not a security boundary. Runtime control gives developers a typed enforcement point immediately before side effects happen.
 
+## Why not just use a system prompt?
+
+System prompts can guide model behavior, but they should not be the final security boundary for tool calls.
+
+Enforra puts a policy check immediately before the tool callback runs. Even if an agent is manipulated, the runtime can still block, require approval, or log the action before side effects happen.
+
 ## Prerequisites
 
 - Node.js 20 or newer
@@ -78,6 +84,11 @@ The demo runs three fake refund calls: a small allowed refund, a medium refund r
 
 ```text
 Enforra support refund demo
+
+small refund allowed
+medium refund requires approval
+large refund blocked
+audit log written locally
 
 Tool call: stripe.refund
 Agent: support-agent
@@ -127,6 +138,34 @@ policies:
 ```
 
 Conditions use dot paths rooted at `args` or `context`, such as `args.amount`, `args.recipient`, or `context.environment`. Supported operators are `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contains`, and `not_contains`.
+
+## Coding agent policy example
+
+The same policy model applies to coding agents, filesystem tools, terminal tools, and MCP-style tool calls.
+
+```yaml
+version: 1
+defaults:
+  decision: block
+policies:
+  - id: block-env-file-access
+    match:
+      tool: filesystem.read
+    conditions:
+      - field: args.path
+        operator: contains
+        value: ".env"
+    decision: block
+
+  - id: approve-package-install
+    match:
+      tool: terminal.run
+    conditions:
+      - field: args.command
+        operator: contains
+        value: "npm install"
+    decision: require_approval
+```
 
 ## The four decisions
 

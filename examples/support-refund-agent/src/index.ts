@@ -18,20 +18,40 @@ const enforra = await createEnforraClient({
 
 console.log("Enforra support refund demo\n");
 
-for (const amount of [20, 250, 1000]) {
+const scenarios = [
+  { label: "small refund", amount: 20 },
+  { label: "medium refund", amount: 250 },
+  { label: "large refund", amount: 1000 }
+] as const;
+
+const results = [];
+
+for (const scenario of scenarios) {
   const result = await enforra.enforceToolCall<FakeRefundResult>({
     agent: "support-agent",
     tool: "stripe.refund",
     args: {
       customerId: "cus_123",
-      amount
+      amount: scenario.amount
     },
     context: {
       environment: "production"
     },
-    execute: async () => fakeRefund(amount)
+    execute: async () => fakeRefund(scenario.amount)
   });
 
+  results.push({ ...scenario, result });
+}
+
+for (const { label, result } of results) {
+  const outcome =
+    result.decision === "require_approval" ? "requires approval" : `${result.decision}ed`;
+  console.log(`${label} ${outcome}`);
+}
+
+console.log("audit log written locally\n");
+
+for (const { amount, result } of results) {
   console.log("Tool call: stripe.refund");
   console.log("Agent: support-agent");
   console.log(`Amount: ${amount}`);

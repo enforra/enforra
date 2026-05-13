@@ -20,9 +20,36 @@ policies:
 
 Supported decisions are `allow`, `block`, `require_approval`, and `log_only`.
 
-Supported condition operators are `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contains`, and `not_contains`.
+## Evaluation order
+
+Policies are evaluated from top to bottom. The first matching policy wins. If no policy matches, Enforra uses `defaults.decision`. If no default is configured, the decision is `block`.
+
+## Match fields
+
+`match.agent` is an exact string match against the tool-call `agent`.
+
+`match.tool` is an exact string match against the tool-call `tool`.
+
+A policy can specify `match.agent`, `match.tool`, or both. If both are present, both must match.
+
+## Conditions
 
 Condition fields use dot paths rooted at `args` or `context`, such as `args.amount`, `args.recipient`, or `context.environment`. Conditions are ANDed together.
+
+Use `args.*` for tool arguments, such as `args.path`, `args.command`, or `args.amount`.
+
+Use `context.*` for runtime context supplied by the application, such as `context.environment`, `context.userRole`, or `context.accountTier`.
+
+Supported condition operators are:
+
+- `eq`: field equals value.
+- `neq`: field does not equal value.
+- `gt`: field is greater than value.
+- `gte`: field is greater than or equal to value.
+- `lt`: field is less than value.
+- `lte`: field is less than or equal to value.
+- `contains`: string field contains value, or array field contains value.
+- `not_contains`: string field does not contain value, or array field does not contain value.
 
 ## Creating your own policy
 
@@ -55,5 +82,3 @@ policies:
         value: production
     decision: require_approval
 ```
-
-If no policy matches, Enforra uses `defaults.decision`. If no default is configured, the decision is `block`.
