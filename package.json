@@ -13,7 +13,10 @@
     "test": "pnpm -r test",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "demo:support-refund": "pnpm --filter @enforra/example-support-refund-agent build && pnpm --filter @enforra/example-support-refund-agent start"
+    "demo:support-refund": "pnpm --filter @enforra/example-support-refund-agent build && pnpm --filter @enforra/example-support-refund-agent start",
+    "demo:openai-style": "pnpm --filter @enforra/example-openai-style-tool-wrapper build && pnpm --filter @enforra/example-openai-style-tool-wrapper start",
+    "demo:mcp-style": "pnpm --filter @enforra/example-mcp-style-tool-policy build && pnpm --filter @enforra/example-mcp-style-tool-policy start",
+    "demo:all": "pnpm demo:support-refund && pnpm demo:openai-style && pnpm demo:mcp-style"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

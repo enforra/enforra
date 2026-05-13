@@ -1,0 +1,14 @@
+{
+  "name": "@enforra/example-openai-style-tool-wrapper",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node ../support-refund-agent/node_modules/tsup/dist/cli-default.js src/index.ts --format esm --sourcemap",
+    "start": "node dist/index.js",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@enforra/sdk-node": "workspace:*"
+  }
+}
