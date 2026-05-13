@@ -3,7 +3,9 @@
 [![CI](https://github.com/enforra/enforra/actions/workflows/ci.yml/badge.svg)](https://github.com/enforra/enforra/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-AI agents can now call tools, access data, and create real side effects. System prompts are not a reliable security boundary. Enforra adds a local policy boundary before tool calls execute.
+Enforra is the action governance layer for AI agents: policy, approval boundaries, and audit evidence before tool calls create real side effects.
+
+System prompts can guide behavior, but they should not be the final security boundary before an agent sends email, issues refunds, exports data, runs commands, or touches production.
 
 ```ts
 import { createEnforraClient } from "@enforra/sdk-node";
@@ -37,6 +39,8 @@ console.log(result.decision);
 
 This open source repository contains the local runtime core for Enforra. It evaluates policy before a tool callback runs and returns one of four decisions: `allow`, `block`, `require_approval`, or `log_only`.
 
+Enforra is designed for teams that need control over agent actions, not just agent outputs. It lets developers define which tool calls are allowed, blocked, logged, or paused for human approval before the application callback runs.
+
 The customer application owns actual tool execution. The Enforra runtime does not execute tools remotely, does not require your secrets, and does not call a hosted API.
 
 ## Why runtime control?
@@ -45,9 +49,9 @@ Agent instructions are useful, but they are not a security boundary. Runtime con
 
 ## Why not just use a system prompt?
 
-System prompts can guide model behavior, but they should not be the final security boundary for tool calls.
+System prompts can guide behavior, but enforcement should happen at the point where an agent action becomes a real side effect.
 
-Enforra evaluates policy immediately before the tool callback runs. Even if an agent is manipulated, the runtime can still block, require approval, or log the action before side effects happen.
+Enforra evaluates policy immediately before the tool callback runs, so manipulated or unexpected agent behavior can still be blocked, paused for approval, or logged before side effects happen.
 
 ## Prerequisites
 
@@ -64,6 +68,9 @@ pnpm install
 pnpm build
 pnpm test
 pnpm demo:support-refund
+pnpm demo:openai-style
+pnpm demo:mcp-style
+pnpm demo:all
 ```
 
 ## Develop from source
@@ -74,13 +81,16 @@ This repository is a pnpm monorepo. Packages are currently developed from source
 pnpm install
 ```
 
-## Run the demo
+## Run the demos
 
 ```bash
 pnpm demo:support-refund
+pnpm demo:openai-style
+pnpm demo:mcp-style
+pnpm demo:all
 ```
 
-The demo runs three fake refund calls: a small allowed refund, a medium refund requiring approval, and a large blocked refund.
+The support refund demo runs three fake refund calls: a small allowed refund, a medium refund requiring approval, and a large blocked refund.
 
 ```text
 Enforra support refund demo
@@ -107,6 +117,12 @@ Reason: matched policy block-large-refunds
 
 Audit log written to .enforra/audit.jsonl
 ```
+
+## Examples
+
+- `examples/support-refund-agent`: runnable local demo for allow, require approval, and block decisions.
+- `examples/openai-style-tool-wrapper`: wrapper pattern for calling `enforceToolCall` before an application tool callback.
+- `examples/mcp-style-tool-policy`: starter policy pattern for MCP-style tool names and server metadata; this repository does not implement an MCP gateway.
 
 ## Basic usage
 
@@ -179,6 +195,14 @@ The runtime performs no network calls, telemetry, analytics, database writes, or
 
 This repository is focused on local runtime enforcement. Policy management, team workflows, and hosted audit retention are outside the scope of this OSS core.
 
+## Scope
+
+Enforra focuses on application-level action governance.
+
+It is not an MCP proxy, model firewall, kernel sandbox, or prompt-injection detector.
+
+It gives developers a local policy boundary around the tools their agents already call.
+
 ## What this repository does not include
 
 This repository contains the local runtime core only.
@@ -204,10 +228,20 @@ packages/policy-core       Policy loading, validation, and evaluation
 packages/sdk-node          Node SDK enforcement wrapper
 packages/local-audit       Local JSONL audit logging and redaction
 examples/support-refund-agent
+examples/openai-style-tool-wrapper
+examples/mcp-style-tool-policy
 policies/starter
 docs
 packages/*/test
 ```
+
+## Docs
+
+- [Architecture](docs/architecture.md)
+- [Scope](docs/scope.md)
+- [Policy language](docs/policy-language.md)
+- [Security model](docs/security-model.md)
+- [Limitations](docs/limitations.md)
 
 ## Roadmap
 
