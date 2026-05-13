@@ -1,0 +1,43 @@
+version: 1
+defaults:
+  decision: block
+policies:
+  - id: allow-teammate-email
+    description: Allow email to an approved teammate
+    match:
+      agent: operations-agent
+      tool: email.send
+    conditions:
+      - field: args.recipient
+        operator: eq
+        value: teammate@example.com
+    decision: allow
+
+  - id: approve-external-email
+    description: Require approval before sending external email
+    match:
+      agent: operations-agent
+      tool: email.send
+    conditions:
+      - field: args.recipient
+        operator: eq
+        value: external@example.com
+    decision: require_approval
+
+  - id: block-production-customer-export
+    description: Block customer exports in production
+    match:
+      agent: operations-agent
+      tool: customer.export
+    conditions:
+      - field: context.environment
+        operator: eq
+        value: production
+    decision: block
+
+  - id: log-github-issue-creation
+    description: Log GitHub issue creation while allowing execution
+    match:
+      agent: operations-agent
+      tool: github.create_issue
+    decision: log_only

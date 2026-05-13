@@ -70,6 +70,7 @@ pnpm install
 pnpm build
 pnpm test
 pnpm demo:all
+pnpm bench
 ```
 
 ## Develop from source
@@ -86,6 +87,7 @@ pnpm install
 pnpm demo:support-refund
 pnpm demo:openai-style
 pnpm demo:mcp-style
+pnpm demo:approval-evidence
 pnpm demo:all
 ```
 
@@ -122,6 +124,7 @@ Audit log written to .enforra/audit.jsonl
 - `examples/support-refund-agent`: runnable local demo for allow, require approval, and block decisions.
 - `examples/openai-style-tool-wrapper`: wrapper pattern for calling `enforceToolCall` before an application tool callback.
 - `examples/mcp-style-tool-policy`: starter policy pattern for MCP-style tool names at the application boundary; this repository does not implement an MCP gateway.
+- `examples/approval-evidence-demo`: local evidence demo for allow, require approval, block, and log-only decisions.
 
 ## Basic usage
 
@@ -225,6 +228,7 @@ packages/local-audit       Local JSONL audit logging and redaction
 examples/support-refund-agent
 examples/openai-style-tool-wrapper
 examples/mcp-style-tool-policy
+examples/approval-evidence-demo
 policies/starter
 docs
 packages/*/test
@@ -238,6 +242,7 @@ packages/*/test
 - [SDK reference](docs/sdk-reference.md)
 - [Audit behavior](docs/audit-behavior.md)
 - [Write your first policy](docs/write-your-first-policy.md)
+- [Benchmarks](docs/benchmarks.md)
 - [Policy language](docs/policy-language.md)
 - [Security model](docs/security-model.md)
 - [Limitations](docs/limitations.md)
