@@ -72,6 +72,286 @@ describe("policy-core", () => {
     expect(result.matchedPolicyId).toBe("approve-medium-refunds");
   });
 
+  it("keeps flat condition arrays as all conditions", () => {
+    const result = evaluatePolicy(
+      {
+        version: 1,
+        defaults: { decision: "block" },
+        policies: [
+          {
+            id: "approve-medium-production-refunds",
+            match: { tool: "stripe.refund" },
+            conditions: [
+              { field: "args.amount", operator: "gte", value: 100 },
+              { field: "args.amount", operator: "lte", value: 500 },
+              { field: "context.environment", operator: "eq", value: "production" }
+            ],
+            decision: "require_approval"
+          }
+        ]
+      },
+      {
+        agent: "support-agent",
+        tool: "stripe.refund",
+        args: { amount: 250 },
+        context: { environment: "production" }
+      }
+    );
+
+    expect(result.decision).toBe("require_approval");
+    expect(result.matchedPolicyId).toBe("approve-medium-production-refunds");
+  });
+
+  it("supports all condition groups when every condition passes", () => {
+    const result = evaluatePolicy(
+      {
+        version: 1,
+        defaults: { decision: "block" },
+        policies: [
+          {
+            id: "approve-medium-refunds",
+            match: { tool: "stripe.refund" },
+            conditions: {
+              all: [
+                { field: "args.amount", operator: "gte", value: 100 },
+                { field: "args.amount", operator: "lte", value: 500 }
+              ]
+            },
+            decision: "require_approval"
+          }
+        ]
+      },
+      {
+        agent: "support-agent",
+        tool: "stripe.refund",
+        args: { amount: 250 }
+      }
+    );
+
+    expect(result.decision).toBe("require_approval");
+    expect(result.matchedPolicyId).toBe("approve-medium-refunds");
+  });
+
+  it("fails all condition groups when one condition fails", () => {
+    const result = evaluatePolicy(
+      {
+        version: 1,
+        defaults: { decision: "block" },
+        policies: [
+          {
+            id: "approve-medium-refunds",
+            match: { tool: "stripe.refund" },
+            conditions: {
+              all: [
+                { field: "args.amount", operator: "gte", value: 100 },
+                { field: "args.amount", operator: "lte", value: 500 }
+              ]
+            },
+            decision: "require_approval"
+          }
+        ]
+      },
+      {
+        agent: "support-agent",
+        tool: "stripe.refund",
+        args: { amount: 750 }
+      }
+    );
+
+    expect(result.decision).toBe("block");
+    expect(result.matchedPolicyId).toBeUndefined();
+  });
+
+  it("supports any condition groups when one condition passes", () => {
+    const result = evaluatePolicy(
+      {
+        version: 1,
+        defaults: { decision: "block" },
+        policies: [
+          {
+            id: "approve-non-prod-email",
+            match: { tool: "email.send" },
+            conditions: {
+              any: [
+                { field: "context.environment", operator: "eq", value: "staging" },
+                { field: "context.environment", operator: "eq", value: "development" }
+              ]
+            },
+            decision: "require_approval"
+          }
+        ]
+      },
+      {
+        agent: "support-agent",
+        tool: "email.send",
+        args: { recipient: "external@example.com" },
+        context: { environment: "staging" }
+      }
+    );
+
+    expect(result.decision).toBe("require_approval");
+    expect(result.matchedPolicyId).toBe("approve-non-prod-email");
+  });
+
+  it("fails any condition groups when none pass", () => {
+    const result = evaluatePolicy(
+      {
+        version: 1,
+        defaults: { decision: "block" },
+        policies: [
+          {
+            id: "approve-non-prod-email",
+            match: { tool: "email.send" },
+            conditions: {
+              any: [
+                { field: "context.environment", operator: "eq", value: "staging" },
+                { field: "context.environment", operator: "eq", value: "development" }
+              ]
+            },
+            decision: "require_approval"
+          }
+        ]
+      },
+      {
+        agent: "support-agent",
+        tool: "email.send",
+        args: { recipient: "external@example.com" },
+        context: { environment: "production" }
+      }
+    );
+
+    expect(result.decision).toBe("block");
+    expect(result.matchedPolicyId).toBeUndefined();
+  });
+
+  it("supports all and any groups when both pass", () => {
+    const result = evaluatePolicy(
+      {
+        version: 1,
+        defaults: { decision: "block" },
+        policies: [
+          {
+            id: "approve-medium-prod-or-staging-refunds",
+            match: { tool: "stripe.refund" },
+            conditions: {
+              all: [
+                { field: "args.amount", operator: "gte", value: 100 },
+                { field: "args.amount", operator: "lte", value: 500 }
+              ],
+              any: [
+                { field: "context.environment", operator: "eq", value: "production" },
+                { field: "context.environment", operator: "eq", value: "staging" }
+              ]
+            },
+            decision: "require_approval"
+          }
+        ]
+      },
+      {
+        agent: "support-agent",
+        tool: "stripe.refund",
+        args: { amount: 250 },
+        context: { environment: "production" }
+      }
+    );
+
+    expect(result.decision).toBe("require_approval");
+    expect(result.matchedPolicyId).toBe("approve-medium-prod-or-staging-refunds");
+  });
+
+  it("fails grouped conditions when all passes but any fails", () => {
+    const result = evaluatePolicy(
+      {
+        version: 1,
+        defaults: { decision: "block" },
+        policies: [
+          {
+            id: "approve-medium-prod-or-staging-refunds",
+            match: { tool: "stripe.refund" },
+            conditions: {
+              all: [
+                { field: "args.amount", operator: "gte", value: 100 },
+                { field: "args.amount", operator: "lte", value: 500 }
+              ],
+              any: [
+                { field: "context.environment", operator: "eq", value: "production" },
+                { field: "context.environment", operator: "eq", value: "staging" }
+              ]
+            },
+            decision: "require_approval"
+          }
+        ]
+      },
+      {
+        agent: "support-agent",
+        tool: "stripe.refund",
+        args: { amount: 250 },
+        context: { environment: "development" }
+      }
+    );
+
+    expect(result.decision).toBe("block");
+    expect(result.matchedPolicyId).toBeUndefined();
+  });
+
+  it("fails grouped conditions when any passes but all fails", () => {
+    const result = evaluatePolicy(
+      {
+        version: 1,
+        defaults: { decision: "block" },
+        policies: [
+          {
+            id: "approve-medium-prod-or-staging-refunds",
+            match: { tool: "stripe.refund" },
+            conditions: {
+              all: [
+                { field: "args.amount", operator: "gte", value: 100 },
+                { field: "args.amount", operator: "lte", value: 500 }
+              ],
+              any: [
+                { field: "context.environment", operator: "eq", value: "production" },
+                { field: "context.environment", operator: "eq", value: "staging" }
+              ]
+            },
+            decision: "require_approval"
+          }
+        ]
+      },
+      {
+        agent: "support-agent",
+        tool: "stripe.refund",
+        args: { amount: 750 },
+        context: { environment: "production" }
+      }
+    );
+
+    expect(result.decision).toBe("block");
+    expect(result.matchedPolicyId).toBeUndefined();
+  });
+
+  it("matches on agent and tool when conditions are omitted", () => {
+    const result = evaluatePolicy(
+      {
+        version: 1,
+        policies: [
+          {
+            id: "allow-health-check",
+            match: { agent: "ops-agent", tool: "health.check" },
+            decision: "allow"
+          }
+        ]
+      },
+      {
+        agent: "ops-agent",
+        tool: "health.check",
+        args: {}
+      }
+    );
+
+    expect(result.decision).toBe("allow");
+    expect(result.matchedPolicyId).toBe("allow-health-check");
+  });
+
   it("blocks large refunds", () => {
     const result = evaluatePolicy(refundPolicy, {
       agent: "support-agent",
@@ -155,6 +435,36 @@ version: 1
 policies:
   - id: accidental-global-allow
     match: {}
+    decision: allow
+`)
+    ).toThrow();
+  });
+
+  it("rejects empty condition groups", () => {
+    expect(() =>
+      parsePolicyYaml(`
+version: 1
+policies:
+  - id: empty-group
+    match:
+      tool: stripe.refund
+    conditions: {}
+    decision: allow
+`)
+    ).toThrow();
+  });
+
+  it("rejects empty all and any arrays", () => {
+    expect(() =>
+      parsePolicyYaml(`
+version: 1
+policies:
+  - id: empty-group-arrays
+    match:
+      tool: stripe.refund
+    conditions:
+      all: []
+      any: []
     decision: allow
 `)
     ).toThrow();
@@ -391,6 +701,119 @@ policies:
     expect(matchedPolicyTrace?.matched).toBe(true);
     expect(conditionChecks).toHaveLength(2);
     expect(conditionChecks?.every((check) => check.passed)).toBe(true);
+  });
+
+  it("trace clearly includes grouped condition results", () => {
+    const result = evaluatePolicyWithTrace(
+      {
+        version: 1,
+        defaults: { decision: "block" },
+        policies: [
+          {
+            id: "approve-medium-prod-or-staging-refunds",
+            match: { tool: "stripe.refund" },
+            conditions: {
+              all: [
+                { field: "args.amount", operator: "gte", value: 100 },
+                { field: "args.amount", operator: "lte", value: 500 }
+              ],
+              any: [
+                { field: "context.environment", operator: "eq", value: "production" },
+                { field: "context.environment", operator: "eq", value: "staging" }
+              ]
+            },
+            decision: "require_approval"
+          }
+        ]
+      },
+      {
+        agent: "support-agent",
+        tool: "stripe.refund",
+        args: { amount: 250 },
+        context: { environment: "production" }
+      }
+    );
+
+    const policyTrace = result.trace.policies[0];
+    expect(policyTrace?.matched).toBe(true);
+    expect(policyTrace?.checks).toContainEqual(
+      expect.objectContaining({
+        type: "condition_group",
+        field: "conditions.all",
+        operator: "all",
+        passed: true,
+        actualValue: "2/2 passed"
+      })
+    );
+    expect(policyTrace?.checks).toContainEqual(
+      expect.objectContaining({
+        type: "condition_group",
+        field: "conditions.any",
+        operator: "any",
+        passed: true,
+        actualValue: "1/2 passed"
+      })
+    );
+    expect(policyTrace?.checks).toContainEqual(
+      expect.objectContaining({
+        type: "condition",
+        field: "context.environment",
+        group: "any",
+        expectedValue: "staging",
+        actualValue: "production",
+        passed: false
+      })
+    );
+  });
+
+  it("trace includes failed grouped condition summaries", () => {
+    const result = evaluatePolicyWithTrace(
+      {
+        version: 1,
+        defaults: { decision: "block" },
+        policies: [
+          {
+            id: "approve-medium-prod-or-staging-refunds",
+            match: { tool: "stripe.refund" },
+            conditions: {
+              all: [
+                { field: "args.amount", operator: "gte", value: 100 },
+                { field: "args.amount", operator: "lte", value: 500 }
+              ],
+              any: [
+                { field: "context.environment", operator: "eq", value: "production" },
+                { field: "context.environment", operator: "eq", value: "staging" }
+              ]
+            },
+            decision: "require_approval"
+          }
+        ]
+      },
+      {
+        agent: "support-agent",
+        tool: "stripe.refund",
+        args: { amount: 250 },
+        context: { environment: "development" }
+      }
+    );
+
+    const policyTrace = result.trace.policies[0];
+    expect(policyTrace?.matched).toBe(false);
+    expect(policyTrace?.failureReasons).toContain("conditions.any failed; 0/2 passed");
+    expect(policyTrace?.checks).toContainEqual(
+      expect.objectContaining({
+        type: "condition_group",
+        field: "conditions.all",
+        passed: true
+      })
+    );
+    expect(policyTrace?.checks).toContainEqual(
+      expect.objectContaining({
+        type: "condition_group",
+        field: "conditions.any",
+        passed: false
+      })
+    );
   });
 
   it("trace shows default block when no policy matches", () => {

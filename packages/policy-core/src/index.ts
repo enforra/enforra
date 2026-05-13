@@ -7,6 +7,7 @@ const operators = ["eq", "neq", "gt", "gte", "lt", "lte", "contains", "not_conta
 
 export type Decision = (typeof decisions)[number];
 export type ConditionOperator = (typeof operators)[number];
+export type PolicyConditionGroupOperator = "all" | "any";
 
 export interface ToolCallInput {
   agent: string;
@@ -24,13 +25,14 @@ export interface PolicyEvaluationResult {
 }
 
 export interface PolicyCheckTrace {
-  type: "agent" | "tool" | "condition";
+  type: "agent" | "tool" | "condition" | "condition_group";
   field: string;
-  operator: "eq" | ConditionOperator;
+  operator: "eq" | ConditionOperator | PolicyConditionGroupOperator;
   expectedValue: unknown;
   actualValue: unknown;
   passed: boolean;
   reason?: string;
+  group?: PolicyConditionGroupOperator;
 }
 
 export interface PolicyRuleTrace {
@@ -58,6 +60,11 @@ export interface PolicyCondition {
   value: string | number | boolean;
 }
 
+export interface PolicyConditionGroup {
+  all?: PolicyCondition[];
+  any?: PolicyCondition[];
+}
+
 export interface PolicyMatch {
   agent?: string;
   tool?: string;
@@ -67,7 +74,7 @@ export interface PolicyRule {
   id: string;
   description?: string;
   match: PolicyMatch;
-  conditions?: PolicyCondition[];
+  conditions?: PolicyCondition[] | PolicyConditionGroup;
   decision: Decision;
 }
 
@@ -85,6 +92,21 @@ const conditionSchema = z.object({
   value: z.union([z.string(), z.number(), z.boolean()])
 });
 
+const conditionGroupSchema = z
+  .object({
+    all: z.array(conditionSchema).min(1).optional(),
+    any: z.array(conditionSchema).min(1).optional()
+  })
+  .strict()
+  .superRefine((group, context) => {
+    if (group.all === undefined && group.any === undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "condition group must include all or any"
+      });
+    }
+  });
+
 const policyMatchSchema = z
   .object({
     agent: z.string().min(1).optional(),
@@ -97,7 +119,7 @@ const policyRuleSchema = z
     id: z.string().min(1),
     description: z.string().optional(),
     match: policyMatchSchema,
-    conditions: z.array(conditionSchema).min(1).optional(),
+    conditions: z.union([z.array(conditionSchema).min(1), conditionGroupSchema]).optional(),
     decision: z.enum(decisions)
   })
   .strict()
@@ -197,17 +219,19 @@ export function evaluatePolicyWithTrace(
 }
 
 function tracePolicyRule(policy: PolicyRule, input: ToolCallInput): PolicyRuleTrace {
-  const checks = [
-    ...traceMatchChecks(policy.match, input),
-    ...traceConditionChecks(policy.conditions, input)
-  ];
-  const failureReasons = checks
-    .filter((check) => !check.passed)
-    .map((check) => check.reason ?? `${check.field} did not match`);
+  const matchChecks = traceMatchChecks(policy.match, input);
+  const conditionTrace = traceConditions(policy.conditions, input);
+  const checks = [...matchChecks, ...conditionTrace.checks];
+  const matchPassed = matchChecks.every((check) => check.passed);
+  const matched = matchPassed && conditionTrace.passed;
+  const failureReasons = [
+    ...matchChecks.filter((check) => !check.passed),
+    ...conditionTrace.failureChecks
+  ].map((check) => check.reason ?? `${check.field} did not match`);
 
   return {
     policyId: policy.id,
-    matched: checks.every((check) => check.passed),
+    matched,
     checks,
     failureReasons
   };
@@ -245,14 +269,105 @@ function traceMatchChecks(match: PolicyMatch, input: ToolCallInput): PolicyCheck
   return checks;
 }
 
-function traceConditionChecks(
-  conditions: PolicyCondition[] | undefined,
-  input: ToolCallInput
-): PolicyCheckTrace[] {
-  return conditions?.map((condition) => traceConditionCheck(condition, input)) ?? [];
+interface ConditionTraceResult {
+  checks: PolicyCheckTrace[];
+  failureChecks: PolicyCheckTrace[];
+  passed: boolean;
 }
 
-function traceConditionCheck(condition: PolicyCondition, input: ToolCallInput): PolicyCheckTrace {
+function traceConditions(
+  conditions: PolicyCondition[] | PolicyConditionGroup | undefined,
+  input: ToolCallInput
+): ConditionTraceResult {
+  if (conditions === undefined) {
+    return {
+      checks: [],
+      failureChecks: [],
+      passed: true
+    };
+  }
+
+  if (Array.isArray(conditions)) {
+    const checks = conditions.map((condition) => traceConditionCheck(condition, input));
+    return {
+      checks,
+      failureChecks: checks.filter((check) => !check.passed),
+      passed: checks.every((check) => check.passed)
+    };
+  }
+
+  return traceConditionGroup(conditions, input);
+}
+
+function traceConditionGroup(
+  conditions: PolicyConditionGroup,
+  input: ToolCallInput
+): ConditionTraceResult {
+  const checks: PolicyCheckTrace[] = [];
+  const failureChecks: PolicyCheckTrace[] = [];
+  let passed = true;
+
+  if (conditions.all !== undefined) {
+    const allChecks = conditions.all.map((condition) =>
+      traceConditionCheck(condition, input, "all")
+    );
+    const allPassed = allChecks.every((check) => check.passed);
+    const summary = createConditionGroupCheck("all", allChecks, allPassed);
+    checks.push(summary, ...allChecks);
+    if (!allPassed) {
+      failureChecks.push(summary);
+      passed = false;
+    }
+  }
+
+  if (conditions.any !== undefined) {
+    const anyChecks = conditions.any.map((condition) =>
+      traceConditionCheck(condition, input, "any")
+    );
+    const anyPassed = anyChecks.some((check) => check.passed);
+    const summary = createConditionGroupCheck("any", anyChecks, anyPassed);
+    checks.push(summary, ...anyChecks);
+    if (!anyPassed) {
+      failureChecks.push(summary);
+      passed = false;
+    }
+  }
+
+  return {
+    checks,
+    failureChecks,
+    passed
+  };
+}
+
+function createConditionGroupCheck(
+  group: PolicyConditionGroupOperator,
+  checks: PolicyCheckTrace[],
+  passed: boolean
+): PolicyCheckTrace {
+  const passedCount = checks.filter((check) => check.passed).length;
+  const expectedValue =
+    group === "all" ? "every condition passes" : "at least one condition passes";
+
+  return {
+    type: "condition_group",
+    field: `conditions.${group}`,
+    operator: group,
+    expectedValue,
+    actualValue: `${passedCount}/${checks.length} passed`,
+    passed,
+    group,
+    reason: passed
+      ? undefined
+      : `conditions.${group} failed; ${passedCount}/${checks.length} passed`
+  };
+}
+
+function traceConditionCheck(
+  condition: PolicyCondition,
+  input: ToolCallInput,
+  group?: PolicyConditionGroupOperator
+): PolicyCheckTrace {
   const actualValue = getPathValue(input, condition.field);
   const passed = evaluateCondition(condition, actualValue);
 
@@ -263,6 +378,7 @@ function traceConditionCheck(condition: PolicyCondition, input: ToolCallInput): 
     expectedValue: condition.value,
     actualValue,
     passed,
+    group,
     reason: passed
       ? undefined
       : `${condition.field} ${condition.operator} ${String(

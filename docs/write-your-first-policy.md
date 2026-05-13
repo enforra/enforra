@@ -75,6 +75,59 @@ conditions:
 
 Conditions are ANDed together. Every condition must match for the policy to match.
 
+Flat condition arrays keep this behavior. You can also use grouped conditions.
+
+## `all` Conditions
+
+Use `all` when every condition must pass.
+
+```yaml
+conditions:
+  all:
+    - field: args.amount
+      operator: gte
+      value: 100
+    - field: args.amount
+      operator: lte
+      value: 500
+```
+
+## `any` Conditions
+
+Use `any` when at least one condition must pass.
+
+```yaml
+conditions:
+  any:
+    - field: args.recipient
+      operator: not_contains
+      value: "@example.com"
+    - field: args.subject
+      operator: contains
+      value: "confidential"
+```
+
+## Combining `all` and `any`
+
+When both groups are present, both groups must pass.
+
+```yaml
+conditions:
+  all:
+    - field: context.environment
+      operator: eq
+      value: production
+  any:
+    - field: args.command
+      operator: contains
+      value: "npm install"
+    - field: args.command
+      operator: contains
+      value: "rm "
+```
+
+This can express policies like "require approval when a production command is one of several risky command shapes."
+
 ## Field Paths
 
 Supported field path roots:
@@ -151,6 +204,8 @@ A policy must include at least one of:
 - `match.agent`
 - `match.tool`
 - `conditions`
+- `conditions.all`
+- `conditions.any`
 
 This prevents accidental global allow rules.
 

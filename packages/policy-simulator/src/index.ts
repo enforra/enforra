@@ -193,8 +193,18 @@ function formatTraceLines(trace: PolicyEvaluationTrace | undefined): string[] {
     lines.push(`    - ${policyTrace.policyId}: ${policyTrace.matched ? "matched" : "not matched"}`);
 
     for (const check of policyTrace.checks) {
+      if (check.type === "condition_group") {
+        lines.push(
+          `      - ${check.field}: ${check.passed ? "passed" : "failed"} (${formatValue(
+            check.actualValue
+          )})`
+        );
+        continue;
+      }
+
+      const groupLabel = check.group === undefined ? "" : ` [${check.group}]`;
       lines.push(
-        `      - ${check.field} ${check.operator} ${formatValue(
+        `      - ${check.field}${groupLabel} ${check.operator} ${formatValue(
           check.expectedValue
         )}: ${check.passed ? "passed" : "failed"} (actual ${formatValue(check.actualValue)})`
       );
