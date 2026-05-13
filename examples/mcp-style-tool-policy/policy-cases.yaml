@@ -1,0 +1,41 @@
+version: 1
+cases:
+  - name: approved read-only MCP-style tool is allowed
+    input:
+      agent: mcp-agent
+      tool: mcp.read
+      args:
+        server: docs
+        approved: true
+      context:
+        environment: development
+    expect:
+      decision: allow
+      matchedPolicyId: allow-approved-read-only-tools
+
+  - name: write MCP-style tool requires approval
+    input:
+      agent: mcp-agent
+      tool: mcp.write
+      args:
+        server: docs
+        approved: true
+      context:
+        environment: development
+    expect:
+      decision: require_approval
+      matchedPolicyId: approve-write-tools
+
+  - name: shell execution is blocked
+    input:
+      agent: mcp-agent
+      tool: shell.execute
+      args:
+        server: terminal
+        command: rm -rf /tmp/example
+        approved: true
+      context:
+        environment: development
+    expect:
+      decision: block
+      matchedPolicyId: block-shell-execution

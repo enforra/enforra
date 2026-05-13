@@ -1,0 +1,52 @@
+version: 1
+cases:
+  - name: teammate email is allowed
+    input:
+      agent: operations-agent
+      tool: email.send
+      args:
+        recipient: teammate@example.com
+        subject: Deployment notes
+      context:
+        environment: production
+    expect:
+      decision: allow
+      matchedPolicyId: allow-teammate-email
+
+  - name: external email requires approval
+    input:
+      agent: operations-agent
+      tool: email.send
+      args:
+        recipient: external@example.com
+        subject: Customer update
+      context:
+        environment: production
+    expect:
+      decision: require_approval
+      matchedPolicyId: approve-external-email
+
+  - name: production customer export is blocked
+    input:
+      agent: operations-agent
+      tool: customer.export
+      args:
+        segment: enterprise
+      context:
+        environment: production
+    expect:
+      decision: block
+      matchedPolicyId: block-production-customer-export
+
+  - name: GitHub issue creation is logged
+    input:
+      agent: operations-agent
+      tool: github.create_issue
+      args:
+        repo: enforra/enforra
+        title: Follow up on audit evidence
+      context:
+        environment: development
+    expect:
+      decision: log_only
+      matchedPolicyId: log-github-issue-creation

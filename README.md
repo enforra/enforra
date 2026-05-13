@@ -69,6 +69,7 @@ corepack enable
 pnpm install
 pnpm build
 pnpm test
+pnpm policy:test:all
 pnpm demo:all
 pnpm bench
 ```
@@ -126,10 +127,19 @@ Audit log written to .enforra/audit.jsonl
 - `examples/mcp-style-tool-policy`: starter policy pattern for MCP-style tool names at the application boundary; this repository does not implement an MCP gateway.
 - `examples/approval-evidence-demo`: local evidence demo for allow, require approval, block, and log-only decisions.
 
-
 ## Basic usage
 
 Call `enforceToolCall` with `agent`, `tool`, `args`, optional `context`, and an `execute` callback. Enforra only calls `execute` when the decision is `allow` or `log_only`.
+
+## Test policies before runtime
+
+Policy tests simulate tool-call inputs against local YAML policy files without executing callbacks.
+
+```bash
+pnpm policy:test:all
+```
+
+Use policy tests in local development and CI to catch policy regressions before agent tool calls create side effects.
 
 ## Policy example
 
@@ -224,6 +234,7 @@ This repository includes:
 
 ```text
 packages/policy-core       Policy loading, validation, and evaluation
+packages/policy-simulator  Local policy simulation and case runner
 packages/sdk-node          Node SDK enforcement wrapper
 packages/local-audit       Local JSONL audit logging and redaction
 examples/support-refund-agent
@@ -243,6 +254,7 @@ packages/*/test
 - [SDK reference](docs/sdk-reference.md)
 - [Audit behavior](docs/audit-behavior.md)
 - [Write your first policy](docs/write-your-first-policy.md)
+- [Policy testing](docs/policy-testing.md)
 - [Benchmarks](docs/benchmarks.md)
 - [Policy language](docs/policy-language.md)
 - [Security model](docs/security-model.md)

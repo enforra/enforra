@@ -1,0 +1,37 @@
+version: 1
+cases:
+  - name: small refund is allowed
+    input:
+      agent: support-agent
+      tool: stripe.refund
+      args:
+        amount: 20
+      context:
+        environment: production
+    expect:
+      decision: allow
+      matchedPolicyId: allow-small-refunds
+
+  - name: medium refund requires approval
+    input:
+      agent: support-agent
+      tool: stripe.refund
+      args:
+        amount: 250
+      context:
+        environment: production
+    expect:
+      decision: require_approval
+      matchedPolicyId: approve-medium-refunds
+
+  - name: large refund is blocked
+    input:
+      agent: support-agent
+      tool: stripe.refund
+      args:
+        amount: 1000
+      context:
+        environment: production
+    expect:
+      decision: block
+      matchedPolicyId: block-large-refunds
