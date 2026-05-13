@@ -1,0 +1,32 @@
+version: 1
+defaults:
+  decision: block
+policies:
+  - id: allow-repo-search
+    description: Allow repository search
+    match:
+      agent: coding-agent
+      tool: repo.search
+    decision: allow
+
+  - id: approve-external-email
+    description: Require approval before sending email to an external recipient
+    match:
+      agent: coding-agent
+      tool: email.send
+    conditions:
+      - field: args.recipient
+        operator: eq
+        value: external@example.com
+    decision: require_approval
+
+  - id: block-production-export
+    description: Block customer exports in production
+    match:
+      agent: coding-agent
+      tool: customer.export
+    conditions:
+      - field: context.environment
+        operator: eq
+        value: production
+    decision: block

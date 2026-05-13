@@ -11,3 +11,5 @@ Near-term open source work:
 - Optional tamper-evident local audit mode
 - Better policy testing utilities
 - Package publishing workflow
+- Larger benchmark corpus and filesystem audit measurements
+
