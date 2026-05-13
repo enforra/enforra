@@ -163,7 +163,7 @@ Numeric comparison operators require numeric input values.
 
 ## First Matching Policy Wins
 
-Policies are evaluated in order. The first matching policy wins.
+Policies are evaluated in effective order. The first matching policy wins.
 
 Put more specific rules before broader rules.
 
@@ -185,6 +185,43 @@ policies:
 ```
 
 In this example, refunds above 500 are blocked before the broader approval rule can match.
+
+## Priority
+
+Policies can optionally set `priority`.
+
+- Lower numbers evaluate first.
+- Prioritized policies evaluate before policies without priority.
+- Policies with the same priority keep file order.
+- Policies without priority keep file order after prioritized policies.
+- If no policies use priority, file-order behavior is unchanged.
+
+```yaml
+policies:
+  - id: block-large-refunds
+    priority: 10
+    match:
+      tool: stripe.refund
+    conditions:
+      - field: args.amount
+        operator: gt
+        value: 500
+    decision: block
+
+  - id: approve-medium-refunds
+    priority: 20
+    match:
+      tool: stripe.refund
+    conditions:
+      all:
+        - field: args.amount
+          operator: gt
+          value: 50
+        - field: args.amount
+          operator: lte
+          value: 500
+    decision: require_approval
+```
 
 ## Default Block Behavior
 

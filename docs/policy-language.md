@@ -28,6 +28,7 @@ Condition fields use dot paths rooted at `args` or `context`, such as `args.amou
 
 - `match.agent`: optional exact string match on the incoming agent name.
 - `match.tool`: optional exact string match on the incoming tool name.
+- `priority`: optional positive integer. Lower numbers evaluate first.
 - `conditions`: optional flat list of condition checks, or an object with `all` and/or `any` groups.
 - `field`: dot-path into either `args.*` or `context.*`.
 - `operator`: one of `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contains`, `not_contains`.
@@ -35,10 +36,13 @@ Condition fields use dot paths rooted at `args` or `context`, such as `args.amou
 
 Evaluation behavior:
 
-1. Policies are evaluated top-to-bottom.
-2. First matching policy wins.
-3. If no policy matches, Enforra uses `defaults.decision`.
-4. If no default decision is configured, Enforra returns `block`.
+1. Policies with `priority` are evaluated before policies without `priority`.
+2. Lower priority numbers evaluate first.
+3. Policies with the same priority keep file order.
+4. Policies without priority keep file order after prioritized policies.
+5. First matching policy wins after priority ordering.
+6. If no policy matches, Enforra uses `defaults.decision`.
+7. If no default decision is configured, Enforra returns `block`.
 
 ## Creating your own policy
 
@@ -161,3 +165,38 @@ policies:
 ```
 
 If `conditions` is omitted, the policy matches only on `match.agent` and/or `match.tool`. A policy with empty `match` and no `conditions` is rejected to avoid accidental global matches.
+
+## Priority
+
+Policy priority is optional. Use it when a high-risk rule should be checked before broader rules, even if the broader rule appears earlier in the file.
+
+Lower numbers evaluate first:
+
+```yaml
+policies:
+  - id: block-large-refunds
+    priority: 10
+    match:
+      tool: stripe.refund
+    conditions:
+      - field: args.amount
+        operator: gt
+        value: 500
+    decision: block
+
+  - id: approve-medium-refunds
+    priority: 20
+    match:
+      tool: stripe.refund
+    conditions:
+      all:
+        - field: args.amount
+          operator: gt
+          value: 50
+        - field: args.amount
+          operator: lte
+          value: 500
+    decision: require_approval
+```
+
+Rules without priority are evaluated after prioritized rules. If two rules have the same priority, their file order is preserved. If no rules use priority, Enforra keeps the original file-order behavior exactly.

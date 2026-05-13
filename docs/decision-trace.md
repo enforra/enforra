@@ -11,6 +11,8 @@ It is useful when a policy author needs to understand why a tool call was allowe
 The trace includes:
 
 - policy IDs evaluated in order
+- effective evaluation order after priority sorting
+- policy priority when present
 - whether each evaluated policy matched
 - why a policy did not match
 - agent and tool match checks
@@ -42,6 +44,8 @@ console.log(result.trace.policies);
 ```
 
 Grouped conditions appear as summary checks plus individual condition checks. For example, an `any` group that matched one of two conditions records `conditions.any` as passed with `1/2 passed`, while still showing the failed alternative condition for debugging.
+
+When policies use `priority`, trace output uses the effective priority order. Lower priority numbers appear earlier, same-priority policies keep file order, and unprioritized policies come after prioritized policies.
 
 ## Trace vs Audit Logs
 
