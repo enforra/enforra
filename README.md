@@ -71,7 +71,7 @@ pnpm build
 pnpm test
 pnpm policy:test:all
 pnpm demo:all
-pnpm bench
+pnpm benchmark:all
 ```
 
 ## Develop from source
@@ -247,6 +247,7 @@ examples/support-refund-agent
 examples/openai-style-tool-wrapper
 examples/mcp-style-tool-policy
 examples/approval-evidence-demo
+examples/benchmark-policy-eval
 policies/starter
 docs
 packages/*/test
