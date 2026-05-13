@@ -12,10 +12,12 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --sourcemap",
+    "prepack": "pnpm run build",
     "test": "vitest run"
   },
   "dependencies": {
