@@ -3,11 +3,14 @@ import { formatPolicyTestRun, runPolicyTestsFromFiles } from "./index.js";
 interface CliOptions {
   policyPath: string;
   casesPath: string;
+  trace: boolean;
 }
 
 try {
   const options = parseArgs(process.argv.slice(2));
-  const result = await runPolicyTestsFromFiles(options.policyPath, options.casesPath);
+  const result = await runPolicyTestsFromFiles(options.policyPath, options.casesPath, {
+    trace: options.trace
+  });
   console.log(formatPolicyTestRun(result));
 
   if (!result.passed) {
@@ -28,7 +31,8 @@ function parseArgs(args: string[]): CliOptions {
 
   return {
     policyPath,
-    casesPath
+    casesPath,
+    trace: args.includes("--trace")
   };
 }
 

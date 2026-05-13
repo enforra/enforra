@@ -2,7 +2,13 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { evaluatePolicy, loadPolicyFile, parsePolicyYaml, type PolicyFile } from "../src/index.js";
+import {
+  evaluatePolicy,
+  evaluatePolicyWithTrace,
+  loadPolicyFile,
+  parsePolicyYaml,
+  type PolicyFile
+} from "../src/index.js";
 
 const refundPolicy: PolicyFile = {
   version: 1,
@@ -312,5 +318,97 @@ policies:
       decision: "block",
       matchedPolicyId: undefined
     });
+  });
+
+  it("trace shows the first matching policy", () => {
+    const result = evaluatePolicyWithTrace(refundPolicy, {
+      agent: "support-agent",
+      tool: "stripe.refund",
+      args: { amount: 20 }
+    });
+
+    expect(result.decision).toBe("allow");
+    expect(result.trace.finalMatchedPolicyId).toBe("allow-small-refunds");
+    expect(result.trace.evaluatedPolicyIds).toEqual(["allow-small-refunds"]);
+    expect(result.trace.usedDefaultDecision).toBe(false);
+  });
+
+  it("trace shows skipped policy because of tool mismatch", () => {
+    const result = evaluatePolicyWithTrace(refundPolicy, {
+      agent: "support-agent",
+      tool: "email.send",
+      args: { amount: 20 }
+    });
+
+    const firstPolicyTrace = result.trace.policies[0];
+    expect(firstPolicyTrace?.matched).toBe(false);
+    expect(firstPolicyTrace?.checks).toContainEqual(
+      expect.objectContaining({
+        type: "tool",
+        field: "tool",
+        expectedValue: "stripe.refund",
+        actualValue: "email.send",
+        passed: false
+      })
+    );
+  });
+
+  it("trace shows failed numeric condition", () => {
+    const result = evaluatePolicyWithTrace(refundPolicy, {
+      agent: "support-agent",
+      tool: "stripe.refund",
+      args: { amount: 250 }
+    });
+
+    const firstPolicyTrace = result.trace.policies[0];
+    expect(firstPolicyTrace?.policyId).toBe("allow-small-refunds");
+    expect(firstPolicyTrace?.checks).toContainEqual(
+      expect.objectContaining({
+        type: "condition",
+        field: "args.amount",
+        operator: "lte",
+        expectedValue: 50,
+        actualValue: 250,
+        passed: false
+      })
+    );
+  });
+
+  it("trace shows passed conditions", () => {
+    const result = evaluatePolicyWithTrace(refundPolicy, {
+      agent: "support-agent",
+      tool: "stripe.refund",
+      args: { amount: 250 }
+    });
+
+    const matchedPolicyTrace = result.trace.policies.find(
+      (policyTrace) => policyTrace.policyId === "approve-medium-refunds"
+    );
+    const conditionChecks = matchedPolicyTrace?.checks.filter(
+      (check) => check.type === "condition"
+    );
+
+    expect(matchedPolicyTrace?.matched).toBe(true);
+    expect(conditionChecks).toHaveLength(2);
+    expect(conditionChecks?.every((check) => check.passed)).toBe(true);
+  });
+
+  it("trace shows default block when no policy matches", () => {
+    const result = evaluatePolicyWithTrace(refundPolicy, {
+      agent: "support-agent",
+      tool: "unknown.tool",
+      args: { amount: 20 }
+    });
+
+    expect(result.decision).toBe("block");
+    expect(result.matchedPolicyId).toBeUndefined();
+    expect(result.trace.finalMatchedPolicyId).toBeUndefined();
+    expect(result.trace.finalDecision).toBe("block");
+    expect(result.trace.usedDefaultDecision).toBe(true);
+    expect(result.trace.evaluatedPolicyIds).toEqual([
+      "allow-small-refunds",
+      "approve-medium-refunds",
+      "block-large-refunds"
+    ]);
   });
 });

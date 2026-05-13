@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { parsePolicyCasesYaml, runPolicyTests, type PolicyCasesFile } from "../src/index.js";
+import {
+  formatPolicyTestRun,
+  parsePolicyCasesYaml,
+  runPolicyTests,
+  type PolicyCasesFile
+} from "../src/index.js";
 import type { PolicyFile } from "@enforra/policy-core";
 
 const policyFile: PolicyFile = {
@@ -97,6 +102,15 @@ cases:
     expect: {}
 `)
     ).toThrow(z.ZodError);
+  });
+
+  it("prints trace details for failed cases when trace is enabled", () => {
+    const result = runPolicyTests(policyFile, singleCase({ decision: "block" }), { trace: true });
+    const output = formatPolicyTestRun(result);
+
+    expect(output).toContain("Trace:");
+    expect(output).toContain("allow-search: matched");
+    expect(output).toContain("final: allow (allow-search)");
   });
 });
 

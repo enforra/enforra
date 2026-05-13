@@ -141,6 +141,12 @@ pnpm policy:test:all
 
 Use policy tests in local development and CI to catch policy regressions before agent tool calls create side effects.
 
+## Decision trace
+
+Enforra can explain why a policy decision happened. This helps developers debug policies before runtime and produce clearer evidence for blocked or approval-required actions.
+
+See [docs/decision-trace.md](docs/decision-trace.md).
+
 ## Policy example
 
 Starter YAML policies live in `policies/starter` as examples. They are not required runtime configuration. In a real application, pass `createEnforraClient` the path to your own YAML policy file. The SDK is not hardcoded to the starter policies.
@@ -255,6 +261,7 @@ packages/*/test
 - [Audit behavior](docs/audit-behavior.md)
 - [Write your first policy](docs/write-your-first-policy.md)
 - [Policy testing](docs/policy-testing.md)
+- [Decision trace](docs/decision-trace.md)
 - [Benchmarks](docs/benchmarks.md)
 - [Policy language](docs/policy-language.md)
 - [Security model](docs/security-model.md)

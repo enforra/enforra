@@ -23,6 +23,35 @@ export interface PolicyEvaluationResult {
   policyVersion: 1;
 }
 
+export interface PolicyCheckTrace {
+  type: "agent" | "tool" | "condition";
+  field: string;
+  operator: "eq" | ConditionOperator;
+  expectedValue: unknown;
+  actualValue: unknown;
+  passed: boolean;
+  reason?: string;
+}
+
+export interface PolicyRuleTrace {
+  policyId: string;
+  matched: boolean;
+  checks: PolicyCheckTrace[];
+  failureReasons: string[];
+}
+
+export interface PolicyEvaluationTrace {
+  evaluatedPolicyIds: string[];
+  policies: PolicyRuleTrace[];
+  finalMatchedPolicyId?: string;
+  finalDecision: Decision;
+  usedDefaultDecision: boolean;
+}
+
+export interface PolicyEvaluationResultWithTrace extends PolicyEvaluationResult {
+  trace: PolicyEvaluationTrace;
+}
+
 export interface PolicyCondition {
   field: string;
   operator: ConditionOperator;
@@ -114,7 +143,7 @@ export function evaluatePolicy(
   input: ToolCallInput
 ): PolicyEvaluationResult {
   const matchedPolicy = policyFile.policies.find(
-    (policy) => matchesPolicy(policy.match, input) && matchesConditions(policy.conditions, input)
+    (policy) => tracePolicyRule(policy, input).matched
   );
   const decision = matchedPolicy?.decision ?? policyFile.defaults?.decision ?? "block";
 
@@ -129,28 +158,120 @@ export function evaluatePolicy(
   };
 }
 
-function matchesPolicy(match: PolicyMatch, input: ToolCallInput): boolean {
-  if (match.agent !== undefined && match.agent !== input.agent) {
-    return false;
+export function evaluatePolicyWithTrace(
+  policyFile: PolicyFile,
+  input: ToolCallInput
+): PolicyEvaluationResultWithTrace {
+  const policyTraces: PolicyRuleTrace[] = [];
+  let matchedPolicy: PolicyRule | undefined;
+
+  for (const policy of policyFile.policies) {
+    const policyTrace = tracePolicyRule(policy, input);
+    policyTraces.push(policyTrace);
+
+    if (policyTrace.matched) {
+      matchedPolicy = policy;
+      break;
+    }
   }
 
-  if (match.tool !== undefined && match.tool !== input.tool) {
-    return false;
-  }
+  const decision = matchedPolicy?.decision ?? policyFile.defaults?.decision ?? "block";
+  const evaluatedAt = new Date().toISOString();
 
-  return true;
+  return {
+    decision,
+    matchedPolicyId: matchedPolicy?.id,
+    reason: matchedPolicy
+      ? `matched policy ${matchedPolicy.id}`
+      : `no matching policy; default decision ${decision}`,
+    evaluatedAt,
+    policyVersion: policyFile.version,
+    trace: {
+      evaluatedPolicyIds: policyTraces.map((policyTrace) => policyTrace.policyId),
+      policies: policyTraces,
+      finalMatchedPolicyId: matchedPolicy?.id,
+      finalDecision: decision,
+      usedDefaultDecision: matchedPolicy === undefined
+    }
+  };
 }
 
-function matchesConditions(
+function tracePolicyRule(policy: PolicyRule, input: ToolCallInput): PolicyRuleTrace {
+  const checks = [
+    ...traceMatchChecks(policy.match, input),
+    ...traceConditionChecks(policy.conditions, input)
+  ];
+  const failureReasons = checks
+    .filter((check) => !check.passed)
+    .map((check) => check.reason ?? `${check.field} did not match`);
+
+  return {
+    policyId: policy.id,
+    matched: checks.every((check) => check.passed),
+    checks,
+    failureReasons
+  };
+}
+
+function traceMatchChecks(match: PolicyMatch, input: ToolCallInput): PolicyCheckTrace[] {
+  const checks: PolicyCheckTrace[] = [];
+
+  if (match.agent !== undefined) {
+    const passed = input.agent === match.agent;
+    checks.push({
+      type: "agent",
+      field: "agent",
+      operator: "eq",
+      expectedValue: match.agent,
+      actualValue: input.agent,
+      passed,
+      reason: passed ? undefined : `agent expected ${match.agent}, received ${input.agent}`
+    });
+  }
+
+  if (match.tool !== undefined) {
+    const passed = input.tool === match.tool;
+    checks.push({
+      type: "tool",
+      field: "tool",
+      operator: "eq",
+      expectedValue: match.tool,
+      actualValue: input.tool,
+      passed,
+      reason: passed ? undefined : `tool expected ${match.tool}, received ${input.tool}`
+    });
+  }
+
+  return checks;
+}
+
+function traceConditionChecks(
   conditions: PolicyCondition[] | undefined,
   input: ToolCallInput
-): boolean {
-  return conditions?.every((condition) => matchesCondition(condition, input)) ?? true;
+): PolicyCheckTrace[] {
+  return conditions?.map((condition) => traceConditionCheck(condition, input)) ?? [];
 }
 
-function matchesCondition(condition: PolicyCondition, input: ToolCallInput): boolean {
-  const actual = getPathValue(input, condition.field);
+function traceConditionCheck(condition: PolicyCondition, input: ToolCallInput): PolicyCheckTrace {
+  const actualValue = getPathValue(input, condition.field);
+  const passed = evaluateCondition(condition, actualValue);
 
+  return {
+    type: "condition",
+    field: condition.field,
+    operator: condition.operator,
+    expectedValue: condition.value,
+    actualValue,
+    passed,
+    reason: passed
+      ? undefined
+      : `${condition.field} ${condition.operator} ${String(
+          condition.value
+        )} failed; actual ${String(actualValue)}`
+  };
+}
+
+function evaluateCondition(condition: PolicyCondition, actual: unknown): boolean {
   if (actual === undefined) {
     return false;
   }
