@@ -1,11 +1,11 @@
 # Roadmap
 
-This roadmap is scoped to the open source local runtime core.
+Near-term OSS core priorities:
 
-Near-term open source work:
+- stronger policy examples for real app boundaries,
+- additional local SDK examples,
+- documentation and architecture clarity,
+- stable package publishing workflow,
+- incremental policy-language improvements.
 
-- More policy condition operators
-- Stronger policy authoring examples
-- Additional SDK examples
-- Stable package publishing workflow
-- MCP inventory examples without gateway behavior
+Out of scope for OSS core: hosted control plane features.

@@ -1,0 +1,33 @@
+version: 1
+defaults:
+  decision: block
+policies:
+  - id: allow-crm-lookup
+    match:
+      agent: openai-style-agent
+      tool: crm.lookup
+    conditions:
+      - field: args.scope
+        operator: eq
+        value: read
+    decision: allow
+
+  - id: require-approval-external-email
+    match:
+      agent: openai-style-agent
+      tool: email.send
+    conditions:
+      - field: args.to
+        operator: contains
+        value: "@"
+    decision: require_approval
+
+  - id: block-production-export
+    match:
+      agent: openai-style-agent
+      tool: customer.export
+    conditions:
+      - field: context.environment
+        operator: eq
+        value: production
+    decision: block

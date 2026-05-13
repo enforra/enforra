@@ -7,6 +7,14 @@ pnpm test
 pnpm demo:support-refund
 ```
 
+Optional demos:
+
+```bash
+pnpm demo:openai-style
+pnpm demo:mcp-style
+pnpm demo:all
+```
+
 Create a client:
 
 ```ts
@@ -21,12 +29,6 @@ const enforra = await createEnforraClient({
 Wrap a tool call:
 
 ```ts
-import { createEnforraClient } from "@enforra/sdk-node";
-
-const enforra = await createEnforraClient({
-  policyPath: "./policies/my-agent.yaml"
-});
-
 await enforra.enforceToolCall({
   agent: "research-agent",
   tool: "crm.lookup",
@@ -34,5 +36,3 @@ await enforra.enforceToolCall({
   execute: async () => lookupAccount()
 });
 ```
-
-Starter policies in `policies/starter` are examples. They are not required runtime configuration, and the SDK is not hardcoded to them. The SDK accepts any local YAML policy path that matches the policy schema.

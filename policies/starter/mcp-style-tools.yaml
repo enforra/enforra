@@ -1,0 +1,45 @@
+version: 1
+defaults:
+  decision: block
+policies:
+  - id: allow-safe-file-read
+    match:
+      agent: mcp-style-agent
+      tool: filesystem.read
+    conditions:
+      - field: args.path
+        operator: not_contains
+        value: .env
+    decision: allow
+
+  - id: block-env-read
+    match:
+      agent: mcp-style-agent
+      tool: filesystem.read
+    conditions:
+      - field: args.path
+        operator: contains
+        value: .env
+    decision: block
+
+  - id: require-approval-package-installs
+    match:
+      agent: mcp-style-agent
+      tool: terminal.run
+    conditions:
+      - field: args.command
+        operator: contains
+        value: npm install
+    decision: require_approval
+
+  - id: block-file-delete
+    match:
+      agent: mcp-style-agent
+      tool: filesystem.delete
+    decision: block
+
+  - id: log-github-issue
+    match:
+      agent: mcp-style-agent
+      tool: github.create_issue
+    decision: log_only

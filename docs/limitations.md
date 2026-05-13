@@ -1,24 +1,16 @@
 # Limitations
 
-This open source repository contains the local runtime core only. It does not include:
+This repository provides local runtime enforcement only.
 
-- Cloud dashboard
-- Hosted audit retention
-- Team approvals
-- Auth
-- Billing
-- RBAC
-- SSO
-- Slack or email approvals
-- Compliance reports
-- Hosted API
-- React UI
-- Supabase, Postgres, or Redis
-- Remote tool execution
-- MCP gateway behavior
+Not included:
 
-`require_approval` is a local decision. It does not execute the callback and does not contact an approval service.
+- cloud dashboard,
+- hosted API,
+- auth/billing/RBAC/SSO,
+- Slack/email approval workflows,
+- MCP gateway/proxy,
+- database-backed hosted retention,
+- telemetry/analytics,
+- remote tool execution.
 
-This repository is focused on local runtime enforcement. Policy management, team workflows, and hosted audit retention are outside the scope of this OSS core.
-
-For `allow` and `log_only`, audit logging happens before and after the local callback. If the pre-execution audit write fails, the callback is not run.
+`require_approval` is a local non-executing decision, not a hosted approval system.

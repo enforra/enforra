@@ -2,20 +2,27 @@
 
 ## Tool call
 
-A tool call is an attempted action by an agent. It has an `agent`, `tool`, `args`, optional `context`, and an `execute` callback owned by the application.
+A tool call is an attempted action by an agent with `agent`, `tool`, `args`, optional `context`, and an app-owned `execute` callback.
 
 ## Policy
 
-In this open source runtime, policies are provided as local YAML files so developers can inspect and run the enforcement logic without a hosted service. Policies are evaluated in order. The first matching rule wins.
+Policies are local YAML files. Rules are evaluated in order; first match wins.
 
-## Enforcement
+## Enforcement boundary
 
-The SDK evaluates policy before running `execute`. It only runs the callback for `allow` and `log_only`.
+Enforra evaluates policy before running `execute`.
 
-For `block` and `require_approval`, the SDK does not run `execute`.
+- `allow` and `log_only`: callback can execute.
+- `block` and `require_approval`: callback does not execute.
 
-For `allow` and `log_only`, the SDK writes a decision audit event before running `execute`. If that audit write fails, the callback is not run.
+For `allow` and `log_only`, Enforra writes a pre-execution decision event first. If pre-execution audit logging fails, callback execution is prevented.
 
 ## Audit
 
-The local audit logger appends JSONL events to `.enforra/audit.jsonl` with redacted args and context. Successful `allow` and `log_only` calls can create more than one audit event: a pre-execution `decision_logged` event and a final `executed` or `logged` event.
+Audit events are appended to local JSONL with redacted args/context/error fields.
+
+See runnable examples in:
+
+- `examples/support-refund-agent`
+- `examples/openai-style-tool-wrapper`
+- `examples/mcp-style-tool-policy`
