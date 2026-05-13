@@ -1,63 +1,82 @@
 # Benchmarks
 
-This repository includes a tiny local benchmark for policy evaluation and SDK wrapper overhead.
+Enforra includes a small local benchmark for understanding policy evaluation and SDK wrapper overhead.
 
-The benchmark is intended as an engineering sanity check, not a marketing claim.
+The benchmark is intended as a reproducible engineering sanity check. It is not a marketing claim.
 
 ## How to Run
 
 ```bash
-pnpm build
-pnpm bench
+pnpm benchmark:all
 ```
 
-The benchmark imports built local packages from `dist`, so run `pnpm build` first.
+Run only the policy benchmark:
+
+```bash
+pnpm benchmark:policy
+```
+
+The benchmark runs locally and makes no external API calls or hosted service calls.
 
 ## What It Measures
 
-The script measures:
+`examples/benchmark-policy-eval` measures:
 
-- policy evaluation overhead using `@enforra/policy-core`
-- SDK wrapper overhead using `@enforra/sdk-node` with an in-memory no-op audit logger
+- policy evaluation only
+- policy evaluation with decision trace
+- SDK `enforceToolCall` allow path with a no-op callback
+- SDK `enforceToolCall` block path
+- SDK `enforceToolCall` require_approval path
 
-The SDK benchmark includes policy evaluation, pre-execution audit hook calls, callback execution, and final audit hook calls. It does not include filesystem audit I/O.
+The SDK measurements use an in-memory no-op audit logger. They do not measure filesystem audit writes.
+
+## How to Interpret Results
+
+Output is intentionally plain:
+
+```text
+Enforra local benchmark
+
+These are local machine results and not a universal performance claim.
+
+policy evaluation:
+iterations: 100000
+total ms: ...
+avg per decision ms: ...
+```
+
+Use the results to understand rough local overhead in your development environment. Do not treat them as universal throughput numbers.
 
 ## Local Machine Disclaimer
 
-Results depend on:
+Results vary based on:
 
 - CPU
 - Node.js version
 - system load
 - power mode
+- operating system
 - package build state
 
-Do not compare numbers across machines without controlling the environment.
+Teams should run the benchmark in their own environment, especially if Enforra will guard high-volume or latency-sensitive tool calls.
 
-## Example Output
+## What It Does Not Measure
 
-```json
-{
-  "iterations": 100000,
-  "policyEvaluation": {
-    "totalMs": 120,
-    "averageMs": 0.0012
-  },
-  "sdkWrapperWithNoopAudit": {
-    "totalMs": 450,
-    "averageMs": 0.0045
-  }
-}
-```
+The benchmark does not measure:
 
-These numbers are illustrative only. Run the benchmark locally for actual values.
+- filesystem audit I/O
+- network calls
+- hosted service calls
+- external API latency
+- database writes
+- real tool callback latency
+- large customer-specific policy corpuses
+- CI performance thresholds
 
-## Current Limitations
+It also does not make claims about maximum decisions per second.
 
-- no filesystem audit I/O measurement
-- no large policy corpus yet
-- no CI performance threshold
-- no cross-runtime comparison
-- no published performance claim
+## Why Run It Yourself
 
-Future benchmark work should add larger policy sets and separate filesystem audit measurements without turning performance into an unsupported marketing claim.
+Enforra sits on the path before tool callbacks create side effects. Teams should understand the local overhead on the same Node.js version and hardware profile they use for agent workloads.
+
+The benchmark is small by design so it can be inspected, modified, and rerun with your own policy shapes.
