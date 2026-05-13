@@ -13,7 +13,8 @@ Packages are currently developed from source in this monorepo. npm publishing is
 ```ts
 const enforra = await createEnforraClient({
   policyPath: "./policies/starter/support-agent.yaml",
-  auditPath: ".enforra/audit.jsonl"
+  auditPath: ".enforra/audit.jsonl",
+  auditIntegrity: "hash_chain"
 });
 ```
 
@@ -21,6 +22,7 @@ Options:
 
 - `policyPath`: path to a local YAML policy file.
 - `auditPath`: optional path for local JSONL audit output. Defaults to `.enforra/audit.jsonl`.
+- `auditIntegrity`: optional local audit integrity mode. Defaults to `none`. Set to `hash_chain` to add SHA-256 chain metadata to each audit event.
 
 The SDK is not hardcoded to starter policies. Pass any valid local policy path.
 

@@ -42,6 +42,22 @@ importers:
         specifier: ^4.20.6
         version: 4.21.0
 
+  examples/audit-integrity-demo:
+    dependencies:
+      "@enforra/local-audit":
+        specifier: workspace:*
+        version: link:../../packages/local-audit
+      "@enforra/sdk-node":
+        specifier: workspace:*
+        version: link:../../packages/sdk-node
+    devDependencies:
+      tsup:
+        specifier: ^8.5.0
+        version: 8.5.1(postcss@8.5.14)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)
+      tsx:
+        specifier: ^4.20.6
+        version: 4.21.0
+
   examples/benchmark-policy-eval:
     dependencies:
       "@enforra/policy-core":

@@ -89,6 +89,7 @@ pnpm demo:support-refund
 pnpm demo:openai-style
 pnpm demo:mcp-style
 pnpm demo:approval-evidence
+pnpm demo:audit-integrity
 pnpm demo:all
 ```
 
@@ -126,6 +127,7 @@ Audit log written to .enforra/audit.jsonl
 - `examples/openai-style-tool-wrapper`: wrapper pattern for calling `enforceToolCall` before an application tool callback.
 - `examples/mcp-style-tool-policy`: starter policy pattern for MCP-style tool names at the application boundary; this repository does not implement an MCP gateway.
 - `examples/approval-evidence-demo`: local evidence demo for allow, require approval, block, and log-only decisions.
+- `examples/audit-integrity-demo`: optional hash-chain audit integrity demo for local audit logs.
 
 ## Basic usage
 
@@ -206,6 +208,8 @@ Conditions use dot paths rooted at `args` or `context`, such as `args.amount`, `
 
 Audit events are appended to `.enforra/audit.jsonl`. Arguments and context are recursively redacted for common secret fields before they are written. For `allow` and `log_only`, the runtime writes a decision audit event before calling `execute`; if that audit write fails, the callback is not run. Successful executed tool calls can create more than one audit event: a pre-execution `decision_logged` event and a final `executed` or `logged` event.
 
+Optional hash-chain mode can add tamper-evident integrity metadata to local audit logs. It helps detect modified, deleted, or reordered events when verified later, but it is not tamper-proof.
+
 ## Security model
 
 This open source runtime loads policies from local YAML files so developers can inspect and run the enforcement logic without a hosted service. Policy decisions are deterministic for the same policy and tool-call input.
@@ -231,6 +235,7 @@ This repository includes:
 - policy loading, validation, and evaluation
 - Node SDK wrapper for agent tool calls
 - local JSONL audit logging with redaction
+- optional hash-chain integrity for local audit logs
 - starter policy examples
 - runnable support, OpenAI-style, and MCP-style demos
 - tests for policy evaluation, audit redaction, and SDK behavior
@@ -247,6 +252,7 @@ examples/support-refund-agent
 examples/openai-style-tool-wrapper
 examples/mcp-style-tool-policy
 examples/approval-evidence-demo
+examples/audit-integrity-demo
 examples/benchmark-policy-eval
 policies/starter
 docs
@@ -260,6 +266,7 @@ packages/*/test
 - [Threat model](docs/threat-model.md)
 - [SDK reference](docs/sdk-reference.md)
 - [Audit behavior](docs/audit-behavior.md)
+- [Audit integrity](docs/audit-integrity.md)
 - [Write your first policy](docs/write-your-first-policy.md)
 - [Policy testing](docs/policy-testing.md)
 - [Decision trace](docs/decision-trace.md)
