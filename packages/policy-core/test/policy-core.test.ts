@@ -402,6 +402,126 @@ describe("policy-core", () => {
     expect(result.matchedPolicyId).toBe("first");
   });
 
+  it("uses higher priority policy even when it appears later", () => {
+    const policyFile: PolicyFile = {
+      version: 1,
+      policies: [
+        {
+          id: "approve-refund",
+          priority: 20,
+          match: { tool: "stripe.refund" },
+          decision: "require_approval"
+        },
+        {
+          id: "block-refund",
+          priority: 10,
+          match: { tool: "stripe.refund" },
+          decision: "block"
+        }
+      ]
+    };
+
+    const result = evaluatePolicy(policyFile, {
+      agent: "support-agent",
+      tool: "stripe.refund",
+      args: { amount: 600 }
+    });
+
+    expect(result.decision).toBe("block");
+    expect(result.matchedPolicyId).toBe("block-refund");
+    expect(policyFile.policies.map((policy) => policy.id)).toEqual([
+      "approve-refund",
+      "block-refund"
+    ]);
+  });
+
+  it("evaluates policies without priority after prioritized policies", () => {
+    const result = evaluatePolicy(
+      {
+        version: 1,
+        policies: [
+          {
+            id: "allow-unprioritized",
+            match: { tool: "customer.export" },
+            decision: "allow"
+          },
+          {
+            id: "block-prioritized",
+            priority: 10,
+            match: { tool: "customer.export" },
+            decision: "block"
+          }
+        ]
+      },
+      {
+        agent: "ops-agent",
+        tool: "customer.export",
+        args: {}
+      }
+    );
+
+    expect(result.decision).toBe("block");
+    expect(result.matchedPolicyId).toBe("block-prioritized");
+  });
+
+  it("keeps file order for policies with the same priority", () => {
+    const result = evaluatePolicy(
+      {
+        version: 1,
+        policies: [
+          {
+            id: "first-same-priority",
+            priority: 10,
+            match: { tool: "email.send" },
+            decision: "require_approval"
+          },
+          {
+            id: "second-same-priority",
+            priority: 10,
+            match: { tool: "email.send" },
+            decision: "block"
+          }
+        ]
+      },
+      {
+        agent: "support-agent",
+        tool: "email.send",
+        args: { recipient: "external@example.com" }
+      }
+    );
+
+    expect(result.decision).toBe("require_approval");
+    expect(result.matchedPolicyId).toBe("first-same-priority");
+  });
+
+  it("preserves file order behavior when no priorities are set", () => {
+    const result = evaluatePolicy(
+      {
+        version: 1,
+        policies: [
+          {
+            id: "first-no-priority",
+            match: { tool: "repo.search" },
+            decision: "log_only"
+          },
+          {
+            id: "second-no-priority",
+            match: { tool: "repo.search" },
+            decision: "block"
+          }
+        ]
+      },
+      {
+        agent: "coding-agent",
+        tool: "repo.search",
+        args: {}
+      }
+    );
+
+    expect(result.decision).toBe("log_only");
+    expect(result.matchedPolicyId).toBe("first-no-priority");
+  });
+
   it("fails validation for invalid YAML policy shape", () => {
     expect(() =>
       parsePolicyYaml(`
@@ -409,6 +529,48 @@ version: 2
 defaults:
   decision: allow
 policies: []
+`)
+    ).toThrow();
+  });
+
+  it("rejects priority 0", () => {
+    expect(() =>
+      parsePolicyYaml(`
+version: 1
+policies:
+  - id: invalid-priority
+    priority: 0
+    match:
+      tool: stripe.refund
+    decision: block
+`)
+    ).toThrow();
+  });
+
+  it("rejects negative priority", () => {
+    expect(() =>
+      parsePolicyYaml(`
+version: 1
+policies:
+  - id: invalid-priority
+    priority: -1
+    match:
+      tool: stripe.refund
+    decision: block
+`)
+    ).toThrow();
+  });
+
+  it("rejects decimal priority", () => {
+    expect(() =>
+      parsePolicyYaml(`
+version: 1
+policies:
+  - id: invalid-priority
+    priority: 1.5
+    match:
+      tool: stripe.refund
+    decision: block
 `)
     ).toThrow();
   });
@@ -833,5 +995,62 @@ policies:
       "approve-medium-refunds",
       "block-large-refunds"
     ]);
+  });
+
+  it("trace includes priority and sorted evaluation order", () => {
+    const result = evaluatePolicyWithTrace(
+      {
+        version: 1,
+        defaults: { decision: "block" },
+        policies: [
+          {
+            id: "allow-unprioritized",
+            match: { tool: "stripe.refund" },
+            decision: "allow"
+          },
+          {
+            id: "approve-medium",
+            priority: 20,
+            match: { tool: "stripe.refund" },
+            conditions: [
+              { field: "args.amount", operator: "lte", value: 500 },
+              { field: "args.amount", operator: "gt", value: 50 }
+            ],
+            decision: "require_approval"
+          },
+          {
+            id: "block-large",
+            priority: 10,
+            match: { tool: "stripe.refund" },
+            conditions: [{ field: "args.amount", operator: "gt", value: 500 }],
+            decision: "block"
+          }
+        ]
+      },
+      {
+        agent: "support-agent",
+        tool: "stripe.refund",
+        args: { amount: 250 }
+      }
+    );
+
+    expect(result.decision).toBe("require_approval");
+    expect(result.matchedPolicyId).toBe("approve-medium");
+    expect(result.trace.evaluationOrder).toEqual([
+      { policyId: "block-large", priority: 10 },
+      { policyId: "approve-medium", priority: 20 },
+      { policyId: "allow-unprioritized", priority: undefined }
+    ]);
+    expect(result.trace.evaluatedPolicyIds).toEqual(["block-large", "approve-medium"]);
+    expect(result.trace.policies[0]).toMatchObject({
+      policyId: "block-large",
+      priority: 10,
+      matched: false
+    });
+    expect(result.trace.policies[1]).toMatchObject({
+      policyId: "approve-medium",
+      priority: 20,
+      matched: true
+    });
   });
 });

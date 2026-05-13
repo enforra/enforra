@@ -37,13 +37,20 @@ export interface PolicyCheckTrace {
 
 export interface PolicyRuleTrace {
   policyId: string;
+  priority?: number;
   matched: boolean;
   checks: PolicyCheckTrace[];
   failureReasons: string[];
 }
 
+export interface PolicyEvaluationOrderEntry {
+  policyId: string;
+  priority?: number;
+}
+
 export interface PolicyEvaluationTrace {
   evaluatedPolicyIds: string[];
+  evaluationOrder: PolicyEvaluationOrderEntry[];
   policies: PolicyRuleTrace[];
   finalMatchedPolicyId?: string;
   finalDecision: Decision;
@@ -73,6 +80,7 @@ export interface PolicyMatch {
 export interface PolicyRule {
   id: string;
   description?: string;
+  priority?: number;
   match: PolicyMatch;
   conditions?: PolicyCondition[] | PolicyConditionGroup;
   decision: Decision;
@@ -118,6 +126,7 @@ const policyRuleSchema = z
   .object({
     id: z.string().min(1),
     description: z.string().optional(),
+    priority: z.number().int().positive().optional(),
     match: policyMatchSchema,
     conditions: z.union([z.array(conditionSchema).min(1), conditionGroupSchema]).optional(),
     decision: z.enum(decisions)
@@ -164,7 +173,7 @@ export function evaluatePolicy(
   policyFile: PolicyFile,
   input: ToolCallInput
 ): PolicyEvaluationResult {
-  const matchedPolicy = policyFile.policies.find(
+  const matchedPolicy = getPoliciesInEvaluationOrder(policyFile.policies).find(
     (policy) => tracePolicyRule(policy, input).matched
   );
   const decision = matchedPolicy?.decision ?? policyFile.defaults?.decision ?? "block";
@@ -186,8 +195,9 @@ export function evaluatePolicyWithTrace(
 ): PolicyEvaluationResultWithTrace {
   const policyTraces: PolicyRuleTrace[] = [];
   let matchedPolicy: PolicyRule | undefined;
+  const policiesInEvaluationOrder = getPoliciesInEvaluationOrder(policyFile.policies);
 
-  for (const policy of policyFile.policies) {
+  for (const policy of policiesInEvaluationOrder) {
     const policyTrace = tracePolicyRule(policy, input);
     policyTraces.push(policyTrace);
 
@@ -210,6 +220,10 @@ export function evaluatePolicyWithTrace(
     policyVersion: policyFile.version,
     trace: {
       evaluatedPolicyIds: policyTraces.map((policyTrace) => policyTrace.policyId),
+      evaluationOrder: policiesInEvaluationOrder.map((policy) => ({
+        policyId: policy.id,
+        priority: policy.priority
+      })),
       policies: policyTraces,
       finalMatchedPolicyId: matchedPolicy?.id,
       finalDecision: decision,
@@ -231,10 +245,37 @@ function tracePolicyRule(policy: PolicyRule, input: ToolCallInput): PolicyRuleTr
 
   return {
     policyId: policy.id,
+    priority: policy.priority,
     matched,
     checks,
     failureReasons
   };
+}
+
+function getPoliciesInEvaluationOrder(policies: PolicyRule[]): PolicyRule[] {
+  return policies
+    .map((policy, index) => ({ policy, index }))
+    .sort((left, right) => {
+      const leftPriority = left.policy.priority;
+      const rightPriority = right.policy.priority;
+
+      if (leftPriority !== undefined && rightPriority !== undefined) {
+        return leftPriority === rightPriority
+          ? left.index - right.index
+          : leftPriority - rightPriority;
+      }
+
+      if (leftPriority !== undefined) {
+        return -1;
+      }
+
+      if (rightPriority !== undefined) {
+        return 1;
+      }
+
+      return left.index - right.index;
+    })
+    .map((entry) => entry.policy);
 }
 
 function traceMatchChecks(match: PolicyMatch, input: ToolCallInput): PolicyCheckTrace[] {

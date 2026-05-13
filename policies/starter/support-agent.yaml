@@ -15,6 +15,7 @@ policies:
 
   - id: approve-medium-refunds
     description: Require approval for medium refunds
+    priority: 20
     match:
       agent: support-agent
       tool: stripe.refund
@@ -30,6 +31,7 @@ policies:
 
   - id: block-large-refunds
     description: Block large refunds
+    priority: 10
     match:
       agent: support-agent
       tool: stripe.refund

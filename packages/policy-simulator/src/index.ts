@@ -190,7 +190,11 @@ function formatTraceLines(trace: PolicyEvaluationTrace | undefined): string[] {
 
   const lines = ["  Trace:"];
   for (const policyTrace of trace.policies) {
-    lines.push(`    - ${policyTrace.policyId}: ${policyTrace.matched ? "matched" : "not matched"}`);
+    const priority =
+      policyTrace.priority === undefined ? "" : ` priority ${String(policyTrace.priority)}`;
+    lines.push(
+      `    - ${policyTrace.policyId}${priority}: ${policyTrace.matched ? "matched" : "not matched"}`
+    );
 
     for (const check of policyTrace.checks) {
       if (check.type === "condition_group") {
