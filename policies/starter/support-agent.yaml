@@ -19,12 +19,13 @@ policies:
       agent: support-agent
       tool: stripe.refund
     conditions:
-      - field: args.amount
-        operator: gt
-        value: 50
-      - field: args.amount
-        operator: lte
-        value: 500
+      all:
+        - field: args.amount
+          operator: gt
+          value: 50
+        - field: args.amount
+          operator: lte
+          value: 500
     decision: require_approval
 
   - id: block-large-refunds

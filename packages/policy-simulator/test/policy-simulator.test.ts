@@ -112,6 +112,58 @@ cases:
     expect(output).toContain("allow-search: matched");
     expect(output).toContain("final: allow (allow-search)");
   });
+
+  it("prints grouped condition trace details for failed cases", () => {
+    const result = runPolicyTests(
+      {
+        version: 1,
+        defaults: { decision: "block" },
+        policies: [
+          {
+            id: "approve-medium-prod-or-staging-refunds",
+            match: { tool: "stripe.refund" },
+            conditions: {
+              all: [
+                { field: "args.amount", operator: "gte", value: 100 },
+                { field: "args.amount", operator: "lte", value: 500 }
+              ],
+              any: [
+                { field: "context.environment", operator: "eq", value: "production" },
+                { field: "context.environment", operator: "eq", value: "staging" }
+              ]
+            },
+            decision: "require_approval"
+          }
+        ]
+      },
+      {
+        version: 1,
+        cases: [
+          {
+            name: "medium development refund should require approval",
+            input: {
+              agent: "support-agent",
+              tool: "stripe.refund",
+              args: { amount: 250 },
+              context: { environment: "development" }
+            },
+            expect: {
+              decision: "require_approval",
+              matchedPolicyId: "approve-medium-prod-or-staging-refunds"
+            }
+          }
+        ]
+      },
+      { trace: true }
+    );
+
+    const output = formatPolicyTestRun(result);
+
+    expect(result.passed).toBe(false);
+    expect(output).toContain('conditions.all: passed ("2/2 passed")');
+    expect(output).toContain('conditions.any: failed ("0/2 passed")');
+    expect(output).toContain('context.environment [any] eq "production"');
+  });
 });
 
 function singleCase(expectation: {

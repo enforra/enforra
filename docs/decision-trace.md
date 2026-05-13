@@ -15,6 +15,7 @@ The trace includes:
 - why a policy did not match
 - agent and tool match checks
 - condition checks for `args.*` and `context.*`
+- condition group checks for `conditions.all` and `conditions.any`
 - actual values
 - expected values
 - operators
@@ -39,6 +40,8 @@ console.log(result.decision);
 console.log(result.trace.finalMatchedPolicyId);
 console.log(result.trace.policies);
 ```
+
+Grouped conditions appear as summary checks plus individual condition checks. For example, an `any` group that matched one of two conditions records `conditions.any` as passed with `1/2 passed`, while still showing the failed alternative condition for debugging.
 
 ## Trace vs Audit Logs
 

@@ -195,7 +195,7 @@ policies:
     decision: require_approval
 ```
 
-Conditions use dot paths rooted at `args` or `context`, such as `args.amount`, `args.recipient`, or `context.environment`. Supported operators are `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contains`, and `not_contains`.
+Conditions use dot paths rooted at `args` or `context`, such as `args.amount`, `args.recipient`, or `context.environment`. Supported operators are `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contains`, and `not_contains`. Conditions can be written as a flat array where every condition must pass, or grouped with `all` and `any`.
 
 ## The four decisions
 
