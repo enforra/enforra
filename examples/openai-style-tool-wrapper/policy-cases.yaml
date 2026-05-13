@@ -1,0 +1,38 @@
+version: 1
+cases:
+  - name: repo search is allowed
+    input:
+      agent: coding-agent
+      tool: repo.search
+      args:
+        query: createEnforraClient
+      context:
+        environment: development
+    expect:
+      decision: allow
+      matchedPolicyId: allow-repo-search
+
+  - name: external email requires approval
+    input:
+      agent: coding-agent
+      tool: email.send
+      args:
+        recipient: external@example.com
+        subject: Status update
+      context:
+        environment: production
+    expect:
+      decision: require_approval
+      matchedPolicyId: approve-external-email
+
+  - name: production customer export is blocked
+    input:
+      agent: coding-agent
+      tool: customer.export
+      args:
+        segment: enterprise
+      context:
+        environment: production
+    expect:
+      decision: block
+      matchedPolicyId: block-production-export

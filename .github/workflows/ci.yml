@@ -34,3 +34,6 @@ jobs:
 
       - name: Lint
         run: pnpm lint
+
+      - name: Policy tests
+        run: pnpm policy:test:all

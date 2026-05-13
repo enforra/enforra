@@ -12,4 +12,3 @@ Near-term open source work:
 - Better policy testing utilities
 - Package publishing workflow
 - Larger benchmark corpus and filesystem audit measurements
-
