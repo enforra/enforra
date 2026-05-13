@@ -6,6 +6,8 @@ Near-term open source work:
 
 - More policy condition operators
 - Stronger policy authoring examples
-- Additional SDK examples
-- Stable package publishing workflow
+- Additional SDK and framework examples
 - MCP inventory examples without gateway behavior
+- Optional tamper-evident local audit mode
+- Better policy testing utilities
+- Package publishing workflow
