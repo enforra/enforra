@@ -1,4 +1,4 @@
-import { mkdtemp, readFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
@@ -6,7 +6,8 @@ import {
   createLocalAuditLogger,
   redactErrorMessage,
   redactPayload,
-  REDACTED_VALUE
+  REDACTED_VALUE,
+  verifyAuditLog
 } from "../src/index.js";
 
 describe("local-audit", () => {
@@ -145,6 +146,180 @@ describe("local-audit", () => {
       amount: 20,
       customerId: "cus_123",
       metadata: { reason: "duplicate charge" }
+    });
+  });
+
+  it("does not add integrity metadata by default", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "enforra-audit-"));
+    const auditPath = join(dir, ".enforra", "audit.jsonl");
+    const logger = createLocalAuditLogger(auditPath);
+
+    await logger.append({
+      agent: "support-agent",
+      tool: "stripe.refund",
+      decision: "allow",
+      status: "executed",
+      args: { amount: 20 }
+    });
+
+    const contents = await readFile(auditPath, "utf8");
+    const event = JSON.parse(contents.trim()) as Record<string, unknown>;
+    expect(event.integrity).toBeUndefined();
+  });
+
+  it("writes hash-chain integrity metadata", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "enforra-audit-"));
+    const auditPath = join(dir, ".enforra", "audit.jsonl");
+    const logger = createLocalAuditLogger(auditPath, { integrity: "hash_chain" });
+
+    const first = await logger.append({
+      agent: "support-agent",
+      tool: "stripe.refund",
+      decision: "allow",
+      status: "decision_logged",
+      args: { amount: 20 }
+    });
+
+    const second = await logger.append({
+      agent: "support-agent",
+      tool: "stripe.refund",
+      decision: "allow",
+      status: "executed",
+      args: { amount: 20 }
+    });
+
+    expect(first.integrity).toMatchObject({
+      algorithm: "sha256",
+      previousHash: null
+    });
+    expect(first.integrity?.hash).toMatch(/^[a-f0-9]{64}$/);
+    expect(second.integrity?.previousHash).toBe(first.integrity?.hash);
+    expect(second.integrity?.hash).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("verifies an untouched hash-chain audit log", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "enforra-audit-"));
+    const auditPath = join(dir, ".enforra", "audit.jsonl");
+    const logger = createLocalAuditLogger(auditPath, { integrity: "hash_chain" });
+
+    await logger.append({
+      agent: "support-agent",
+      tool: "stripe.refund",
+      decision: "allow",
+      status: "decision_logged",
+      args: { amount: 20 }
+    });
+    await logger.append({
+      agent: "support-agent",
+      tool: "stripe.refund",
+      decision: "allow",
+      status: "executed",
+      args: { amount: 20 }
+    });
+
+    await expect(verifyAuditLog(auditPath)).resolves.toEqual({
+      valid: true,
+      eventsChecked: 2
+    });
+  });
+
+  it("detects modified audit event content", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "enforra-audit-"));
+    const auditPath = join(dir, ".enforra", "audit.jsonl");
+    const logger = createLocalAuditLogger(auditPath, { integrity: "hash_chain" });
+
+    await logger.append({
+      agent: "support-agent",
+      tool: "stripe.refund",
+      decision: "allow",
+      status: "executed",
+      args: { amount: 20 }
+    });
+
+    const line = (await readFile(auditPath, "utf8")).trim();
+    const event = JSON.parse(line) as { argsRedacted: { amount: number } };
+    event.argsRedacted.amount = 999;
+    await writeFile(auditPath, `${JSON.stringify(event)}\n`, "utf8");
+
+    await expect(verifyAuditLog(auditPath)).resolves.toMatchObject({
+      valid: false,
+      eventsChecked: 0,
+      firstInvalidLine: 1,
+      reason: "audit event hash mismatch"
+    });
+  });
+
+  it("detects a broken previousHash value", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "enforra-audit-"));
+    const auditPath = join(dir, ".enforra", "audit.jsonl");
+    const logger = createLocalAuditLogger(auditPath, { integrity: "hash_chain" });
+
+    await logger.append({
+      agent: "support-agent",
+      tool: "stripe.refund",
+      decision: "allow",
+      status: "decision_logged",
+      args: { amount: 20 }
+    });
+    await logger.append({
+      agent: "support-agent",
+      tool: "stripe.refund",
+      decision: "allow",
+      status: "executed",
+      args: { amount: 20 }
+    });
+
+    const lines = (await readFile(auditPath, "utf8")).trim().split("\n");
+    const secondEvent = JSON.parse(lines[1] ?? "{}") as {
+      integrity: { previousHash: string };
+    };
+    secondEvent.integrity.previousHash = "0".repeat(64);
+    lines[1] = JSON.stringify(secondEvent);
+    await writeFile(auditPath, `${lines.join("\n")}\n`, "utf8");
+
+    await expect(verifyAuditLog(auditPath)).resolves.toMatchObject({
+      valid: false,
+      eventsChecked: 1,
+      firstInvalidLine: 2,
+      reason: "broken hash chain"
+    });
+  });
+
+  it("detects invalid JSON lines", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "enforra-audit-"));
+    const auditDir = join(dir, ".enforra");
+    await mkdir(auditDir, { recursive: true });
+    const auditPath = join(auditDir, "audit.jsonl");
+    await writeFile(auditPath, "{not-json}\n", "utf8");
+
+    await expect(verifyAuditLog(auditPath)).resolves.toMatchObject({
+      valid: false,
+      eventsChecked: 0,
+      firstInvalidLine: 1,
+      reason: "invalid JSON line"
+    });
+  });
+
+  it("reports non-hash-chain logs as missing integrity metadata", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "enforra-audit-"));
+    const auditDir = join(dir, ".enforra");
+    await mkdir(auditDir, { recursive: true });
+    const auditPath = join(auditDir, "audit.jsonl");
+    const logger = createLocalAuditLogger(auditPath);
+
+    await logger.append({
+      agent: "support-agent",
+      tool: "stripe.refund",
+      decision: "allow",
+      status: "executed",
+      args: { amount: 20 }
+    });
+
+    await expect(verifyAuditLog(auditPath)).resolves.toMatchObject({
+      valid: false,
+      eventsChecked: 0,
+      firstInvalidLine: 1,
+      reason: "audit log does not contain integrity metadata"
     });
   });
 });

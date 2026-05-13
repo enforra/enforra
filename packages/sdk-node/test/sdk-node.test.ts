@@ -461,4 +461,51 @@ policies:
     expect(events[1].error).toBe("Auth failed with [REDACTED]");
     expect(events[1].error).not.toContain(secretKey);
   });
+
+  it("writes integrity metadata when auditIntegrity is hash_chain", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "enforra-sdk-"));
+    const policyPath = join(dir, "policy.yaml");
+    const auditPath = join(dir, ".enforra", "audit.jsonl");
+
+    await writeFile(
+      policyPath,
+      `
+version: 1
+defaults:
+  decision: block
+policies:
+  - id: allow-lookup
+    match:
+      agent: research-agent
+      tool: crm.lookup
+    decision: allow
+`,
+      "utf8"
+    );
+
+    const client = await createEnforraClient({
+      policyPath,
+      auditPath,
+      auditIntegrity: "hash_chain"
+    });
+
+    await client.enforceToolCall({
+      agent: "research-agent",
+      tool: "crm.lookup",
+      args: { accountId: "acct_123" },
+      execute: async () => ({ accountId: "acct_123" })
+    });
+
+    const lines = (await readFile(auditPath, "utf8")).trim().split("\n");
+    const firstEvent = JSON.parse(lines[0] ?? "{}") as {
+      integrity?: { previousHash: string | null; hash: string };
+    };
+    const secondEvent = JSON.parse(lines[1] ?? "{}") as {
+      integrity?: { previousHash: string | null; hash: string };
+    };
+
+    expect(firstEvent.integrity?.previousHash).toBeNull();
+    expect(firstEvent.integrity?.hash).toMatch(/^[a-f0-9]{64}$/);
+    expect(secondEvent.integrity?.previousHash).toBe(firstEvent.integrity?.hash);
+  });
 });

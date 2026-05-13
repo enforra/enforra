@@ -99,7 +99,7 @@ Recommended controls:
 
 Audit logs are written to a local JSONL file, usually `.enforra/audit.jsonl`.
 
-Audit entries are redacted for common secret fields and common secret patterns in error messages. The current OSS audit log is not tamper-evident. A local user or process with write access to the audit file can modify or delete it.
+Audit entries are redacted for common secret fields and common secret patterns in error messages. Default audit logs do not include integrity metadata. Optional hash-chain mode can make the log tamper-evident when verified later, but local audit logs are not tamper-proof. A local user or process with write access to the audit file can modify, delete, or rewrite it.
 
 Recommended controls:
 
@@ -205,14 +205,13 @@ The runtime performs no telemetry, analytics, hosted API calls, database writes,
 
 ## Tamper Resistance Limitations
 
-Local audit logs are redacted but not tamper-evident yet.
+Local audit logs can be redacted and optionally tamper-evident, but they are not tamper-proof.
 
 Current limitations:
 
-- no hash chain
 - no HMAC signatures
 - no remote retention
 - no append-only storage guarantee
 - no built-in log shipping
 
-Optional tamper-evident local audit mode is a possible future improvement, but it is not implemented in the current OSS runtime.
+Hash-chain mode can detect modified, deleted, or reordered events when the chain is verified later. A local attacker with filesystem access can rewrite the entire file and recompute hashes.

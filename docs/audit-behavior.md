@@ -21,6 +21,8 @@ const enforra = await createEnforraClient({
 
 The audit directory is created if it does not exist.
 
+Optional hash-chain integrity mode can be enabled with `auditIntegrity: "hash_chain"`. See [audit integrity](audit-integrity.md).
+
 ## JSONL Format
 
 Each line is a JSON object.
@@ -38,6 +40,7 @@ Fields:
 - `contextRedacted`
 - `durationMs`
 - `error`
+- `integrity` when hash-chain mode is enabled
 
 Example:
 
@@ -135,14 +138,15 @@ For execution failure:
 
 ## Current Limitation
 
-Local audit logs are redacted but not tamper-evident yet.
+Default local audit logs are redacted but do not include integrity metadata.
+
+The OSS runtime includes an optional local hash-chain mode that can detect modified, deleted, or reordered events when the log is verified later. It is tamper-evident, not tamper-proof: a local attacker with filesystem access can rewrite the whole file.
 
 The current OSS runtime does not implement:
 
-- hash chaining
 - HMAC signatures
 - append-only storage guarantees
 - hosted retention
 - log shipping
 
-Optional tamper-evident local audit mode is tracked as a possible future improvement in the roadmap.
+Redaction and integrity solve different problems. Redaction avoids writing common sensitive values to audit logs. Integrity metadata helps detect later changes to the log.

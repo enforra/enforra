@@ -2,6 +2,7 @@ import { performance } from "node:perf_hooks";
 import {
   createLocalAuditLogger,
   redactErrorMessage,
+  type AuditIntegrityMode,
   type LocalAuditLogger
 } from "@enforra/local-audit";
 import {
@@ -15,6 +16,7 @@ import {
 export interface CreateEnforraClientOptions {
   policyPath: string;
   auditPath?: string;
+  auditIntegrity?: AuditIntegrityMode;
 }
 
 export interface EnforceToolCallInput<TData> extends ToolCallInput {
@@ -87,7 +89,9 @@ export async function createEnforraClient(
   options: CreateEnforraClientOptions
 ): Promise<EnforraClient> {
   const policyFile = await loadPolicyFile(options.policyPath);
-  const auditLogger = createLocalAuditLogger(options.auditPath);
+  const auditLogger = createLocalAuditLogger(options.auditPath, {
+    integrity: options.auditIntegrity
+  });
 
   return createClient(policyFile, auditLogger);
 }

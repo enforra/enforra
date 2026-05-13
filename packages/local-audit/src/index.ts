@@ -1,6 +1,6 @@
-import { mkdir, appendFile } from "node:fs/promises";
+import { appendFile, mkdir, readFile } from "node:fs/promises";
 import { dirname } from "node:path";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { Decision } from "@enforra/policy-core";
 
 export const REDACTED_VALUE = "[REDACTED]";
@@ -16,6 +16,18 @@ export const auditStatuses = [
 
 export type AuditStatus = (typeof auditStatuses)[number];
 
+export type AuditIntegrityMode = "none" | "hash_chain";
+
+export interface LocalAuditLoggerOptions {
+  integrity?: AuditIntegrityMode;
+}
+
+export interface AuditEventIntegrity {
+  algorithm: "sha256";
+  previousHash: string | null;
+  hash: string;
+}
+
 export interface AuditEventInput {
   agent: string;
   tool: string;
@@ -28,7 +40,7 @@ export interface AuditEventInput {
   error?: string;
 }
 
-export interface AuditEvent {
+export type AuditEvent = {
   id: string;
   timestamp: string;
   agent: string;
@@ -40,10 +52,18 @@ export interface AuditEvent {
   contextRedacted?: unknown;
   durationMs?: number;
   error?: string;
-}
+  integrity?: AuditEventIntegrity;
+};
 
 export interface LocalAuditLogger {
   append(event: AuditEventInput): Promise<AuditEvent>;
+}
+
+export interface AuditVerificationResult {
+  valid: boolean;
+  eventsChecked: number;
+  firstInvalidLine?: number;
+  reason?: string;
 }
 
 const sensitiveKeys = new Set([
@@ -77,12 +97,17 @@ const errorRedactionPatterns = [
   /\bsk_[A-Za-z0-9_=-]+/g
 ];
 
-export function createLocalAuditLogger(path = ".enforra/audit.jsonl"): LocalAuditLogger {
+export function createLocalAuditLogger(
+  path = ".enforra/audit.jsonl",
+  options: LocalAuditLoggerOptions = {}
+): LocalAuditLogger {
+  const integrity = options.integrity ?? "none";
+
   return {
     async append(event: AuditEventInput): Promise<AuditEvent> {
       await mkdir(dirname(path), { recursive: true });
 
-      const auditEvent: AuditEvent = {
+      const auditEventBase: AuditEvent = {
         id: randomUUID(),
         timestamp: new Date().toISOString(),
         agent: event.agent,
@@ -96,9 +121,90 @@ export function createLocalAuditLogger(path = ".enforra/audit.jsonl"): LocalAudi
         error: event.error === undefined ? undefined : redactErrorMessage(event.error)
       };
 
+      const auditEvent =
+        integrity === "hash_chain"
+          ? await addHashChainIntegrity(path, auditEventBase)
+          : auditEventBase;
+
       await appendFile(path, `${JSON.stringify(auditEvent)}\n`, "utf8");
       return auditEvent;
     }
+  };
+}
+
+export async function verifyAuditLog(path: string): Promise<AuditVerificationResult> {
+  let contents: string;
+  try {
+    contents = await readFile(path, "utf8");
+  } catch (error) {
+    return {
+      valid: false,
+      eventsChecked: 0,
+      reason: error instanceof Error ? error.message : String(error)
+    };
+  }
+
+  const lines = contents.split(/\r?\n/).filter((line) => line.trim().length > 0);
+  let previousHash: string | null = null;
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const lineNumber = index + 1;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(lines[index] ?? "");
+    } catch {
+      return {
+        valid: false,
+        eventsChecked: index,
+        firstInvalidLine: lineNumber,
+        reason: "invalid JSON line"
+      };
+    }
+
+    if (!isPlainObject(parsed)) {
+      return {
+        valid: false,
+        eventsChecked: index,
+        firstInvalidLine: lineNumber,
+        reason: "audit event is not a JSON object"
+      };
+    }
+
+    const integrity = parsed.integrity;
+    if (!isAuditEventIntegrity(integrity)) {
+      return {
+        valid: false,
+        eventsChecked: index,
+        firstInvalidLine: lineNumber,
+        reason: "audit log does not contain integrity metadata"
+      };
+    }
+
+    if (integrity.previousHash !== previousHash) {
+      return {
+        valid: false,
+        eventsChecked: index,
+        firstInvalidLine: lineNumber,
+        reason: "broken hash chain"
+      };
+    }
+
+    const expectedHash = computeAuditHash(parsed, integrity.previousHash);
+    if (integrity.hash !== expectedHash) {
+      return {
+        valid: false,
+        eventsChecked: index,
+        firstInvalidLine: lineNumber,
+        reason: "audit event hash mismatch"
+      };
+    }
+
+    previousHash = integrity.hash;
+  }
+
+  return {
+    valid: true,
+    eventsChecked: lines.length
   };
 }
 
@@ -148,4 +254,91 @@ function shouldRedactKey(key: string): boolean {
 
 function normalizeKey(key: string): string {
   return key.replace(/[-_\s]/g, "").toLowerCase();
+}
+
+async function addHashChainIntegrity(path: string, event: AuditEvent): Promise<AuditEvent> {
+  const previousHash = await readLastIntegrityHash(path);
+  const hash = computeAuditHash(event, previousHash);
+
+  return {
+    ...event,
+    integrity: {
+      algorithm: "sha256",
+      previousHash,
+      hash
+    }
+  };
+}
+
+async function readLastIntegrityHash(path: string): Promise<string | null> {
+  let contents: string;
+  try {
+    contents = await readFile(path, "utf8");
+  } catch (error) {
+    if (isNodeError(error) && error.code === "ENOENT") {
+      return null;
+    }
+    throw error;
+  }
+
+  const lines = contents.split(/\r?\n/).filter((line) => line.trim().length > 0);
+  if (lines.length === 0) {
+    return null;
+  }
+
+  const lastLine = lines[lines.length - 1];
+  const parsed = JSON.parse(lastLine ?? "");
+  if (!isPlainObject(parsed) || !isAuditEventIntegrity(parsed.integrity)) {
+    throw new Error("existing audit log does not contain integrity metadata");
+  }
+
+  return parsed.integrity.hash;
+}
+
+function computeAuditHash(event: Record<string, unknown>, previousHash: string | null): string {
+  const eventForHash = {
+    ...event,
+    integrity: {
+      algorithm: "sha256",
+      previousHash
+    }
+  };
+
+  return createHash("sha256").update(stableStringify(eventForHash)).digest("hex");
+}
+
+function stableStringify(value: unknown): string {
+  return JSON.stringify(toCanonicalValue(value));
+}
+
+function toCanonicalValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => toCanonicalValue(item));
+  }
+
+  if (isPlainObject(value)) {
+    const canonical: Record<string, unknown> = {};
+    for (const key of Object.keys(value).sort()) {
+      const nestedValue = value[key];
+      if (nestedValue !== undefined && key !== "hash") {
+        canonical[key] = toCanonicalValue(nestedValue);
+      }
+    }
+    return canonical;
+  }
+
+  return value;
+}
+
+function isAuditEventIntegrity(value: unknown): value is AuditEventIntegrity {
+  return (
+    isPlainObject(value) &&
+    value.algorithm === "sha256" &&
+    (typeof value.previousHash === "string" || value.previousHash === null) &&
+    typeof value.hash === "string"
+  );
+}
+
+function isNodeError(error: unknown): error is NodeJS.ErrnoException {
+  return error instanceof Error && "code" in error;
 }
