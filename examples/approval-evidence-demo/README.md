@@ -50,3 +50,15 @@ Audit logs are written to:
 Allowed and `log_only` calls write a pre-execution `decision_logged` event before the callback runs, then a final `executed` or `logged` event.
 
 Blocked and approval-required calls do not execute their callbacks. They write `blocked` or `pending_approval`.
+
+The demo also prints an audit evidence summary with action-specific labels, for example:
+
+```text
+Audit evidence summary:
+- email.send to teammate@example.com: decision_logged
+- email.send to teammate@example.com: executed
+- email.send to external@example.com: pending_approval
+- customer.export in production: blocked
+- github.create_issue: decision_logged
+- github.create_issue: logged
+```

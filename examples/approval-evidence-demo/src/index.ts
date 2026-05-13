@@ -17,6 +17,13 @@ type DemoCall = {
   execute: () => Promise<DemoData>;
 };
 
+type AuditLogEvent = {
+  tool: string;
+  status: string;
+  argsRedacted: unknown;
+  contextRedacted?: unknown;
+};
+
 const repoRoot = resolve(fileURLToPath(new URL("../../../", import.meta.url)));
 const policyPath = resolve(repoRoot, "policies/starter/approval-evidence.yaml");
 const auditPath = resolve(repoRoot, ".enforra/audit.jsonl");
@@ -138,9 +145,36 @@ async function readAuditSummary(): Promise<string> {
     .split("\n")
     .filter(Boolean)
     .map((line) => {
-      const event = JSON.parse(line) as { tool: string; status: string };
-      return `- ${event.tool}: ${event.status}`;
+      const event = JSON.parse(line) as AuditLogEvent;
+      return `- ${labelForAuditEvent(event)}: ${event.status}`;
     });
 
   return statuses.join("\n");
+}
+
+function labelForAuditEvent(event: AuditLogEvent): string {
+  if (event.tool === "email.send") {
+    const recipient = getStringField(event.argsRedacted, "recipient");
+    return recipient === undefined ? "email.send" : `email.send to ${recipient}`;
+  }
+
+  if (event.tool === "customer.export") {
+    const environment = getStringField(event.contextRedacted, "environment");
+    return environment === undefined ? "customer.export" : `customer.export in ${environment}`;
+  }
+
+  if (event.tool === "github.create_issue") {
+    return "github.create_issue";
+  }
+
+  return event.tool;
+}
+
+function getStringField(value: unknown, field: string): string | undefined {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const fieldValue = (value as Record<string, unknown>)[field];
+  return typeof fieldValue === "string" ? fieldValue : undefined;
 }
