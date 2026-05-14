@@ -14,7 +14,7 @@ It is designed to help applications:
 - block tool calls that should not execute
 - mark risky tool calls as requiring approval
 - log local audit evidence for policy decisions and execution status
-- fail closed for blocked and approval-required actions
+- fail closed for blocked and approval-required decisions
 - avoid writing raw common secret fields to local audit logs
 
 ## What Enforra Does Not Protect
@@ -75,6 +75,7 @@ The application is responsible for:
 - providing accurate `agent`, `tool`, `args`, and `context` values
 - keeping tool secrets out of policy files and logs
 - implementing the actual tool callback safely
+- validating tool arguments inside the tool callback as a final application safety check
 - handling `require_approval` results without executing the callback
 - handling failed or audit-failed results without unsafe retries
 - protecting local policy and audit files with normal filesystem controls
@@ -90,6 +91,7 @@ Enforra validates policy shape with Zod, but it assumes the policy file path pro
 Recommended controls:
 
 - store policy files with source control review
+- review policy changes the same way you review application code
 - restrict write access in production
 - use fail-closed defaults
 - keep sensitive values out of policy files
@@ -164,6 +166,23 @@ For `allow` and `log_only` after successful execution:
 
 This avoids hiding a successful side effect and helps callers avoid accidental retries.
 
+Pre-execution audit failure summary:
+
+| Decision           | Audit failure before execution      | Callback runs? |
+| ------------------ | ----------------------------------- | -------------- |
+| `block`            | result includes `auditFailed: true` | no             |
+| `require_approval` | result includes `auditFailed: true` | no             |
+| `allow`            | result includes `auditFailed: true` | no             |
+| `log_only`         | result includes `auditFailed: true` | no             |
+
+Post-execution audit failure summary:
+
+| Case                                                | Callback already ran? | Result                                                         |
+| --------------------------------------------------- | --------------------- | -------------------------------------------------------------- |
+| final audit write fails after successful `allow`    | yes                   | `executed: true`, `auditFailed: true`, callback data preserved |
+| final audit write fails after callback throws       | yes                   | original error preserved, `auditFailed: true`                  |
+| final audit write fails after successful `log_only` | yes                   | `executed: true`, `auditFailed: true`, callback data preserved |
+
 ## Why Block and Require Approval Fail Closed
 
 `block` and `require_approval` never call `execute`.
@@ -215,3 +234,5 @@ Current limitations:
 - no built-in log shipping
 
 Hash-chain mode can detect modified, deleted, or reordered events when the chain is verified later. A local attacker with filesystem access can rewrite the entire file and recompute hashes.
+
+For stronger audit guarantees, applications should export logs to their own append-only or centralized logging system.
