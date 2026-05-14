@@ -61,6 +61,7 @@ These numbers were produced on a local development machine. Run the benchmark yo
 
 Policy is pre-loaded into memory before the benchmark loop runs. SDK measurements use an in-memory no-op audit logger. Real filesystem audit write latency is not captured here.
 
+
 ## Example Output Shape
 
 Example result from one local development machine:
