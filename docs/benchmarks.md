@@ -47,6 +47,21 @@ avg per decision ms: ...
 
 Use the results to understand rough local overhead in your development environment. Do not treat them as universal throughput numbers.
 
+## Results From One Development Machine
+
+These numbers were produced on a local development machine. Run the benchmark yourself to get results for your environment.
+
+| Benchmark                    | Iterations | Avg per decision |
+| ---------------------------- | ---------- | ---------------- |
+| Policy evaluation            | 100,000    | 0.00054ms        |
+| Policy evaluation with trace | 100,000    | 0.00062ms        |
+| SDK allow                    | 100,000    | 0.00173ms        |
+| SDK block                    | 100,000    | 0.00183ms        |
+| SDK require_approval         | 100,000    | 0.00202ms        |
+
+Policy is pre-loaded into memory before the benchmark loop runs. SDK measurements use an in-memory no-op audit logger. Real filesystem audit write latency is not captured here.
+
+
 ## Example Output Shape
 
 Example result from one local development machine:
