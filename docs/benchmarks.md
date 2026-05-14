@@ -47,6 +47,34 @@ avg per decision ms: ...
 
 Use the results to understand rough local overhead in your development environment. Do not treat them as universal throughput numbers.
 
+## Example Output Shape
+
+Example result from one local development machine:
+
+```text
+policy evaluation:
+iterations: 100000
+avg per decision ms: 0.00063
+
+policy evaluation with trace:
+iterations: 100000
+avg per decision ms: 0.00057
+
+sdk allow no-op:
+iterations: 100000
+avg per decision ms: 0.00219
+
+sdk block:
+iterations: 100000
+avg per decision ms: 0.00226
+
+sdk require_approval:
+iterations: 100000
+avg per decision ms: 0.00259
+```
+
+These numbers are included only as a sample output shape. Run the benchmark in your own environment before making performance assumptions.
+
 ## Local Machine Disclaimer
 
 Results vary based on:

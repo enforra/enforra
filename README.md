@@ -265,6 +265,7 @@ packages/*/test
 - [Scope](docs/scope.md)
 - [Threat model](docs/threat-model.md)
 - [SDK reference](docs/sdk-reference.md)
+- [Framework integration patterns](docs/integrations.md)
 - [Audit behavior](docs/audit-behavior.md)
 - [Audit integrity](docs/audit-integrity.md)
 - [Write your first policy](docs/write-your-first-policy.md)
