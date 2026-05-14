@@ -11,6 +11,47 @@ pnpm test
 pnpm lint
 ```
 
+## Run the demos
+
+Demos are local-only and use mock callbacks. They should make no external API calls.
+
+```bash
+pnpm demo:all
+pnpm demo:audit-integrity
+```
+
+## Run policy tests and benchmarks
+
+```bash
+pnpm policy:test:all
+pnpm benchmark:all
+```
+
+## Code style
+
+Format with Prettier and keep lint clean:
+
+```bash
+pnpm format
+pnpm lint
+```
+
+## Opening PRs
+
+- Keep PRs small and focused.
+- Include tests for security-sensitive behavior changes.
+- Update docs when behavior or assumptions change.
+
+## Security-sensitive changes
+
+Security-sensitive changes need tests. Policy evaluation changes should include policy-core unit tests. SDK behavior changes should include sdk-node tests. Audit and redaction changes should include local-audit tests.
+
+If a change impacts threat assumptions or trust boundaries, update `docs/threat-model.md`.
+
+## No secrets in issues or PRs
+
+Do not include API keys, tokens, credentials, customer data, or private audit logs in issues, PR descriptions, commit messages, screenshots, or attached files.
+
 ## Development
 
 Packages live under `packages/*`. Examples live under `examples/*`. Starter policies live under `policies/starter`.
@@ -23,4 +64,4 @@ Add policy templates as YAML files under `policies/starter`. Keep them generic, 
 
 ## Tests
 
-Security-sensitive changes need tests. Policy evaluation changes should include policy-core unit tests. SDK behavior changes should include sdk-node tests. Audit and redaction changes should include local-audit tests.
+See "Security-sensitive changes" above for test expectations.
