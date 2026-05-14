@@ -3,11 +3,11 @@
 [![CI](https://github.com/enforra/enforra/actions/workflows/ci.yml/badge.svg)](https://github.com/enforra/enforra/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-System prompts are not a security boundary. When an AI agent can issue refunds, run commands, send emails, or export data, the control point needs to sit before the tool action executes.
+System prompts are not a security boundary. When an AI agent can issue refunds, run commands, send emails, or export data, the control point should sit before the tool action executes.
 
-Enforra Core is a local policy and audit layer for AI agent tool calls. It evaluates YAML policy before the application-owned callback runs and returns allow, block, require_approval, or log_only.
+Enforra Core is a local action governance SDK for AI agent tool calls. It lets developers define policy, test it in CI, trace decisions, enforce before application-owned callbacks run, and write redacted audit evidence locally.
 
-The OSS core runs locally, makes no network calls, and does not execute your tools remotely.
+At runtime, it returns one of four decisions: allow, block, require_approval, or log_only. The OSS core runs locally, makes no network calls, and does not execute your tools remotely.
 
 ```ts
 import { createEnforraClient } from "@enforra/sdk-node";
