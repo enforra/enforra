@@ -37,7 +37,11 @@ console.log(result.decision);
 // "require_approval"
 ```
 
-Packages are currently developed from source in this monorepo. npm publishing is not live yet.
+## Install
+
+```bash
+npm install @enforra/sdk-node
+```
 
 ## What is Enforra?
 
