@@ -96,6 +96,8 @@ pnpm demo:openai-style
 pnpm demo:mcp-style
 pnpm demo:approval-evidence
 pnpm demo:audit-integrity
+pnpm demo:db-unsafe
+pnpm demo:db-enforra
 pnpm demo:all
 ```
 
@@ -134,6 +136,7 @@ Audit log written to .enforra/audit.jsonl
 - `examples/mcp-style-tool-policy`: starter policy pattern for MCP-style tool names at the application boundary; this repository does not implement an MCP gateway.
 - `examples/approval-evidence-demo`: local evidence demo for allow, require approval, block, and log-only decisions.
 - `examples/audit-integrity-demo`: optional hash-chain audit integrity demo for local audit logs.
+- `examples/db-delete-video-demo`: simple video demo contrasting a direct table-delete callback with the same callback protected by Enforra.
 
 ## Basic usage
 
@@ -259,6 +262,7 @@ examples/openai-style-tool-wrapper
 examples/mcp-style-tool-policy
 examples/approval-evidence-demo
 examples/audit-integrity-demo
+examples/db-delete-video-demo
 examples/benchmark-policy-eval
 policies/starter
 docs
@@ -281,6 +285,18 @@ packages/*/test
 - [Policy language](docs/policy-language.md)
 - [Security model](docs/security-model.md)
 - [Limitations](docs/limitations.md)
+
+## Feedback and Community
+
+We are actively looking for feedback from developers building production AI agents, MCP servers, and agentic workflows.
+
+- Found a bug? Open a GitHub issue.
+- Have a feature request or integration idea? Open a GitHub issue.
+- Want to talk directly with the team or explore becoming a design partner? Join our Slack or Discord community.
+- Security-sensitive feedback? Email security@enforra.com.
+
+Slack: https://join.slack.com/t/enforra/shared_invite/zt-3xs2z71z5-9Cf_dqTbYRe3Z1WBiFvRRA  
+Discord: https://discord.gg/PkXtk9C3q
 
 ## Roadmap
 

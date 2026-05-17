@@ -1,0 +1,16 @@
+{
+  "name": "@enforra/example-db-delete-video-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsup agent_db.ts agent_db_enforra.ts --format esm --sourcemap",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@enforra/sdk-node": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.0"
+  }
+}
