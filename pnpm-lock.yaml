@@ -74,6 +74,16 @@ importers:
         specifier: ^4.20.6
         version: 4.21.0
 
+  examples/db-delete-video-demo:
+    dependencies:
+      "@enforra/sdk-node":
+        specifier: workspace:*
+        version: link:../../packages/sdk-node
+    devDependencies:
+      tsup:
+        specifier: ^8.5.0
+        version: 8.5.1(postcss@8.5.14)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)
+
   examples/mcp-style-tool-policy:
     dependencies:
       "@enforra/sdk-node":

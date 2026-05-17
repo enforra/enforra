@@ -1,0 +1,17 @@
+version: 1
+defaults:
+  decision: block
+policies:
+  - id: block-production-customer-delete
+    priority: 10
+    match:
+      tool: db.deleteTable
+    conditions:
+      all:
+        - field: args.table
+          operator: eq
+          value: customers
+        - field: context.environment
+          operator: eq
+          value: production
+    decision: block
