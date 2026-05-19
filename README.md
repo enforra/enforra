@@ -61,7 +61,7 @@ Agent instructions are useful, but they are not a security boundary. Runtime con
 
 System prompts can guide behavior, but enforcement should happen at the point where an agent action becomes a real side effect.
 
-Enforra evaluates policy immediately before the tool callback runs, so manipulated or unexpected agent behavior can still be blocked, paused for approval, or logged before side effects happen.
+Enforra evaluates policy immediately before the tool callback runs, so manipulated or unexpected agent behavior can still be blocked, marked as requiring approval, or logged before side effects happen.
 
 ## Prerequisites
 
@@ -90,8 +90,6 @@ This repository is a pnpm monorepo. To work on packages from source:
 pnpm install
 ```
 
-````
-
 ## CLI
 
 Use the Enforra CLI to create starter policies and run policy tests locally.
@@ -99,7 +97,9 @@ Use the Enforra CLI to create starter policies and run policy tests locally.
 ```bash
 npx @enforra/cli init
 npx @enforra/cli test
-````
+```
+
+The CLI creates a starter policy and test cases so you can validate decisions before wiring Enforra into your agent tools.
 
 ## Run the demos
 
@@ -259,7 +259,7 @@ This repository includes:
 - local JSONL audit logging with redaction
 - optional hash-chain integrity for local audit logs
 - starter policy examples
-- runnable support, OpenAI-style, and MCP-style demos
+- runnable support, OpenAI-style, MCP-style, approval evidence, audit integrity, database guard, and benchmark demos
 - tests for policy evaluation, audit redaction, and SDK behavior
 - CI for build, test, and lint
 
