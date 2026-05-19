@@ -7,6 +7,8 @@ System prompts are not a security boundary. When an AI agent can issue refunds, 
 
 Enforra Core is a local action governance SDK for AI agent tool calls. It lets developers define policy, test it in CI, trace decisions, enforce before application-owned callbacks run, and write redacted audit evidence locally.
 
+Enforra wraps application-owned tool callbacks. It is not an agent runtime, MCP proxy, or model firewall.
+
 At runtime, it returns one of four decisions: allow, block, require_approval, or log_only. The OSS core runs locally, makes no network calls, and does not execute your tools remotely.
 
 ```ts
@@ -59,7 +61,7 @@ Agent instructions are useful, but they are not a security boundary. Runtime con
 
 System prompts can guide behavior, but enforcement should happen at the point where an agent action becomes a real side effect.
 
-Enforra evaluates policy immediately before the tool callback runs, so manipulated or unexpected agent behavior can still be blocked, paused for approval, or logged before side effects happen.
+Enforra evaluates policy immediately before the tool callback runs, so manipulated or unexpected agent behavior can still be blocked, marked as requiring approval, or logged before side effects happen.
 
 ## Prerequisites
 
@@ -82,11 +84,22 @@ pnpm benchmark:all
 
 ## Develop from source
 
-This repository is a pnpm monorepo. Packages are currently developed from source:
+This repository is a pnpm monorepo. To work on packages from source:
 
 ```bash
 pnpm install
 ```
+
+## CLI
+
+Use the Enforra CLI to create starter policies and run policy tests locally.
+
+```bash
+npx @enforra/cli init
+npx @enforra/cli test
+```
+
+The CLI creates a starter policy and test cases so you can validate decisions before wiring Enforra into your agent tools.
 
 ## Run the demos
 
@@ -246,7 +259,7 @@ This repository includes:
 - local JSONL audit logging with redaction
 - optional hash-chain integrity for local audit logs
 - starter policy examples
-- runnable support, OpenAI-style, and MCP-style demos
+- runnable support, OpenAI-style, MCP-style, approval evidence, audit integrity, database guard, and benchmark demos
 - tests for policy evaluation, audit redaction, and SDK behavior
 - CI for build, test, and lint
 
@@ -256,6 +269,7 @@ This repository includes:
 packages/policy-core       Policy loading, validation, and evaluation
 packages/policy-simulator  Local policy simulation and case runner
 packages/sdk-node          Node SDK enforcement wrapper
+packages/cli               CLI for init, policy tests, audit verification, and setup checks
 packages/local-audit       Local JSONL audit logging and redaction
 examples/support-refund-agent
 examples/openai-style-tool-wrapper
