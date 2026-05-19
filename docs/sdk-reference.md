@@ -6,7 +6,11 @@ The Node SDK exposes a local enforcement wrapper around application-owned tool c
 import { createEnforraClient } from "@enforra/sdk-node";
 ```
 
-Packages are currently developed from source in this monorepo. npm publishing is not live yet.
+## Install
+
+```bash
+npm install @enforra/sdk-node
+```
 
 ## `createEnforraClient`
 

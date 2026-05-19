@@ -7,6 +7,8 @@ System prompts are not a security boundary. When an AI agent can issue refunds, 
 
 Enforra Core is a local action governance SDK for AI agent tool calls. It lets developers define policy, test it in CI, trace decisions, enforce before application-owned callbacks run, and write redacted audit evidence locally.
 
+Enforra wraps application-owned tool callbacks. It is not an agent runtime, MCP proxy, or model firewall.
+
 At runtime, it returns one of four decisions: allow, block, require_approval, or log_only. The OSS core runs locally, makes no network calls, and does not execute your tools remotely.
 
 ```ts
@@ -82,11 +84,22 @@ pnpm benchmark:all
 
 ## Develop from source
 
-This repository is a pnpm monorepo. Packages are currently developed from source:
+This repository is a pnpm monorepo. To work on packages from source:
 
 ```bash
 pnpm install
 ```
+
+````
+
+## CLI
+
+Use the Enforra CLI to create starter policies and run policy tests locally.
+
+```bash
+npx @enforra/cli init
+npx @enforra/cli test
+````
 
 ## Run the demos
 
@@ -256,6 +269,7 @@ This repository includes:
 packages/policy-core       Policy loading, validation, and evaluation
 packages/policy-simulator  Local policy simulation and case runner
 packages/sdk-node          Node SDK enforcement wrapper
+packages/cli               CLI for init, policy tests, audit verification, and setup checks
 packages/local-audit       Local JSONL audit logging and redaction
 examples/support-refund-agent
 examples/openai-style-tool-wrapper
