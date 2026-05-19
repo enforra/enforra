@@ -1,5 +1,5 @@
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { tmpdir } from "node:os";
 import { createLocalAuditLogger } from "@enforra/local-audit";
 import { describe, expect, it } from "vitest";
@@ -69,6 +69,66 @@ describe("cli", () => {
     expect(output.lines.join("\n")).toContain("4 passed, 0 failed");
   });
 
+  it("test command resolves relative --policy and --cases from cwd", async () => {
+    const dir = await createTempDir();
+    const output = createOutput();
+    const policyDir = join(dir, "custom");
+    const policyPath = join(policyDir, "policy.yaml");
+    const casesPath = join(policyDir, "cases.yaml");
+
+    await mkdir(policyDir, { recursive: true });
+    await writeFile(policyPath, starterPolicy(), "utf8");
+    await writeFile(casesPath, starterCases(), "utf8");
+
+    const exitCode = await runCli(
+      ["test", "--policy", relative(dir, policyPath), "--cases", relative(dir, casesPath)],
+      { cwd: dir, stdout: output.stdout }
+    );
+
+    expect(exitCode).toBe(0);
+    expect(output.lines.join("\n")).toContain("4 passed, 0 failed");
+  });
+
+  it("test command accepts an absolute --policy path", async () => {
+    const dir = await createTempDir();
+    const output = createOutput();
+    const policyDir = join(dir, "custom");
+    const policyPath = join(policyDir, "policy.yaml");
+
+    await mkdir(join(dir, "policies"), { recursive: true });
+    await mkdir(policyDir, { recursive: true });
+    await writeFile(policyPath, starterPolicy(), "utf8");
+    await writeFile(join(dir, "policies/enforra.cases.yaml"), starterCases(), "utf8");
+
+    const exitCode = await runCli(["test", "--policy", policyPath], {
+      cwd: dir,
+      stdout: output.stdout
+    });
+
+    expect(exitCode).toBe(0);
+    expect(output.lines.join("\n")).toContain("4 passed, 0 failed");
+  });
+
+  it("test command accepts an absolute --cases path", async () => {
+    const dir = await createTempDir();
+    const output = createOutput();
+    const casesDir = join(dir, "custom");
+    const casesPath = join(casesDir, "cases.yaml");
+
+    await mkdir(join(dir, "policies"), { recursive: true });
+    await mkdir(casesDir, { recursive: true });
+    await writeFile(join(dir, "policies/enforra.yaml"), starterPolicy(), "utf8");
+    await writeFile(casesPath, starterCases(), "utf8");
+
+    const exitCode = await runCli(["test", "--cases", casesPath], {
+      cwd: dir,
+      stdout: output.stdout
+    });
+
+    expect(exitCode).toBe(0);
+    expect(output.lines.join("\n")).toContain("4 passed, 0 failed");
+  });
+
   it("test command exits non-zero for failing cases", async () => {
     const dir = await createTempDir();
     const output = createOutput();
@@ -121,6 +181,31 @@ cases:
     expect(exitCode).toBe(0);
     expect(output.lines.join("\n")).toContain("Audit verification: valid");
     expect(output.lines.join("\n")).toContain("Events checked: 1");
+  });
+
+  it("audit verify accepts an absolute --path", async () => {
+    const dir = await createTempDir();
+    const auditDir = join(dir, "logs");
+    const auditPath = join(auditDir, "audit.jsonl");
+    const logger = createLocalAuditLogger(auditPath, { integrity: "hash_chain" });
+    const output = createOutput();
+
+    await logger.append({
+      agent: "ops-agent",
+      tool: "db.deleteTable",
+      decision: "block",
+      matchedPolicyId: "block-production-customer-delete",
+      status: "blocked",
+      args: { table: "customers" }
+    });
+
+    const exitCode = await runCli(["audit", "verify", "--path", auditPath], {
+      cwd: dir,
+      stdout: output.stdout
+    });
+
+    expect(exitCode).toBe(0);
+    expect(output.lines.join("\n")).toContain("Audit verification: valid");
   });
 
   it("audit verify fails invalid log", async () => {
@@ -216,5 +301,67 @@ policies:
           operator: eq
           value: production
     decision: block
+
+  - id: approve-external-email
+    priority: 20
+    match:
+      tool: email.send
+    conditions:
+      any:
+        - field: args.recipient
+          operator: not_contains
+          value: "@example.com"
+    decision: require_approval
+
+  - id: log-github-issue
+    priority: 30
+    match:
+      tool: github.create_issue
+    decision: log_only
+`;
+}
+
+function starterCases(): string {
+  return `version: 1
+cases:
+  - name: blocks production customer delete
+    input:
+      agent: ops-agent
+      tool: db.deleteTable
+      args:
+        table: customers
+      context:
+        environment: production
+    expect:
+      decision: block
+      matchedPolicyId: block-production-customer-delete
+
+  - name: requires approval for external email
+    input:
+      agent: ops-agent
+      tool: email.send
+      args:
+        recipient: external@outside.com
+    expect:
+      decision: require_approval
+      matchedPolicyId: approve-external-email
+
+  - name: logs GitHub issue
+    input:
+      agent: ops-agent
+      tool: github.create_issue
+      args:
+        title: Review production change
+    expect:
+      decision: log_only
+      matchedPolicyId: log-github-issue
+
+  - name: unknown tool defaults to block
+    input:
+      agent: ops-agent
+      tool: unknown.tool
+      args: {}
+    expect:
+      decision: block
 `;
 }

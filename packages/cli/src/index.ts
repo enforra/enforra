@@ -1,6 +1,6 @@
 import { access, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { constants } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 import { runPolicyTestsFromFiles, type PolicyTestRunResult } from "@enforra/policy-simulator";
 import { verifyAuditLog } from "@enforra/local-audit";
 
@@ -117,8 +117,8 @@ async function runTest(
   stderr: Pick<typeof console, "error">
 ): Promise<number> {
   const options = parseOptions(args);
-  const policyPath = join(cwd, options.values.get("--policy") ?? defaultPolicyPath);
-  const casesPath = join(cwd, options.values.get("--cases") ?? defaultCasesPath);
+  const policyPath = resolveCliPath(cwd, options.values.get("--policy") ?? defaultPolicyPath);
+  const casesPath = resolveCliPath(cwd, options.values.get("--cases") ?? defaultCasesPath);
   const trace = options.flags.has("--trace");
   const result = await runPolicyTestsFromFiles(policyPath, casesPath, { trace });
 
@@ -157,7 +157,7 @@ async function runAuditVerify(
   stderr: Pick<typeof console, "error">
 ): Promise<number> {
   const options = parseOptions(args);
-  const auditPath = join(cwd, options.values.get("--path") ?? defaultAuditPath);
+  const auditPath = resolveCliPath(cwd, options.values.get("--path") ?? defaultAuditPath);
 
   if (!(await pathExists(auditPath))) {
     stderr.error(`Audit log not found: ${auditPath}`);
@@ -177,6 +177,10 @@ Events checked: ${result.eventsChecked}
 First invalid line: ${result.firstInvalidLine ?? "unknown"}
 Reason: ${result.reason ?? "unknown"}`);
   return 1;
+}
+
+function resolveCliPath(cwd: string, inputPath: string): string {
+  return isAbsolute(inputPath) ? inputPath : resolve(cwd, inputPath);
 }
 
 async function runDoctor(cwd: string, stdout: Pick<typeof console, "log">): Promise<number> {
