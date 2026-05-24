@@ -261,7 +261,7 @@ This repository includes:
 - local JSONL audit logging with redaction
 - optional hash-chain integrity for local audit logs
 - starter policy examples
-- runnable support, OpenAI-style, MCP-style, approval evidence, audit integrity, database guard, and benchmark demos
+- runnable support, OpenAI-style, MCP-style, MCP tool guard, approval evidence, audit integrity, database guard, and benchmark demos
 - tests for policy evaluation, audit redaction, and SDK behavior
 - CI for build, test, and lint
 
@@ -273,7 +273,7 @@ packages/policy-simulator  Local policy simulation and case runner
 packages/sdk-node          Node SDK enforcement wrapper
 packages/cli               CLI for init, policy tests, audit verification, and setup checks
 packages/local-audit       Local JSONL audit logging and redaction
-packages/mcp               MCP integration package
+packages/mcp               MCP-style tool handler guard
 examples/support-refund-agent
 examples/openai-style-tool-wrapper
 examples/mcp-style-tool-policy
