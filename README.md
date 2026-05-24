@@ -109,6 +109,7 @@ pnpm demo:openai-style
 pnpm demo:mcp-style
 pnpm demo:approval-evidence
 pnpm demo:audit-integrity
+pnpm demo:mcp-guard
 pnpm demo:db-unsafe
 pnpm demo:db-enforra
 pnpm demo:all
@@ -147,6 +148,7 @@ Audit log written to .enforra/audit.jsonl
 - `examples/support-refund-agent`: runnable local demo for allow, require approval, and block decisions.
 - `examples/openai-style-tool-wrapper`: wrapper pattern for calling `enforceToolCall` before an application tool callback.
 - `examples/mcp-style-tool-policy`: starter policy pattern for MCP-style tool names at the application boundary; this repository does not implement an MCP gateway.
+- `examples/mcp-tool-guard-demo`: runnable local demo of Enforra MCP tool handler guarding.
 - `examples/approval-evidence-demo`: local evidence demo for allow, require approval, block, and log-only decisions.
 - `examples/audit-integrity-demo`: optional hash-chain audit integrity demo for local audit logs.
 - `examples/db-delete-video-demo`: simple video demo contrasting a direct table-delete callback with the same callback protected by Enforra.
@@ -271,9 +273,11 @@ packages/policy-simulator  Local policy simulation and case runner
 packages/sdk-node          Node SDK enforcement wrapper
 packages/cli               CLI for init, policy tests, audit verification, and setup checks
 packages/local-audit       Local JSONL audit logging and redaction
+packages/mcp               MCP integration package
 examples/support-refund-agent
 examples/openai-style-tool-wrapper
 examples/mcp-style-tool-policy
+examples/mcp-tool-guard-demo
 examples/approval-evidence-demo
 examples/audit-integrity-demo
 examples/db-delete-video-demo
@@ -297,6 +301,7 @@ packages/*/test
 - [Decision trace](docs/decision-trace.md)
 - [Benchmarks](docs/benchmarks.md)
 - [Policy language](docs/policy-language.md)
+- [MCP Integration](docs/mcp.md)
 - [Security model](docs/security-model.md)
 - [Limitations](docs/limitations.md)
 

@@ -43,3 +43,43 @@ policies:
         operator: neq
         value: true
     decision: block
+
+  - id: allow-safe-filesystem-read
+    description: Allow safe filesystem read operations containing /safe/
+    match:
+      agent: mcp-agent
+      tool: mcp.filesystem.read
+    conditions:
+      - field: args.path
+        operator: contains
+        value: /safe/
+    decision: allow
+
+  - id: require-approval-filesystem-write
+    description: Require approval for filesystem write operations
+    match:
+      agent: mcp-agent
+      tool: mcp.filesystem.write
+    decision: require_approval
+
+  - id: block-shell-run-prod
+    description: Block shell run in production
+    match:
+      agent: mcp-agent
+      tool: mcp.shell.run
+    conditions:
+      - field: context.environment
+        operator: eq
+        value: production
+    decision: block
+
+  - id: allow-shell-run-non-prod
+    description: Allow shell run in non-production environments
+    match:
+      agent: mcp-agent
+      tool: mcp.shell.run
+    conditions:
+      - field: context.environment
+        operator: neq
+        value: production
+    decision: allow
