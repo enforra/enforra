@@ -4,8 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsup src/index.ts --format esm --sourcemap",
+    "build": "tsup src/index.ts src/observe-demo.ts --format esm --sourcemap",
     "start": "node dist/index.js",
+    "start:observe": "node dist/observe-demo.js",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
