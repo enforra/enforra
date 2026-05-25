@@ -45,6 +45,13 @@ console.log(result.decision);
 npm install @enforra/sdk-node
 ```
 
+For the local Python SDK in this repository:
+
+```bash
+cd packages/sdk-python
+python3 -m pip install -e ".[dev]"
+```
+
 ## What is Enforra?
 
 This open source repository contains the local runtime core for Enforra. It evaluates policy before a tool callback runs and returns one of four decisions: `allow`, `block`, `require_approval`, or `log_only`.
@@ -146,6 +153,7 @@ Audit log written to .enforra/audit.jsonl
 ## Examples
 
 - `examples/support-refund-agent`: runnable local demo for allow, require approval, and block decisions.
+- `examples/python-support-refund-agent`: runnable local Python demo for enforce mode and observe mode.
 - `examples/openai-style-tool-wrapper`: wrapper pattern for calling `enforceToolCall` before an application tool callback.
 - `examples/mcp-style-tool-policy`: starter policy pattern for MCP-style tool names at the application boundary; this repository does not implement an MCP gateway.
 - `examples/mcp-tool-guard-demo`: runnable local demo of Enforra MCP tool handler guarding.
