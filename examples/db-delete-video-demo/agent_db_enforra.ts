@@ -1,6 +1,6 @@
 import { rm } from "node:fs/promises";
 import { createEnforraClient } from "@enforra/sdk-node";
-import { db } from "./fake-db";
+import { db } from "./fake-db.js";
 
 await rm(".enforra/audit.jsonl", { force: true });
 

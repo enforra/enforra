@@ -44,10 +44,10 @@ const filesystemWriteHandler = guardMcpTool(enforra, {
 const shellRunHandler = guardMcpTool(enforra, {
   agent: "mcp-agent",
   tool: "mcp.shell.run",
-  context: (args: { isProd: boolean }) => ({
+  context: (args: { command: string; isProd: boolean }) => ({
     environment: args.isProd ? "production" : "development"
   }),
-  execute: async (args: { command: string }) => {
+  execute: async (args: { command: string; isProd: boolean }) => {
     return `[Successfully ran command: ${args.command}]`;
   }
 });

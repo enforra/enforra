@@ -3,11 +3,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import type { AuditEventInput, LocalAuditLogger } from "@enforra/local-audit";
+import type { PolicyFile } from "@enforra/policy-core";
 import { createClient, createEnforraClient } from "../src/index.js";
 
 function createMemoryAuditLogger(events: AuditEventInput[]): LocalAuditLogger {
   return {
-    async append(event) {
+    async append(event: AuditEventInput) {
       events.push(event);
       return {
         id: "audit-1",
@@ -37,7 +38,7 @@ function createFailingAuditLogger(): LocalAuditLogger {
 function createAuditLoggerFailingOnCall(failingCall: number): LocalAuditLogger {
   let calls = 0;
   return {
-    async append(event) {
+    async append(event: AuditEventInput) {
       calls += 1;
       if (calls === failingCall) {
         throw new Error("audit write failed");
@@ -60,7 +61,7 @@ function createAuditLoggerFailingOnCall(failingCall: number): LocalAuditLogger {
   };
 }
 
-const policyFile = {
+const policyFile: PolicyFile = {
   version: 1,
   defaults: { decision: "block" },
   policies: [
@@ -88,7 +89,7 @@ const policyFile = {
       decision: "log_only"
     }
   ]
-} as const;
+};
 
 describe("sdk-node", () => {
   it("executes callback when allowed", async () => {
@@ -154,7 +155,10 @@ describe("sdk-node", () => {
       blocked: true,
       auditFailed: true
     });
-    expect(result.error?.message).toBe("audit write failed");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error?.message).toBe("audit write failed");
+    }
   });
 
   it("does not execute callback when approval is required", async () => {
@@ -198,7 +202,10 @@ describe("sdk-node", () => {
       approvalRequired: true,
       auditFailed: true
     });
-    expect(result.error?.message).toBe("audit write failed");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error?.message).toBe("audit write failed");
+    }
   });
 
   it("executes callback for log_only", async () => {
@@ -263,7 +270,10 @@ describe("sdk-node", () => {
       executed: true,
       auditFailed: true
     });
-    expect(result.error.message).toBe("refund failed");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error?.message).toBe("refund failed");
+    }
   });
 
   it("returns execution data when post-execution audit logging fails", async () => {
@@ -283,7 +293,10 @@ describe("sdk-node", () => {
       auditFailed: true,
       data: { refundId: "ref_123", status: "created" }
     });
-    expect(result.error.message).toBe("audit write failed");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error?.message).toBe("audit write failed");
+    }
   });
 
   it("includes the matched policy id", async () => {
@@ -418,8 +431,10 @@ policies:
 
     // 1. enforceToolCall returns the original Error object or original error message to the caller
     expect(result.ok).toBe(false);
-    expect(result.error?.message).toBe(errorMessage);
-    expect(result.error?.message).toContain(secretKey);
+    if (!result.ok) {
+      expect(result.error?.message).toBe(errorMessage);
+      expect(result.error?.message).toContain(secretKey);
+    }
 
     // 2. the tool call result keeps executed: true
     expect(result.executed).toBe(true);
@@ -428,15 +443,15 @@ policies:
     expect(result.decision).toBe("allow");
 
     // 4. the audit log writes a redacted error message
-    expect(events[1].status).toBe("failed");
-    expect(events[1].error).not.toBe(errorMessage);
-    expect(events[1].error).toContain("[REDACTED]");
+    expect(events[1]?.status).toBe("failed");
+    expect(events[1]?.error).not.toBe(errorMessage);
+    expect(events[1]?.error).toContain("[REDACTED]");
 
     // 5. the audit log does not contain the raw secret
-    expect(events[1].error).not.toContain(secretKey);
-    expect(events[1].error).not.toContain("ya29.Gl0zBL");
-    expect(events[1].error).not.toContain("secret-api-key");
-    expect(events[1].error).not.toContain("super-secret-password");
+    expect(events[1]?.error).not.toContain(secretKey);
+    expect(events[1]?.error).not.toContain("ya29.Gl0zBL");
+    expect(events[1]?.error).not.toContain("secret-api-key");
+    expect(events[1]?.error).not.toContain("super-secret-password");
   });
 
   it("redacts secrets from audit log for log_only decision on failed execution", async () => {
@@ -455,11 +470,14 @@ policies:
 
     expect(result.decision).toBe("log_only");
     expect(result.executed).toBe(true);
-    expect(result.error?.message).toContain(secretKey);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error?.message).toContain(secretKey);
+    }
 
-    expect(events[1].status).toBe("failed");
-    expect(events[1].error).toBe("Auth failed with [REDACTED]");
-    expect(events[1].error).not.toContain(secretKey);
+    expect(events[1]?.status).toBe("failed");
+    expect(events[1]?.error).toBe("Auth failed with [REDACTED]");
+    expect(events[1]?.error).not.toContain(secretKey);
   });
 
   it("writes integrity metadata when auditIntegrity is hash_chain", async () => {
@@ -510,7 +528,7 @@ policies:
   });
 
   it("executes callbacks and logs observe mode audit fields when mode is observe", async () => {
-    const observePolicy = {
+    const observePolicy: PolicyFile = {
       version: 1,
       mode: "observe" as const,
       defaults: { decision: "block" as const },

@@ -13,7 +13,14 @@ const enforra = await createEnforraClient({
 
 console.log("Enforra OpenAI-style tool wrapper demo\n");
 
-for (const toolCall of [
+interface ToolCallItem {
+  tool: string;
+  args: Record<string, unknown>;
+  context: Record<string, unknown>;
+  execute: () => Promise<unknown>;
+}
+
+const toolCalls: ToolCallItem[] = [
   {
     tool: "repo.search",
     args: {
@@ -57,7 +64,9 @@ for (const toolCall of [
       };
     }
   }
-] as const) {
+];
+
+for (const toolCall of toolCalls) {
   const result = await enforra.enforceToolCall({
     agent: "coding-agent",
     tool: toolCall.tool,
