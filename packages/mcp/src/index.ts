@@ -1,10 +1,24 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { EnforraClient } from "@enforra/sdk-node";
+
+type JsonObject = Record<string, unknown>;
+type McpTextContent = {
+  type: "text";
+  text: string;
+};
+
+type SuccessfulDecision = "allow" | "log_only";
+type McpLikeResult = {
+  content: McpTextContent[];
+  isError?: boolean;
+};
 
 /**
  * Options for guarding an MCP-style tool call.
  */
-export interface GuardMcpToolOptions<TArgs = any, TResult = any> {
+export interface GuardMcpToolOptions<
+  TArgs extends Record<string, unknown> = Record<string, unknown>,
+  TResult = unknown
+> {
   /**
    * The name/ID of the agent invoking the tool.
    */
@@ -18,7 +32,7 @@ export interface GuardMcpToolOptions<TArgs = any, TResult = any> {
   /**
    * Static context object, or a function resolving context from the tool arguments.
    */
-  context?: Record<string, any> | ((args: TArgs) => Record<string, any>);
+  context?: JsonObject | ((args: TArgs) => JsonObject);
 
   /**
    * The actual tool execution handler to guard.
@@ -30,7 +44,7 @@ export interface GuardMcpToolOptions<TArgs = any, TResult = any> {
  * Structured result returned by the guarded tool handler.
  * It is directly compatible with the MCP CallToolResult structure.
  */
-export interface GuardMcpToolResult<TResult = any> {
+export interface GuardMcpToolResult<TResult = unknown> {
   /**
    * Whether the tool execution was allowed and completed successfully.
    */
@@ -64,10 +78,7 @@ export interface GuardMcpToolResult<TResult = any> {
   /**
    * Standard MCP tool response content list.
    */
-  content: Array<{
-    type: "text";
-    text: string;
-  }>;
+  content: McpTextContent[];
 
   /**
    * Standard MCP tool response error flag.
@@ -83,8 +94,8 @@ export interface GuardMcpToolResult<TResult = any> {
  * @param options Options defining the agent, tool, context, and handler logic.
  */
 export function guardMcpTool<
-  TArgs extends Record<string, any> = Record<string, any>,
-  TResult = any
+  TArgs extends Record<string, unknown> = Record<string, unknown>,
+  TResult = unknown
 >(
   enforra: EnforraClient,
   options: GuardMcpToolOptions<TArgs, TResult>
@@ -135,49 +146,17 @@ export function guardMcpTool<
     // 3. Handle allow or log_only decision
     if (enforceResult.ok) {
       // Execution succeeded
-      const data = enforceResult.data;
-      let textContent = "";
-
-      if (data !== undefined && data !== null) {
-        if (typeof data === "string") {
-          textContent = data;
-        } else if (
-          typeof data === "object" &&
-          "content" in data &&
-          Array.isArray((data as any).content) &&
-          (data as any).content.every((c: any) => c && typeof c === "object" && "type" in c)
-        ) {
-          // If the execute handler already returns a standard MCP structure with content arrays,
-          // pass it along.
-          return {
-            ok: true,
-            decision: enforceResult.decision as "allow" | "log_only",
-            executed: true,
-            reason: enforceResult.reason,
-            data,
-            content: (data as any).content,
-            isError: !!(data as any).isError
-          };
-        } else {
-          textContent = JSON.stringify(data);
-        }
-      }
-
-      return {
-        ok: true,
-        decision: enforceResult.decision as "allow" | "log_only",
-        executed: true,
-        reason: enforceResult.reason,
-        data,
-        isError: false,
-        content: [{ type: "text", text: textContent }]
-      };
+      return createSuccessfulResult(
+        enforceResult.decision,
+        enforceResult.reason,
+        enforceResult.data
+      );
     } else {
       // Execution failed (due to handler throwing or audit logger failing)
       const errorMsg = enforceResult.error?.message || "Unknown tool execution error";
       return {
         ok: false,
-        decision: enforceResult.decision as "allow" | "log_only",
+        decision: enforceResult.decision,
         executed: enforceResult.executed,
         reason: enforceResult.reason,
         error: errorMsg,
@@ -191,7 +170,10 @@ export function guardMcpTool<
 /**
  * Options for wrapping an MCP-style tool call.
  */
-export interface WrapMcpToolOptions<TArgs = any, TResult = any> {
+export interface WrapMcpToolOptions<
+  TArgs extends Record<string, unknown> = Record<string, unknown>,
+  TResult = unknown
+> {
   /**
    * The name of the tool being executed (e.g. 'github.create_issue').
    */
@@ -206,7 +188,7 @@ export interface WrapMcpToolOptions<TArgs = any, TResult = any> {
   /**
    * Static context object, or a function resolving context from the tool arguments.
    */
-  context?: Record<string, any> | ((args: TArgs) => Record<string, any>);
+  context?: JsonObject | ((args: TArgs) => JsonObject);
 
   /**
    * The actual tool handler function.
@@ -218,11 +200,13 @@ export interface WrapMcpToolOptions<TArgs = any, TResult = any> {
  * Standard MCP CallToolResult structure returned by wrapMcpTool.
  */
 export interface McpCallToolResult {
-  content: Array<{
-    type: "text";
-    text: string;
-  }>;
+  content: McpTextContent[];
   isError?: boolean;
+}
+
+export interface WrappedMcpToolResult<TResult = unknown>
+  extends McpCallToolResult, Omit<GuardMcpToolResult<TResult>, "content" | "isError"> {
+  isError: boolean;
 }
 
 /**
@@ -233,11 +217,14 @@ export interface McpCallToolResult {
  * @param enforra The EnforraClient instance containing loaded policies.
  * @param options Options defining the tool name, agent, context, and handler logic.
  */
-export function wrapMcpTool<TArgs extends Record<string, any> = Record<string, any>, TResult = any>(
+export function wrapMcpTool<
+  TArgs extends Record<string, unknown> = Record<string, unknown>,
+  TResult = unknown
+>(
   enforra: EnforraClient,
   options: WrapMcpToolOptions<TArgs, TResult>
-): (args: TArgs) => Promise<McpCallToolResult & Record<string, any>> {
-  return async (args: TArgs): Promise<McpCallToolResult & Record<string, any>> => {
+): (args: TArgs) => Promise<WrappedMcpToolResult<TResult>> {
+  return async (args: TArgs): Promise<WrappedMcpToolResult<TResult>> => {
     const agent = options.agent ?? enforra.agent ?? "mcp-agent";
     const resolvedContext =
       typeof options.context === "function" ? options.context(args) : options.context;
@@ -282,41 +269,11 @@ export function wrapMcpTool<TArgs extends Record<string, any> = Record<string, a
 
     // 3. Handle allow or log_only decision
     if (enforceResult.ok) {
-      const data = enforceResult.data;
-      let textContent = "";
-
-      if (data !== undefined && data !== null) {
-        if (typeof data === "string") {
-          textContent = data;
-        } else if (
-          typeof data === "object" &&
-          "content" in data &&
-          Array.isArray((data as any).content) &&
-          (data as any).content.every((c: any) => c && typeof c === "object" && "type" in c)
-        ) {
-          return {
-            content: (data as any).content,
-            isError: !!(data as any).isError,
-            ok: true,
-            decision: enforceResult.decision as "allow" | "log_only",
-            executed: true,
-            reason: enforceResult.reason,
-            data
-          };
-        } else {
-          textContent = JSON.stringify(data);
-        }
-      }
-
-      return {
-        isError: false,
-        content: [{ type: "text", text: textContent }],
-        ok: true,
-        decision: enforceResult.decision as "allow" | "log_only",
-        executed: true,
-        reason: enforceResult.reason,
-        data
-      };
+      return createSuccessfulResult(
+        enforceResult.decision,
+        enforceResult.reason,
+        enforceResult.data
+      );
     } else {
       // Execution failed (due to handler throwing or audit logger failing)
       const errorMsg = enforceResult.error?.message || "Unknown tool execution error";
@@ -324,11 +281,76 @@ export function wrapMcpTool<TArgs extends Record<string, any> = Record<string, a
         isError: true,
         content: [{ type: "text", text: `Error: ${errorMsg}` }],
         ok: false,
-        decision: enforceResult.decision as "allow" | "log_only",
+        decision: enforceResult.decision,
         executed: enforceResult.executed,
         reason: enforceResult.reason,
         error: errorMsg
       };
     }
   };
+}
+
+function createSuccessfulResult<TResult>(
+  decision: SuccessfulDecision,
+  reason: string,
+  data: TResult
+): GuardMcpToolResult<TResult> {
+  if (isMcpLikeResult(data)) {
+    return {
+      ok: true,
+      decision,
+      executed: true,
+      reason,
+      data,
+      content: data.content,
+      isError: data.isError === true
+    };
+  }
+
+  return {
+    ok: true,
+    decision,
+    executed: true,
+    reason,
+    data,
+    isError: false,
+    content: [{ type: "text", text: stringifyToolData(data) }]
+  };
+}
+
+function stringifyToolData(data: unknown): string {
+  if (typeof data === "string") {
+    return data;
+  }
+
+  if (data === undefined || data === null) {
+    return "";
+  }
+
+  return JSON.stringify(data);
+}
+
+function isMcpLikeResult(value: unknown): value is McpLikeResult {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  const content = value["content"];
+  if (!Array.isArray(content)) {
+    return false;
+  }
+
+  return content.every(isMcpTextContent);
+}
+
+function isMcpTextContent(value: unknown): value is McpTextContent {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return value["type"] === "text" && typeof value["text"] === "string";
+}
+
+function isRecord(value: unknown): value is JsonObject {
+  return typeof value === "object" && value !== null;
 }
