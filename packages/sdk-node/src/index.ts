@@ -18,6 +18,7 @@ export interface CreateEnforraClientOptions {
   policyPath: string;
   auditPath?: string;
   auditIntegrity?: AuditIntegrityMode;
+  agent?: string;
 }
 
 export interface EnforceToolCallInput<TData> extends ToolCallInput {
@@ -84,6 +85,7 @@ export type EnforceToolCallResult<TData> =
 
 export interface EnforraClient {
   enforceToolCall<TData>(input: EnforceToolCallInput<TData>): Promise<EnforceToolCallResult<TData>>;
+  agent?: string;
 }
 
 export async function createEnforraClient(
@@ -94,11 +96,16 @@ export async function createEnforraClient(
     integrity: options.auditIntegrity
   });
 
-  return createClient(policyFile, auditLogger);
+  return createClient(policyFile, auditLogger, options.agent);
 }
 
-export function createClient(policyFile: PolicyFile, auditLogger: LocalAuditLogger): EnforraClient {
+export function createClient(
+  policyFile: PolicyFile,
+  auditLogger: LocalAuditLogger,
+  agent?: string
+): EnforraClient {
   return {
+    agent,
     async enforceToolCall<TData>(
       input: EnforceToolCallInput<TData>
     ): Promise<EnforceToolCallResult<TData>> {

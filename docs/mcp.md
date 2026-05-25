@@ -1,6 +1,6 @@
 # Model Context Protocol (MCP) Integration
 
-Enforra OSS provides support for guarding MCP-style tool calls before they run.
+Enforra MCP support wraps MCP tool handlers and enforces local policies before tool execution.
 
 ## Architectural Overview
 
@@ -69,6 +69,36 @@ mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
     // Returns a compatible result that can be returned directly:
     // { isError: boolean, content: [{ type: "text", text: string }] }
     return result;
+  }
+});
+```
+
+### Wrapping with `wrapMcpTool`
+
+You can also use `wrapMcpTool` to directly wrap handlers for standard MCP server frameworks. It supports retrieving default agent configurations initialized on the Enforra client:
+
+```typescript
+import { createEnforraClient } from "@enforra/sdk-node";
+import { wrapMcpTool } from "@enforra/mcp";
+
+const enforra = await createEnforraClient({
+  policyPath: "./policies/mcp-tools.yaml",
+  agent: "coding-agent" // Set default agent
+});
+
+// Register tool wrapper
+const getIssueHandler = wrapMcpTool(enforra, {
+  toolName: "github.get_issue",
+  handler: async (args: { issueId: string }) => {
+    return fetchGitHubIssue(args.issueId);
+  }
+});
+
+// Integrate with standard MCP request handler
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  const { name, arguments: args } = request.params;
+  if (name === "github.get_issue") {
+    return await getIssueHandler(args);
   }
 });
 ```

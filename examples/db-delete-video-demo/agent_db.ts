@@ -1,4 +1,4 @@
-import { db } from "./fake-db";
+import { db } from "./fake-db.js";
 
 await printSection(`AI agent requested:
 

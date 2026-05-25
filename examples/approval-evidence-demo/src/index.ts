@@ -119,7 +119,7 @@ function toEvidence(result: EnforceToolCallResult<DemoData>) {
 }
 
 function statusForResult(result: EnforceToolCallResult<DemoData>): string {
-  if (result.auditFailed) {
+  if (!result.ok && result.auditFailed) {
     return "audit_failed";
   }
 

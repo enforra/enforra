@@ -1,11 +1,19 @@
+import { mkdtemp, readFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import type { AuditEventInput, LocalAuditLogger } from "@enforra/local-audit";
+import {
+  createLocalAuditLogger,
+  type AuditEventInput,
+  type LocalAuditLogger
+} from "@enforra/local-audit";
 import { createClient } from "@enforra/sdk-node";
-import { guardMcpTool } from "../src/index.js";
+import type { PolicyFile } from "@enforra/policy-core";
+import { guardMcpTool, wrapMcpTool } from "../src/index.js";
 
 function createMemoryAuditLogger(events: AuditEventInput[]): LocalAuditLogger {
   return {
-    async append(event) {
+    async append(event: AuditEventInput) {
       events.push(event);
       return {
         id: `audit-${events.length}`,
@@ -24,7 +32,7 @@ function createMemoryAuditLogger(events: AuditEventInput[]): LocalAuditLogger {
   };
 }
 
-const testPolicy = {
+const testPolicy: PolicyFile = {
   version: 1,
   defaults: { decision: "block" as const },
   policies: [
@@ -269,5 +277,150 @@ describe("guardMcpTool", () => {
     expect(events).toHaveLength(2); // decision_logged, failed
     expect(events[events.length - 1]?.status).toBe("failed");
     expect(events[events.length - 1]?.error).toBe("Disk full");
+  });
+});
+
+const observeTestPolicy: PolicyFile = {
+  version: 1,
+  mode: "observe" as const,
+  defaults: { decision: "block" as const },
+  policies: [
+    {
+      id: "block-large-refunds",
+      match: { agent: "coding-agent", tool: "stripe.refund" },
+      conditions: [{ field: "args.amount", operator: "gt" as const, value: 500 }],
+      decision: "block" as const
+    }
+  ]
+};
+
+describe("wrapMcpTool", () => {
+  it("allow decision executes handler, log_only executes handler, block / require_approval do not execute handler", async () => {
+    const events: AuditEventInput[] = [];
+    const client = createClient(testPolicy, createMemoryAuditLogger(events));
+    client.agent = "mcp-agent";
+
+    // 1. Allow
+    const allowHandler = vi.fn(async (args: { path: string }) => `allow-res-${args.path}`);
+    const wrappedAllow = wrapMcpTool(client, {
+      toolName: "mcp.filesystem.read",
+      handler: allowHandler
+    });
+    const resAllow = await wrappedAllow({ path: "/foo/bar" });
+    expect(allowHandler).toHaveBeenCalledOnce();
+    expect(resAllow.isError).toBe(false);
+    expect(resAllow.content).toEqual([{ type: "text", text: "allow-res-/foo/bar" }]);
+    expect(events[events.length - 1]?.status).toBe("executed");
+
+    // 2. Log Only
+    const logHandler = vi.fn(async () => ({ success: true }));
+    const wrappedLog = wrapMcpTool(client, {
+      toolName: "mcp.filesystem.read_logged",
+      handler: logHandler
+    });
+    const resLog = await wrappedLog({});
+    expect(logHandler).toHaveBeenCalledOnce();
+    expect(resLog.isError).toBe(false);
+    expect(resLog.content).toEqual([{ type: "text", text: JSON.stringify({ success: true }) }]);
+    expect(events[events.length - 1]?.status).toBe("logged");
+
+    // 3. Block
+    const blockHandler = vi.fn(async () => "run-output");
+    const wrappedBlock = wrapMcpTool(client, {
+      toolName: "mcp.shell.run",
+      context: { environment: "production" },
+      handler: blockHandler
+    });
+    const resBlock = await wrappedBlock({ cmd: "rm -rf /" });
+    expect(blockHandler).not.toHaveBeenCalled();
+    expect(resBlock.isError).toBe(true);
+    expect(resBlock.content[0]?.text).toContain("Blocked by policy");
+    expect(events[events.length - 1]?.status).toBe("blocked");
+
+    // 4. Require Approval
+    const approveHandler = vi.fn(async () => "run-output");
+    const wrappedApprove = wrapMcpTool(client, {
+      toolName: "mcp.filesystem.write",
+      handler: approveHandler
+    });
+    const resApprove = await wrappedApprove({ path: "/safe/app.log" });
+    expect(approveHandler).not.toHaveBeenCalled();
+    expect(resApprove.isError).toBe(true);
+    expect(resApprove.content[0]?.text).toContain("Requires approval");
+    expect(events[events.length - 1]?.status).toBe("pending_approval");
+  });
+
+  it("observe mode executes handler even when policy would block, and logs observed vs effective decisions", async () => {
+    const events: AuditEventInput[] = [];
+    const client = createClient(observeTestPolicy, createMemoryAuditLogger(events));
+    client.agent = "coding-agent";
+
+    const handler = vi.fn(async () => "refund-succeeded");
+    const wrapped = wrapMcpTool(client, {
+      toolName: "stripe.refund",
+      handler
+    });
+
+    const result = await wrapped({ amount: 1000 });
+    expect(handler).toHaveBeenCalledOnce();
+    expect(result.isError).toBe(false);
+    expect(result.content).toEqual([{ type: "text", text: "refund-succeeded" }]);
+
+    expect(events).toHaveLength(2);
+    expect(events[0]).toMatchObject({
+      status: "decision_logged",
+      decision: "allow",
+      enforcement_mode: "observe",
+      observed_decision: "block",
+      effective_decision: "allow",
+      shadow: true,
+      observe_mode: true
+    });
+  });
+
+  it("handler errors are logged properly", async () => {
+    const events: AuditEventInput[] = [];
+    const client = createClient(testPolicy, createMemoryAuditLogger(events));
+    client.agent = "mcp-agent";
+
+    const handler = vi.fn(async (args: { secret: string; path?: string }) => {
+      throw new Error(`failed executing with key: ${args.secret}`);
+    });
+    const wrapped = wrapMcpTool(client, {
+      toolName: "mcp.filesystem.read",
+      handler
+    });
+
+    const result = await wrapped({ secret: "my-secret-key-123", path: "/foo" });
+    expect(handler).toHaveBeenCalledOnce();
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain("failed executing with key: my-secret-key-123");
+
+    expect(events).toHaveLength(2);
+    expect(events[1]?.status).toBe("failed");
+    expect(events[1]?.error).toBe("failed executing with key: my-secret-key-123");
+  });
+
+  it("redacts secrets inside audit logs when wrapMcpTool is used", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "enforra-mcp-audit-"));
+    const auditPath = join(dir, "audit.jsonl");
+    const logger = createLocalAuditLogger(auditPath);
+    const client = createClient(testPolicy, logger);
+    client.agent = "mcp-agent";
+
+    const handler = vi.fn(async () => "success");
+    const wrapped = wrapMcpTool(client, {
+      toolName: "mcp.filesystem.read",
+      handler
+    });
+
+    await wrapped({ path: "/foo", secretKey: "sk_live_xyz123" });
+    expect(handler).toHaveBeenCalledOnce();
+
+    const contents = await readFile(auditPath, "utf8");
+    const firstLine = contents.split("\n")[0] ?? "";
+    const parsed = JSON.parse(firstLine);
+    expect(parsed.argsRedacted.secretKey).toBe("[REDACTED]");
+    expect(parsed.argsRedacted.path).toBe("/foo");
   });
 });
