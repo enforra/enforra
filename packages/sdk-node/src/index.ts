@@ -10,7 +10,8 @@ import {
   loadPolicyFile,
   type Decision,
   type PolicyFile,
-  type ToolCallInput
+  type ToolCallInput,
+  type PolicyEvaluationResult
 } from "@enforra/policy-core";
 
 export interface CreateEnforraClientOptions {
@@ -107,7 +108,7 @@ export function createClient(policyFile: PolicyFile, auditLogger: LocalAuditLogg
       if (evaluation.decision === "block") {
         try {
           await auditLogger.append({
-            ...auditFields(input, evaluation.decision, evaluation.matchedPolicyId),
+            ...auditFields(input, evaluation.decision, evaluation.matchedPolicyId, evaluation),
             status: "blocked",
             durationMs: durationSince(startedAt)
           });
@@ -137,7 +138,7 @@ export function createClient(policyFile: PolicyFile, auditLogger: LocalAuditLogg
       if (evaluation.decision === "require_approval") {
         try {
           await auditLogger.append({
-            ...auditFields(input, evaluation.decision, evaluation.matchedPolicyId),
+            ...auditFields(input, evaluation.decision, evaluation.matchedPolicyId, evaluation),
             status: "pending_approval",
             durationMs: durationSince(startedAt)
           });
@@ -166,7 +167,7 @@ export function createClient(policyFile: PolicyFile, auditLogger: LocalAuditLogg
 
       try {
         await auditLogger.append({
-          ...auditFields(input, evaluation.decision, evaluation.matchedPolicyId),
+          ...auditFields(input, evaluation.decision, evaluation.matchedPolicyId, evaluation),
           status: "decision_logged",
           durationMs: durationSince(startedAt)
         });
@@ -187,7 +188,7 @@ export function createClient(policyFile: PolicyFile, auditLogger: LocalAuditLogg
 
         try {
           await auditLogger.append({
-            ...auditFields(input, evaluation.decision, evaluation.matchedPolicyId),
+            ...auditFields(input, evaluation.decision, evaluation.matchedPolicyId, evaluation),
             status: evaluation.decision === "log_only" ? "logged" : "executed",
             durationMs: durationSince(startedAt)
           });
@@ -216,7 +217,7 @@ export function createClient(policyFile: PolicyFile, auditLogger: LocalAuditLogg
         const normalizedError = normalizeError(error);
         try {
           await auditLogger.append({
-            ...auditFields(input, evaluation.decision, evaluation.matchedPolicyId),
+            ...auditFields(input, evaluation.decision, evaluation.matchedPolicyId, evaluation),
             status: "failed",
             durationMs: durationSince(startedAt),
             error: redactErrorMessage(normalizedError.message)
@@ -249,7 +250,8 @@ export function createClient(policyFile: PolicyFile, auditLogger: LocalAuditLogg
 function auditFields(
   input: ToolCallInput,
   decision: Decision,
-  matchedPolicyId: string | undefined
+  matchedPolicyId: string | undefined,
+  evaluation?: PolicyEvaluationResult
 ) {
   return {
     agent: input.agent,
@@ -257,7 +259,12 @@ function auditFields(
     decision,
     matchedPolicyId,
     args: input.args,
-    context: input.context
+    context: input.context,
+    enforcement_mode: evaluation?.enforcementMode,
+    observed_decision: evaluation?.observedDecision,
+    effective_decision: evaluation?.decision,
+    shadow: evaluation?.enforcementMode === "observe" ? true : undefined,
+    observe_mode: evaluation?.enforcementMode === "observe" ? true : undefined
   };
 }
 

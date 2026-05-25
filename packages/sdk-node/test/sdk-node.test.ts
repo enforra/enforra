@@ -508,4 +508,98 @@ policies:
     expect(firstEvent.integrity?.hash).toMatch(/^[a-f0-9]{64}$/);
     expect(secondEvent.integrity?.previousHash).toBe(firstEvent.integrity?.hash);
   });
+
+  it("executes callbacks and logs observe mode audit fields when mode is observe", async () => {
+    const observePolicy = {
+      version: 1,
+      mode: "observe" as const,
+      defaults: { decision: "block" as const },
+      policies: [
+        {
+          id: "block-large-refunds",
+          match: { agent: "support-agent", tool: "stripe.refund" },
+          conditions: [{ field: "args.amount", operator: "gt", value: 500 }],
+          decision: "block" as const
+        },
+        {
+          id: "approve-medium-refunds",
+          match: { agent: "support-agent", tool: "stripe.refund" },
+          conditions: [
+            { field: "args.amount", operator: "gt", value: 50 },
+            { field: "args.amount", operator: "lte", value: 500 }
+          ],
+          decision: "require_approval" as const
+        }
+      ]
+    };
+
+    const events: AuditEventInput[] = [];
+    const client = createClient(observePolicy, createMemoryAuditLogger(events));
+    const execute = vi.fn(async () => ({ refunded: true }));
+
+    // Normally blocked refund
+    const resultBlock = await client.enforceToolCall({
+      agent: "support-agent",
+      tool: "stripe.refund",
+      args: { amount: 1000 },
+      execute
+    });
+
+    expect(execute).toHaveBeenCalledOnce();
+    expect(resultBlock).toMatchObject({
+      ok: true,
+      decision: "allow",
+      executed: true,
+      matchedPolicyId: "block-large-refunds"
+    });
+
+    // Check events
+    expect(events).toHaveLength(2);
+    expect(events[0]).toMatchObject({
+      status: "decision_logged",
+      decision: "allow",
+      enforcement_mode: "observe",
+      observed_decision: "block",
+      effective_decision: "allow",
+      shadow: true,
+      observe_mode: true
+    });
+    expect(events[1]).toMatchObject({
+      status: "executed",
+      decision: "allow",
+      enforcement_mode: "observe",
+      observed_decision: "block",
+      effective_decision: "allow",
+      shadow: true,
+      observe_mode: true
+    });
+
+    // Normally approval required refund
+    execute.mockClear();
+    events.length = 0;
+    const resultApprove = await client.enforceToolCall({
+      agent: "support-agent",
+      tool: "stripe.refund",
+      args: { amount: 250 },
+      execute
+    });
+
+    expect(execute).toHaveBeenCalledOnce();
+    expect(resultApprove).toMatchObject({
+      ok: true,
+      decision: "allow",
+      executed: true,
+      matchedPolicyId: "approve-medium-refunds"
+    });
+
+    expect(events[0]).toMatchObject({
+      status: "decision_logged",
+      decision: "allow",
+      enforcement_mode: "observe",
+      observed_decision: "require_approval",
+      effective_decision: "allow",
+      shadow: true,
+      observe_mode: true
+    });
+  });
 });

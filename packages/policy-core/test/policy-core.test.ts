@@ -1053,4 +1053,78 @@ policies:
       matched: true
     });
   });
+
+  it("supports mode: observe and observe_only: true parsing and mapping", () => {
+    const policyObs1 = parsePolicyYaml(`
+version: 1
+mode: observe
+policies:
+  - id: block-refunds
+    match:
+      tool: stripe.refund
+    decision: block
+`);
+    expect(policyObs1.mode).toBe("observe");
+
+    const policyObs2 = parsePolicyYaml(`
+version: 1
+observe_only: true
+policies:
+  - id: block-refunds
+    match:
+      tool: stripe.refund
+    decision: block
+`);
+    expect(policyObs2.observe_only).toBe(true);
+  });
+
+  it("observe mode: maps block and require_approval to allow, keeps log_only and allow", () => {
+    const policyFile: PolicyFile = {
+      version: 1,
+      mode: "observe",
+      defaults: { decision: "block" },
+      policies: [
+        {
+          id: "block-rule",
+          match: { tool: "test.block" },
+          decision: "block"
+        },
+        {
+          id: "approve-rule",
+          match: { tool: "test.approve" },
+          decision: "require_approval"
+        },
+        {
+          id: "log-rule",
+          match: { tool: "test.log" },
+          decision: "log_only"
+        },
+        {
+          id: "allow-rule",
+          match: { tool: "test.allow" },
+          decision: "allow"
+        }
+      ]
+    };
+
+    const resBlock = evaluatePolicy(policyFile, { agent: "a", tool: "test.block", args: {} });
+    expect(resBlock.decision).toBe("allow");
+    expect(resBlock.observedDecision).toBe("block");
+    expect(resBlock.enforcementMode).toBe("observe");
+
+    const resApprove = evaluatePolicy(policyFile, { agent: "a", tool: "test.approve", args: {} });
+    expect(resApprove.decision).toBe("allow");
+    expect(resApprove.observedDecision).toBe("require_approval");
+    expect(resApprove.enforcementMode).toBe("observe");
+
+    const resLog = evaluatePolicy(policyFile, { agent: "a", tool: "test.log", args: {} });
+    expect(resLog.decision).toBe("log_only");
+    expect(resLog.observedDecision).toBe("log_only");
+    expect(resLog.enforcementMode).toBe("observe");
+
+    const resAllow = evaluatePolicy(policyFile, { agent: "a", tool: "test.allow", args: {} });
+    expect(resAllow.decision).toBe("allow");
+    expect(resAllow.observedDecision).toBe("allow");
+    expect(resAllow.enforcementMode).toBe("observe");
+  });
 });

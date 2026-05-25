@@ -38,6 +38,11 @@ export interface AuditEventInput {
   context?: Record<string, unknown>;
   durationMs?: number;
   error?: string;
+  enforcement_mode?: "enforce" | "observe";
+  observed_decision?: Decision;
+  effective_decision?: Decision;
+  shadow?: boolean;
+  observe_mode?: boolean;
 }
 
 export type AuditEvent = {
@@ -53,6 +58,11 @@ export type AuditEvent = {
   durationMs?: number;
   error?: string;
   integrity?: AuditEventIntegrity;
+  enforcement_mode?: "enforce" | "observe";
+  observed_decision?: Decision;
+  effective_decision?: Decision;
+  shadow?: boolean;
+  observe_mode?: boolean;
 };
 
 export interface LocalAuditLogger {
@@ -118,7 +128,12 @@ export function createLocalAuditLogger(
         argsRedacted: redactPayload(event.args),
         contextRedacted: event.context === undefined ? undefined : redactPayload(event.context),
         durationMs: event.durationMs,
-        error: event.error === undefined ? undefined : redactErrorMessage(event.error)
+        error: event.error === undefined ? undefined : redactErrorMessage(event.error),
+        enforcement_mode: event.enforcement_mode,
+        observed_decision: event.observed_decision,
+        effective_decision: event.effective_decision,
+        shadow: event.shadow,
+        observe_mode: event.observe_mode
       };
 
       const auditEvent =

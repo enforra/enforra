@@ -41,6 +41,11 @@ Fields:
 - `durationMs`
 - `error`
 - `integrity` when hash-chain mode is enabled
+- `enforcement_mode` when observe mode is configured ("enforce" | "observe")
+- `observed_decision` the matched policy decision before observe mode overrides
+- `effective_decision` the outcome decision applied to runtime execution
+- `shadow` true when observe mode is active
+- `observe_mode` true when observe mode is active
 
 Example:
 

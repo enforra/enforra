@@ -22,6 +22,8 @@ export interface PolicyEvaluationResult {
   reason: string;
   evaluatedAt: string;
   policyVersion: 1;
+  enforcementMode?: "enforce" | "observe";
+  observedDecision?: Decision;
 }
 
 export interface PolicyCheckTrace {
@@ -88,6 +90,8 @@ export interface PolicyRule {
 
 export interface PolicyFile {
   version: 1;
+  mode?: "enforce" | "observe";
+  observe_only?: boolean;
   defaults?: {
     decision?: Decision;
   };
@@ -149,6 +153,8 @@ const policyRuleSchema = z
 const policyFileSchema = z
   .object({
     version: z.literal(1),
+    mode: z.enum(["enforce", "observe"]).optional(),
+    observe_only: z.boolean().optional(),
     defaults: z
       .object({
         decision: z.enum(decisions).optional()
@@ -176,16 +182,28 @@ export function evaluatePolicy(
   const matchedPolicy = getPoliciesInEvaluationOrder(policyFile.policies).find(
     (policy) => tracePolicyRule(policy, input).matched
   );
-  const decision = matchedPolicy?.decision ?? policyFile.defaults?.decision ?? "block";
+  const observedDecision = matchedPolicy?.decision ?? policyFile.defaults?.decision ?? "block";
+  const enforcementMode =
+    policyFile.mode === "observe" || policyFile.observe_only === true ? "observe" : "enforce";
+
+  let decision = observedDecision;
+  if (enforcementMode === "observe") {
+    decision =
+      observedDecision === "block" || observedDecision === "require_approval"
+        ? "allow"
+        : observedDecision;
+  }
 
   return {
     decision,
     matchedPolicyId: matchedPolicy?.id,
     reason: matchedPolicy
       ? `matched policy ${matchedPolicy.id}`
-      : `no matching policy; default decision ${decision}`,
+      : `no matching policy; default decision ${observedDecision}`,
     evaluatedAt: new Date().toISOString(),
-    policyVersion: policyFile.version
+    policyVersion: policyFile.version,
+    enforcementMode,
+    observedDecision
   };
 }
 
@@ -207,7 +225,18 @@ export function evaluatePolicyWithTrace(
     }
   }
 
-  const decision = matchedPolicy?.decision ?? policyFile.defaults?.decision ?? "block";
+  const observedDecision = matchedPolicy?.decision ?? policyFile.defaults?.decision ?? "block";
+  const enforcementMode =
+    policyFile.mode === "observe" || policyFile.observe_only === true ? "observe" : "enforce";
+
+  let decision = observedDecision;
+  if (enforcementMode === "observe") {
+    decision =
+      observedDecision === "block" || observedDecision === "require_approval"
+        ? "allow"
+        : observedDecision;
+  }
+
   const evaluatedAt = new Date().toISOString();
 
   return {
@@ -215,9 +244,11 @@ export function evaluatePolicyWithTrace(
     matchedPolicyId: matchedPolicy?.id,
     reason: matchedPolicy
       ? `matched policy ${matchedPolicy.id}`
-      : `no matching policy; default decision ${decision}`,
+      : `no matching policy; default decision ${observedDecision}`,
     evaluatedAt,
     policyVersion: policyFile.version,
+    enforcementMode,
+    observedDecision,
     trace: {
       evaluatedPolicyIds: policyTraces.map((policyTrace) => policyTrace.policyId),
       evaluationOrder: policiesInEvaluationOrder.map((policy) => ({

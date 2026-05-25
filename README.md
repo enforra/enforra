@@ -228,6 +228,37 @@ Conditions use dot paths rooted at `args` or `context`, such as `args.amount`, `
 - `require_approval`: do not execute in the open source local runtime and log `pending_approval`.
 - `log_only`: write a pre-execution decision audit event, execute the callback, and log `logged`.
 
+## Observe Mode
+
+Observe mode allows you to shadow policy decisions without blocking tool callbacks or requiring approval. This is useful for testing new policies in production or auditing tool execution patterns.
+
+To enable observe mode, specify `mode: observe` or `observe_only: true` at the root of your policy YAML file:
+
+```yaml
+version: 1
+mode: observe
+defaults:
+  decision: block
+policies:
+  - id: block-large-refunds
+    match:
+      tool: stripe.refund
+    conditions:
+      - field: args.amount
+        operator: gt
+        value: 500
+    decision: block
+```
+
+### Behavior in Observe Mode
+
+- **Execution**: The runtime never blocks execution. Callbacks run even if policies match `block` or `require_approval`.
+- **Audit Logs**: The logged event includes observe mode details:
+  - `enforcement_mode: "observe"`
+  - `observed_decision`: the decision dictated by the matching policy (e.g., `block`).
+  - `effective_decision`: the actual enforcement outcome (e.g., `allow`).
+  - `shadow: true` and `observe_mode: true` flags.
+
 ## What gets logged
 
 Audit events are appended to `.enforra/audit.jsonl`. Arguments and context are recursively redacted for common secret fields before they are written. For `allow` and `log_only`, the runtime writes a decision audit event before calling `execute`; if that audit write fails, the callback is not run. Successful executed tool calls can create more than one audit event: a pre-execution `decision_logged` event and a final `executed` or `logged` event.
