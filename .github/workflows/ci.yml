@@ -26,14 +26,29 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build
-        run: pnpm build
-
-      - name: Test
-        run: pnpm test
-
-      - name: Lint
-        run: pnpm lint
+      - name: Run OSS verification
+        run: pnpm verify:oss
 
       - name: Policy tests
         run: pnpm policy:test:all
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Python SDK
+        run: |
+          cd packages/sdk-python
+          python3 -m pip install -e ".[dev]"
+
+      - name: Run Python SDK tests
+        run: |
+          cd packages/sdk-python
+          python3 -m pytest
+
+      - name: Run Python example (enforce)
+        run: python3 examples/python-support-refund-agent/example.py
+
+      - name: Run Python example (observe)
+        run: python3 examples/python-support-refund-agent/example.py --observe
