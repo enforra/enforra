@@ -2,6 +2,12 @@
 
 Node.js SDK wrapper for enforcing Enforra policy decisions around tool calls.
 
+## Installation
+
+```bash
+npm install @enforra/sdk-node
+```
+
 ## Usage
 
 ```ts
