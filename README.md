@@ -5,11 +5,9 @@
 
 System prompts are not a security boundary. When an AI agent can issue refunds, run commands, send emails, or export data, the control point should sit before the tool action executes.
 
-Enforra Core is a local action governance SDK for AI agent tool calls. It lets developers define policy, test it in CI, trace decisions, enforce before application-owned callbacks run, and write redacted audit evidence locally.
+**Enforra is local-first runtime policy enforcement before AI agent tool execution.** It is a lightweight SDK that evaluates local policies before application-owned tool callbacks run, returning one of four decisions: `allow`, `block`, `require_approval`, or `log_only`.
 
-Enforra wraps application-owned tool callbacks. It is not an agent runtime, MCP proxy, or model firewall.
-
-At runtime, it returns one of four decisions: allow, block, require_approval, or log_only. The OSS core runs locally, makes no network calls, and does not execute your tools remotely.
+The open-source runtime in this repository runs locally by default. It makes policy decisions before application-owned tool callbacks execute, does not require Enforra Cloud, and does not send hosted telemetry by default.
 
 ```ts
 import { createEnforraClient } from "@enforra/sdk-node";
@@ -39,18 +37,52 @@ console.log(result.decision);
 // "require_approval"
 ```
 
+## OSS runtime and Enforra Cloud
+
+This repository contains the open-source local runtime core for Enforra.
+
+The OSS runtime is designed to work without a hosted service. It loads local policies, evaluates tool calls before execution, and writes local audit logs.
+
+Enforra Cloud is separate and optional. It is intended for team workflows such as hosted dashboards, centralized audit retention, approval workflows, rollout controls, analytics, and organization-level management.
+
 ## Install
+
+### Node.js SDK
 
 ```bash
 npm install @enforra/sdk-node
 ```
 
-For the local Python SDK in this repository:
+### MCP (Model Context Protocol) Integration
 
 ```bash
-cd packages/sdk-python
+npm install @enforra/mcp
+```
+
+### Python SDK (GitHub/Local Install Only)
+
+The Python SDK is currently only available for local/GitHub installation and is not published to PyPI:
+
+```bash
+# In packages/sdk-python
 python3 -m pip install -e ".[dev]"
 ```
+
+## What you can do today
+
+- **Enforce Agent Tool Calls**: Intercept and authorize tool calls with `allow`, `block`, `require_approval`, or `log_only` decisions based on local YAML policies.
+- **Run in Observe Mode**: Shadow policy decisions (evaluating policies and logging results) without blocking tool callbacks or requiring approval.
+- **Wrap MCP-Style Tool Handlers**: Guard local Model Context Protocol tool execution paths easily using `@enforra/mcp`.
+- **Integrate in Node.js Applications**: Use the library directly in Node.js via `@enforra/sdk-node`.
+- **Integrate in Python Applications**: Build and test with the Python SDK locally in your Python environment.
+- **Log Local JSONL Audit Evidence**: Automatically generate local, structured audit trails (with optional hash-chain integrity verification) to document agent decisions without cloud telemetry.
+
+## What this OSS runtime is not
+
+- **Not a hosted proxy by itself**: Enforra does not sit between your agent and external APIs as a proxy server.
+- **Not a full MCP gateway**: It is not a gateway, authentication layer, or transport manager for MCP client-server communication.
+- **Not an identity provider**: Enforra does not handle user authentication, OAuth, SSO, or enterprise RBAC.
+- **Not the hosted Enforra Cloud dashboard**: The OSS runtime is not the hosted Enforra Cloud product. Cloud dashboards, centralized audit retention, approvals, rollout controls, and organization management belong in Enforra Cloud, not this local runtime package.
 
 ## What is Enforra?
 
@@ -287,9 +319,7 @@ Enforra focuses on application-level action governance. It is not an MCP proxy, 
 
 ## What this repository does not include
 
-This repository contains the local runtime core only.
-
-It does not include a hosted API, cloud dashboard, hosted audit retention, team approvals, auth, billing, RBAC, SSO, Slack or email approvals, compliance reports, remote tool execution, or MCP gateway behavior.
+This repository contains the open-source local runtime core. It does not include the hosted Enforra Cloud application, cloud dashboard, hosted audit retention, team approval workflows, billing, SSO, or organization management.
 
 ## What is included
 
