@@ -1,7 +1,13 @@
 {
   "name": "@enforra/sdk-node",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Node.js SDK for local Enforra tool-call enforcement.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/enforra/enforra.git",
+    "directory": "packages/sdk-node"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
