@@ -1,0 +1,56 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "security"
+      - "automated"
+    groups:
+      npm-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "security"
+      - "automated"
+    groups:
+      github-actions-all:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "pip"
+    directory: "/packages/sdk-python"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "security"
+      - "automated"
+    groups:
+      python-sdk-all:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "pip"
+    directory: "/examples/python-support-refund-agent"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "security"
+      - "automated"
+    groups:
+      python-example-all:
+        patterns:
+          - "*"

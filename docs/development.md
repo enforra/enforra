@@ -77,6 +77,19 @@ Every build fix must include:
 
 ---
 
+## Continuous Maintenance
+
+Continuous maintenance and security workflows are automated via GitHub Actions:
+
+- **Dependabot**: Opens weekly PRs for dependency updates (npm/pnpm, GitHub Actions, and Python dependencies).
+- **CodeQL**: Periodically scans TypeScript, JavaScript, and Python code for vulnerabilities and security issues.
+- **OpenSSF Scorecard**: Reports overall OSS security hygiene and supply chain safety metrics.
+
+> [!IMPORTANT]
+> Maintainers should review automated dependency update PRs individually before merging instead of using auto-merge blindly.
+
+---
+
 ## Before Committing Checklist
 
 - [ ] Run `pnpm verify:oss` — all steps pass
