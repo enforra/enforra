@@ -49,6 +49,46 @@ python3 examples/python-support-refund-agent/example.py
 python3 examples/python-support-refund-agent/example.py --observe
 ```
 
+### Publishing to TestPyPI / PyPI
+
+To build and prepare the Python SDK for publishing:
+
+1. **Build the distribution packages**:
+   Ensure `build` and `twine` are installed, and run the build from `packages/sdk-python`:
+
+   ```bash
+   python3 -m build
+   python3 -m twine check dist/*
+   ```
+
+2. **Publishing via GitHub Actions (Trusted Publishing - Preferred)**:
+   Configure PyPI/TestPyPI Trusted Publishing (OIDC) for the `enforra/enforra` repository.
+   - Go to PyPI/TestPyPI -> Account Settings -> Publishing and add a new publisher:
+     - Owner: `enforra`
+     - Repository: `enforra`
+     - Workflow name: (e.g., `release.yml` or `publish-python.yml`)
+     - Environment name: (e.g., `pypi` or `testpypi`)
+   - In the GitHub Actions workflow, use the standard `pypa/gh-action-pypi-publish` action:
+     ```yaml
+     permissions:
+       id-token: write # Required for Trusted Publishing
+     steps:
+       - name: Publish to TestPyPI
+         uses: pypa/gh-action-pypi-publish@release/v1
+         with:
+           repository-url: https://test.pypi.org/legacy/
+     ```
+
+3. **Publishing Manually via API Token (Fallback)**:
+   If manual publishing is required, upload using a PyPI / TestPyPI API token:
+   ```bash
+   # Upload to TestPyPI
+   python3 -m twine upload --repository testpypi dist/*
+   # Upload to PyPI
+   python3 -m twine upload dist/*
+   ```
+   When prompted, use `__token__` as the username and your generated API token as the password.
+
 ### Demos
 
 ```bash
