@@ -12,7 +12,7 @@ It focuses on application-level action governance:
 
 ## Out of Scope
 
-This repository does not include a hosted API, cloud dashboard, hosted audit retention, team approval workflows, auth, billing, RBAC, SSO, Slack or email approvals, compliance reports, remote tool execution, or MCP gateway behavior.
+This repository contains the open-source local runtime core. It does not include the hosted Enforra Cloud application, cloud dashboard, hosted audit retention, team approval workflows, billing, SSO, or organization management.
 
 It is not an MCP proxy, model firewall, kernel sandbox, or prompt-injection detector.
 

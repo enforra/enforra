@@ -1,24 +1,9 @@
 # Limitations
 
-This open source repository contains the local runtime core only. It does not include:
-
-- Cloud dashboard
-- Hosted audit retention
-- Team approvals
-- Auth
-- Billing
-- RBAC
-- SSO
-- Slack or email approvals
-- Compliance reports
-- Hosted API
-- React UI
-- Supabase, Postgres, or Redis
-- Remote tool execution
-- MCP gateway behavior
+This repository contains the open-source local runtime core. It does not include the hosted Enforra Cloud application, cloud dashboard, hosted audit retention, team approval workflows, billing, SSO, or organization management.
 
 `require_approval` is a local decision. It does not execute the callback and does not contact an approval service.
 
-This repository is focused on local runtime enforcement. Policy management, team workflows, and hosted audit retention are outside the scope of this OSS core.
+This repository is focused on the open-source local runtime. Policy management, team workflows, hosted audit retention, cloud dashboards, and organization-level controls belong in the optional hosted Enforra Cloud product.
 
 For `allow` and `log_only`, audit logging happens before and after the local callback. If the pre-execution audit write fails, the callback is not run.
