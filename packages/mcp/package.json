@@ -1,6 +1,6 @@
 {
   "name": "@enforra/mcp",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Enforra policy enforcement integration for Model Context Protocol (MCP) tool handlers.",
   "license": "Apache-2.0",
   "repository": {
@@ -27,7 +27,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@enforra/sdk-node": "workspace:*"
+    "@enforra/sdk-node": "^0.2.1"
   },
   "devDependencies": {
     "@enforra/local-audit": "workspace:*",
