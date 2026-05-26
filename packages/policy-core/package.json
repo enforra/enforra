@@ -1,6 +1,6 @@
 {
   "name": "@enforra/policy-core",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Local policy loading and evaluation for Enforra.",
   "license": "Apache-2.0",
   "repository": {

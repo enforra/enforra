@@ -1,6 +1,6 @@
 {
   "name": "@enforra/local-audit",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Local JSONL audit logging for Enforra.",
   "license": "Apache-2.0",
   "repository": {
@@ -27,7 +27,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@enforra/policy-core": "workspace:*"
+    "@enforra/policy-core": "^0.2.1"
   },
   "devDependencies": {
     "tsup": "^8.5.0",
