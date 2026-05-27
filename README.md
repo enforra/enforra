@@ -315,7 +315,7 @@ This open source runtime loads policies from local YAML files so developers can 
 
 The runtime performs no network calls, telemetry, analytics, database writes, or hidden background work. The customer application owns actual tool execution. Enforra only decides whether the local `execute` callback should run.
 
-This repository is focused on local runtime enforcement. Policy management, team workflows, and hosted audit retention are outside the scope of this OSS core.
+This repository is focused on the open-source local runtime. Policy management, team workflows, hosted audit retention, cloud dashboards, and organization-level controls belong in the optional Enforra Cloud product.
 
 ## Scope
 
