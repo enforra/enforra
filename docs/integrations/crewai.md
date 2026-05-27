@@ -6,6 +6,9 @@ This doc shows how to use Enforra to enforce policies on CrewAI-style custom too
 
 CrewAI custom tools implement a `_run` method that performs the tool action. Enforra wraps the tool function body so that policy is evaluated **before** the side-effect callback runs. The crew continues to plan and assign tasks as usual.
 
+> [!NOTE]
+> This is a CrewAI-style tool wrapper pattern that intentionally avoids installing the heavy `crewai` package and setup dependencies. It demonstrates the exact wrapping logic you would implement inside a CrewAI custom tool class.
+
 ## Install
 
 ```bash

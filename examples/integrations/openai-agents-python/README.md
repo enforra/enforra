@@ -1,13 +1,13 @@
-# OpenAI Agents SDK Integration Pattern
+# OpenAI Agents SDK Integration Example
 
-OpenAI Agents SDK-style tool wrapper pattern showing Enforra policy enforcement before tool execution.
+Real package integration using the actual `openai-agents` SDK to register function tools wrapped with Enforra policies.
 
-This example does not require the OpenAI Agents SDK, an OpenAI API key, or any network calls. It demonstrates the integration pattern: Enforra wraps the tool function that would be registered with the Agents SDK.
+This example runs entirely locally, requires no OpenAI API key, and requires no network calls. It uses the real `openai-agents` decorator to define a tool and shows Enforra evaluating policy inside the tool's execution callback.
 
 ## Install
 
 ```bash
-pip install enforra
+pip install enforra openai-agents
 ```
 
 ## Run

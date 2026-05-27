@@ -13,14 +13,16 @@ These are integration examples and patterns, not hosted proxies or certified fra
 | MCP      | `@enforra/mcp`      | `npm install @enforra/mcp`      |
 | CLI      | `@enforra/cli`      | `npx @enforra/cli`              |
 
-## Framework Integration Docs
+## Framework Integrations & Wrapper Patterns
 
-- [LangGraph (Python)](integrations/langgraph.md)
-- [OpenAI Agents SDK (Python)](integrations/openai-agents.md)
-- [Vercel AI SDK (Node.js)](integrations/vercel-ai-sdk.md)
-- [CrewAI (Python)](integrations/crewai.md)
-- [AutoGen (Python)](integrations/autogen.md)
-- [MCP-Style Tool Handlers (Node.js)](mcp.md)
+Some examples import and use real framework packages; others are framework-style wrapper patterns that demonstrate policy enforcement without introducing heavy dependencies or API key requirements:
+
+- **[LangGraph (Python)](integrations/langgraph.md)**: Real package integration using `langchain-core`
+- **[OpenAI Agents SDK (Python)](integrations/openai-agents.md)**: Real package integration using `openai-agents`
+- **[Vercel AI SDK (Node.js)](integrations/vercel-ai-sdk.md)**: Real package integration using `ai`
+- **[MCP-Style Tool Handlers (Node.js)](mcp.md)**: Real package integration using `@enforra/mcp`
+- **[CrewAI (Python)](integrations/crewai.md)**: CrewAI-style tool wrapper pattern (avoids heavy ML dependencies)
+- **[AutoGen (Python)](integrations/autogen.md)**: AutoGen-style tool wrapper pattern (avoids heavy ML dependencies)
 
 ## How It Works
 

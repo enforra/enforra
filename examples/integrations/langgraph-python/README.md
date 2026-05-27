@@ -1,13 +1,13 @@
-# LangGraph Integration Pattern
+# LangGraph Integration Example
 
-LangGraph-style tool wrapper pattern showing Enforra policy enforcement before tool execution.
+Real package integration using the actual `langchain-core` library to wrap tools with Enforra policies.
 
-This example does not require LangGraph, an LLM provider, or API keys. It demonstrates the integration pattern: Enforra wraps the tool function that would be called from a LangGraph tool node.
+This example runs entirely locally, requires no LLM provider, and requires no API keys. It uses the real `langchain-core` tool definition and shows Enforra evaluating policy inside the tool's execution callback.
 
 ## Install
 
 ```bash
-pip install enforra
+pip install enforra langchain-core
 ```
 
 ## Run

@@ -1,15 +1,15 @@
-# OpenAI Agents SDK Integration Pattern
+# OpenAI Agents SDK Integration
 
-This doc shows how to use Enforra to enforce policies on tool functions that would be registered with the OpenAI Agents SDK.
+This doc shows how to use Enforra to enforce policies on tool functions that are registered with the OpenAI Agents SDK.
 
-## What This Pattern Shows
+## What This Integration Shows
 
-The OpenAI Agents SDK registers Python functions as tools for the agent to call. Enforra wraps the tool function body so that policy is evaluated **before** the side-effect callback runs. The agent continues to plan and call tools as usual.
+The OpenAI Agents SDK registers Python functions as tools (using `function_tool`) for the agent to call. Enforra wraps the tool function body so that policy is evaluated **before** the side-effect callback runs. The agent continues to plan and call tools as usual.
 
 ## Install
 
 ```bash
-pip install enforra
+pip install enforra openai-agents
 ```
 
 ## Where Enforra Sits
@@ -21,6 +21,7 @@ OpenAI Agent → Calls tool function → Enforra evaluates policy → Tool callb
 ## Example Code
 
 ```python
+from agents import function_tool
 from enforra import EnforraClient
 
 client = EnforraClient(
@@ -29,14 +30,18 @@ client = EnforraClient(
     agent="coding-agent",
 )
 
-# This function would be registered as an Agents SDK tool
-def create_github_issue(title: str, repo: str) -> dict:
+# Define function implementation wrapped with Enforra
+def create_github_issue_impl(title: str, repo: str) -> dict:
+    """Create a GitHub issue."""
     result = client.run_tool(
         tool_name="github.create_issue",
         args={"title": title, "repo": repo},
         handler=lambda: {"issue_number": 42, "url": f"https://github.com/{repo}/issues/42"},
     )
-    return {"decision": result.decision, "executed": result.executed}
+    return {"decision": result.decision, "executed": result.executed, "status": result.status, "reason": result.reason}
+
+# Register the tool with the OpenAI Agents SDK
+create_github_issue = function_tool(create_github_issue_impl)
 ```
 
 ## Run the Example

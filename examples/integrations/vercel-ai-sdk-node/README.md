@@ -1,13 +1,13 @@
-# Vercel AI SDK Integration Pattern
+# Vercel AI SDK Integration Example
 
-Vercel AI SDK-style tool execute wrapper pattern showing Enforra policy enforcement before tool execution.
+Real package integration using the actual Vercel AI SDK `ai` and `zod` libraries to define tools wrapped with Enforra policies.
 
-This example does not require the Vercel AI SDK, an LLM provider, or API keys. It demonstrates the integration pattern: Enforra wraps the tool execute function that would be defined in a Vercel AI SDK tool.
+This example runs entirely locally, requires no LLM provider, and requires no API keys. It uses the real Vercel AI SDK `tool` helper to define tools and shows Enforra evaluating policy inside the tool's execution callback.
 
 ## Install
 
 ```bash
-npm install @enforra/sdk-node
+npm install @enforra/sdk-node ai zod
 ```
 
 ## Run

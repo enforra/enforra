@@ -1,1 +1,2 @@
 enforra
+langchain-core

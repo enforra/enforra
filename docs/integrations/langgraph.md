@@ -1,15 +1,15 @@
-# LangGraph Integration Pattern
+# LangGraph Integration
 
-This doc shows how to use Enforra to enforce policies on tool functions that would be called from LangGraph tool nodes.
+This doc shows how to use Enforra to enforce policies on tool functions that are defined using the LangChain/LangGraph tool abstraction.
 
-## What This Pattern Shows
+## What This Integration Shows
 
 A LangGraph graph calls tool functions at nodes. Enforra wraps the tool function body so that policy is evaluated **before** the side-effect callback runs. The graph continues to plan and route as usual.
 
 ## Install
 
 ```bash
-pip install enforra
+pip install enforra langchain-core
 ```
 
 ## Where Enforra Sits
@@ -21,6 +21,7 @@ LangGraph Graph → Tool Node → Enforra evaluates policy → Tool callback (if
 ## Example Code
 
 ```python
+from langchain_core.tools import tool
 from enforra import EnforraClient
 
 client = EnforraClient(
@@ -29,14 +30,20 @@ client = EnforraClient(
     agent="coding-agent",
 )
 
-# This function would be called from a LangGraph tool node
+# This tool would be registered and called from a LangGraph tool node
+@tool
 def read_file(path: str) -> dict:
+    """Read a file from the filesystem.
+
+    Args:
+        path: Path to the file to read.
+    """
     result = client.run_tool(
         tool_name="filesystem.read",
         args={"path": path},
-        handler=lambda: {"content": open(path).read()},
+        handler=lambda: {"content": "# main application code"},
     )
-    return {"decision": result.decision, "executed": result.executed}
+    return {"decision": result.decision, "executed": result.executed, "status": result.status, "reason": result.reason}
 ```
 
 ## Run the Example

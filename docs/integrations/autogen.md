@@ -6,6 +6,9 @@ This doc shows how to use Enforra to enforce policies on AutoGen-style function 
 
 AutoGen registers Python functions as tools for agents. Enforra wraps the function body so that policy is evaluated **before** the side-effect callback runs. The agent continues to call functions as usual.
 
+> [!NOTE]
+> This is an AutoGen-style tool wrapper pattern that intentionally avoids installing the `pyautogen` package and model API setup. It demonstrates the exact wrapping logic you would implement in an AutoGen custom tool function.
+
 ## Install
 
 ```bash

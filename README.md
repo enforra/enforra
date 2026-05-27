@@ -83,14 +83,14 @@ python3 -m pip install -e ".[dev]"
 
 ## Integrations
 
-Enforra can wrap tool execution in common agent framework patterns:
+Enforra includes runnable integration examples and framework-specific tool wrapper patterns. Some examples use real framework packages; others intentionally avoid heavy dependencies or API keys and show the same enforcement point before tool execution:
 
-- [LangGraph](docs/integrations/langgraph.md) (Python)
-- [OpenAI Agents SDK](docs/integrations/openai-agents.md) (Python)
-- [Vercel AI SDK](docs/integrations/vercel-ai-sdk.md) (Node.js)
-- [CrewAI](docs/integrations/crewai.md) (Python)
-- [AutoGen](docs/integrations/autogen.md) (Python)
-- [MCP-Style Tool Handlers](docs/mcp.md) (Node.js)
+- **LangGraph** (Python): [Real Package Integration](docs/integrations/langgraph.md) using `langchain-core`
+- **OpenAI Agents SDK** (Python): [Real Package Integration](docs/integrations/openai-agents.md) using `openai-agents`
+- **Vercel AI SDK** (Node.js): [Real Package Integration](docs/integrations/vercel-ai-sdk.md) using `ai`
+- **MCP-Style Tool Handlers** (Node.js): [Real Package Integration](docs/mcp.md) using `@enforra/mcp`
+- **CrewAI** (Python): [CrewAI-style Tool Wrapper Pattern](docs/integrations/crewai.md) (avoids heavy ML dependencies)
+- **AutoGen** (Python): [AutoGen-style Tool Wrapper Pattern](docs/integrations/autogen.md) (avoids heavy ML dependencies)
 
 These are integration examples and patterns, not hosted proxies or certified framework partnerships. See [docs/integrations.md](docs/integrations.md) for the full index.
 

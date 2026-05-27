@@ -1,15 +1,15 @@
-# Vercel AI SDK Integration Pattern
+# Vercel AI SDK Integration
 
-This doc shows how to use Enforra to enforce policies on Vercel AI SDK-style tool execute functions.
+This doc shows how to use Enforra to enforce policies on tools defined using the Vercel AI SDK's `tool` abstraction.
 
-## What This Pattern Shows
+## What This Integration Shows
 
-The Vercel AI SDK defines tools with an `execute` function. Enforra wraps the execute body so that policy is evaluated **before** the side-effect callback runs. The AI SDK continues to plan and call tools as usual.
+The Vercel AI SDK defines tools using `tool()` helper with a schema and an `execute` function. Enforra wraps the tool's `execute` callback body so that policy is evaluated **before** the side-effect callback runs. The AI SDK continues to plan and call tools as usual.
 
 ## Install
 
 ```bash
-npm install @enforra/sdk-node
+npm install @enforra/sdk-node ai zod
 ```
 
 ## Where Enforra Sits
@@ -22,6 +22,8 @@ Vercel AI SDK → Calls tool.execute() → Enforra evaluates policy → Execute 
 
 ```typescript
 import { createEnforraClient } from "@enforra/sdk-node";
+import { tool } from "ai";
+import { z } from "zod";
 
 const enforra = await createEnforraClient({
   policyPath: "./policy.yaml",
@@ -29,13 +31,19 @@ const enforra = await createEnforraClient({
   agent: "coding-agent"
 });
 
-// This would be a Vercel AI SDK tool execute function
-const result = await enforra.enforceToolCall({
-  agent: "coding-agent",
-  tool: "filesystem.read",
-  args: { path: "/workspace/src/app.ts" },
-  context: { environment: "development" },
-  execute: async () => ({ content: "// application code" })
+// Define Vercel AI SDK tool with Enforra wrapper inside execute
+const filesystemRead = tool({
+  description: "Read a file from the filesystem",
+  parameters: z.object({ path: z.string() }),
+  execute: async ({ path }) => {
+    return enforra.enforceToolCall({
+      agent: "coding-agent",
+      tool: "filesystem.read",
+      args: { path },
+      context: { environment: "development" },
+      execute: async () => ({ content: "// application code" })
+    });
+  }
 });
 ```
 
