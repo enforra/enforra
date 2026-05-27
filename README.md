@@ -59,12 +59,16 @@ npm install @enforra/sdk-node
 npm install @enforra/mcp
 ```
 
-### Python SDK (GitHub/Local Install Only)
-
-The Python SDK is currently only available for local/GitHub installation and is not published to PyPI:
+### Python SDK
 
 ```bash
-# In packages/sdk-python
+pip install enforra
+```
+
+_(For local SDK development / contributors)_:
+
+```bash
+cd packages/sdk-python
 python3 -m pip install -e ".[dev]"
 ```
 
@@ -74,7 +78,7 @@ python3 -m pip install -e ".[dev]"
 - **Run in Observe Mode**: Shadow policy decisions (evaluating policies and logging results) without blocking tool callbacks or requiring approval.
 - **Wrap MCP-Style Tool Handlers**: Guard local Model Context Protocol tool execution paths easily using `@enforra/mcp`.
 - **Integrate in Node.js Applications**: Use the library directly in Node.js via `@enforra/sdk-node`.
-- **Integrate in Python Applications**: Build and test with the Python SDK locally in your Python environment.
+- **Integrate in Python Applications**: Use the library directly in Python via `pip install enforra`.
 - **Log Local JSONL Audit Evidence**: Automatically generate local, structured audit trails (with optional hash-chain integrity verification) to document agent decisions without cloud telemetry.
 
 ## What this OSS runtime is not

@@ -4,7 +4,13 @@ Small local-first Python example for the Enforra OSS Python SDK.
 
 ## Setup
 
-From the repository root:
+Install the Enforra Python SDK from PyPI:
+
+```bash
+pip install enforra
+```
+
+Or for local development from the repository root:
 
 ```bash
 python3 -m pip install -e "./packages/sdk-python[dev]"
