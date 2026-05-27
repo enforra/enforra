@@ -1,10 +1,13 @@
-# Vercel AI SDK Integration
+# Vercel AI SDK Integration Example
 
 This doc shows how to use Enforra to enforce policies on tools defined using the Vercel AI SDK's `tool` abstraction.
 
 ## What This Integration Shows
 
-The Vercel AI SDK defines tools using `tool()` helper with a schema and an `execute` function. Enforra wraps the tool's `execute` callback body so that policy is evaluated **before** the side-effect callback runs. The AI SDK continues to plan and call tools as usual.
+The Vercel AI SDK defines tools using `tool()` helper with a schema and an `execute` function. Enforra wraps the tool's `execute` callback body so that policy is evaluated **before** the side-effect callback runs.
+
+> [!NOTE]
+> This example runs entirely locally, requires no LLM provider API keys, and does not run real models. It demonstrates how Enforra wraps tool callbacks that are defined using the Vercel AI SDK's `tool` helper.
 
 ## Install
 

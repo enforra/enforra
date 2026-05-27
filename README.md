@@ -83,11 +83,11 @@ python3 -m pip install -e ".[dev]"
 
 ## Integrations
 
-Enforra includes runnable integration examples and framework-specific tool wrapper patterns. Some examples use real framework packages; others intentionally avoid heavy dependencies or API keys and show the same enforcement point before tool execution:
+Enforra includes runnable integration examples and framework-style tool wrapper patterns. Some examples use real framework packages. Others intentionally avoid heavy dependencies and show where Enforra sits before tool execution:
 
-- **LangGraph** (Python): [Real Package Integration](docs/integrations/langgraph.md) using `langchain-core`
+- **LangGraph** (Python): [Real Package Integration](docs/integrations/langgraph.md) using `langgraph` and `langchain-core`
 - **OpenAI Agents SDK** (Python): [Real Package Integration](docs/integrations/openai-agents.md) using `openai-agents`
-- **Vercel AI SDK** (Node.js): [Real Package Integration](docs/integrations/vercel-ai-sdk.md) using `ai`
+- **Vercel AI SDK** (Node.js): [Real Package Integration](docs/integrations/vercel-ai-sdk.md) using `ai` and `zod`
 - **MCP-Style Tool Handlers** (Node.js): [Real Package Integration](docs/mcp.md) using `@enforra/mcp`
 - **CrewAI** (Python): [CrewAI-style Tool Wrapper Pattern](docs/integrations/crewai.md) (avoids heavy ML dependencies)
 - **AutoGen** (Python): [AutoGen-style Tool Wrapper Pattern](docs/integrations/autogen.md) (avoids heavy ML dependencies)

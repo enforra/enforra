@@ -17,12 +17,14 @@ These are integration examples and patterns, not hosted proxies or certified fra
 
 Some examples import and use real framework packages; others are framework-style wrapper patterns that demonstrate policy enforcement without introducing heavy dependencies or API key requirements:
 
-- **[LangGraph (Python)](integrations/langgraph.md)**: Real package integration using `langchain-core`
-- **[OpenAI Agents SDK (Python)](integrations/openai-agents.md)**: Real package integration using `openai-agents`
-- **[Vercel AI SDK (Node.js)](integrations/vercel-ai-sdk.md)**: Real package integration using `ai`
-- **[MCP-Style Tool Handlers (Node.js)](mcp.md)**: Real package integration using `@enforra/mcp`
-- **[CrewAI (Python)](integrations/crewai.md)**: CrewAI-style tool wrapper pattern (avoids heavy ML dependencies)
-- **[AutoGen (Python)](integrations/autogen.md)**: AutoGen-style tool wrapper pattern (avoids heavy ML dependencies)
+| Framework                                                       | Status               | Package used                  | API keys required |
+| :-------------------------------------------------------------- | :------------------- | :---------------------------- | :---------------- |
+| **[LangGraph (Python)](integrations/langgraph.md)**             | real example         | `langgraph`, `langchain-core` | no                |
+| **[OpenAI Agents SDK (Python)](integrations/openai-agents.md)** | real example         | `openai-agents`               | no                |
+| **[Vercel AI SDK (Node.js)](integrations/vercel-ai-sdk.md)**    | real example         | `ai`, `zod`                   | no                |
+| **[CrewAI (Python)](integrations/crewai.md)**                   | pattern              | none                          | no                |
+| **[AutoGen (Python)](integrations/autogen.md)**                 | pattern              | none                          | no                |
+| **[MCP (Node.js)](mcp.md)**                                     | real Enforra wrapper | `@enforra/mcp`                | no                |
 
 ## How It Works
 

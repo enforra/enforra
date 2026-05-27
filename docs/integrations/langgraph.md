@@ -1,36 +1,43 @@
-# LangGraph Integration
+# LangGraph Integration Example
 
-This doc shows how to use Enforra to enforce policies on tool functions that are defined using the LangChain/LangGraph tool abstraction.
+This doc shows how to use Enforra to enforce policies on tools executed within a LangGraph `StateGraph` tool node.
 
-## What This Integration Shows
+## What This Example Shows
 
-A LangGraph graph calls tool functions at nodes. Enforra wraps the tool function body so that policy is evaluated **before** the side-effect callback runs. The graph continues to plan and route as usual.
+A LangGraph graph routes execution through a prebuilt `ToolNode` that calls the registered tools. Enforra wraps the tool function body so that policy is evaluated **before** the side-effect callback runs. The graph operates entirely locally and routes as usual based on the results.
 
 ## Install
 
 ```bash
-pip install enforra langchain-core
+pip install enforra langchain-core langgraph
 ```
 
 ## Where Enforra Sits
 
 ```
-LangGraph Graph → Tool Node → Enforra evaluates policy → Tool callback (if allowed)
+LangGraph Graph → ToolNode → Tool Function → Enforra evaluates policy → Tool Callback (if allowed)
 ```
 
 ## Example Code
 
 ```python
+from typing import Annotated
+from typing_extensions import TypedDict
+from langchain_core.messages import AIMessage
 from langchain_core.tools import tool
+from langgraph.graph import StateGraph, START, END
+from langgraph.graph.message import add_messages
+from langgraph.prebuilt import ToolNode
 from enforra import EnforraClient
 
+# Initialize Enforra client
 client = EnforraClient(
     policy_path="policy.yaml",
     audit_path=".enforra/audit.jsonl",
     agent="coding-agent",
 )
 
-# This tool would be registered and called from a LangGraph tool node
+# Define actual LangChain / LangGraph tool wrapped with Enforra
 @tool
 def read_file(path: str) -> dict:
     """Read a file from the filesystem.
@@ -43,7 +50,25 @@ def read_file(path: str) -> dict:
         args={"path": path},
         handler=lambda: {"content": "# main application code"},
     )
-    return {"decision": result.decision, "executed": result.executed, "status": result.status, "reason": result.reason}
+    return {
+        "decision": result.decision,
+        "executed": result.executed,
+        "status": result.status,
+        "reason": result.reason,
+    }
+
+class State(TypedDict):
+    messages: Annotated[list, add_messages]
+
+# Set up the ToolNode containing the wrapped tools
+tool_node = ToolNode([read_file])
+
+# Build the StateGraph
+workflow = StateGraph(State)
+workflow.add_node("tools", tool_node)
+workflow.add_edge(START, "tools")
+workflow.add_edge("tools", END)
+graph = workflow.compile()
 ```
 
 ## Run the Example

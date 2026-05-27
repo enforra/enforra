@@ -1,10 +1,13 @@
-# OpenAI Agents SDK Integration
+# OpenAI Agents SDK Integration Example
 
 This doc shows how to use Enforra to enforce policies on tool functions that are registered with the OpenAI Agents SDK.
 
 ## What This Integration Shows
 
-The OpenAI Agents SDK registers Python functions as tools (using `function_tool`) for the agent to call. Enforra wraps the tool function body so that policy is evaluated **before** the side-effect callback runs. The agent continues to plan and call tools as usual.
+The OpenAI Agents SDK registers Python functions as tools (using `function_tool`) for the agent to call. Enforra wraps the tool function body so that policy is evaluated **before** the side-effect callback runs.
+
+> [!NOTE]
+> This example runs entirely locally, requires no OpenAI API keys, and does not require calling a real model. It demonstrates how Enforra wraps tools that are registered using the `openai-agents` SDK.
 
 ## Install
 
