@@ -65,4 +65,4 @@ Written to `examples/integrations/vercel-ai-sdk-node/.enforra/audit.jsonl`.
 - LLM provider API keys
 - Network calls
 
-See the [example directory](../examples/integrations/vercel-ai-sdk-node/) for full runnable code.
+See the [example directory](../../examples/integrations/vercel-ai-sdk-node/) for full runnable code.

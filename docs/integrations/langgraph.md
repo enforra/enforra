@@ -69,4 +69,4 @@ npx @enforra/cli test --policy examples/integrations/langgraph-python/policy.yam
 - LLM provider API keys
 - Network calls
 
-See the [example directory](../examples/integrations/langgraph-python/) for full runnable code.
+See the [example directory](../../examples/integrations/langgraph-python/) for full runnable code.

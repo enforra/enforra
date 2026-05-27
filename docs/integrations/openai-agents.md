@@ -62,4 +62,4 @@ Written to `examples/integrations/openai-agents-python/.enforra/audit.jsonl`.
 - OpenAI API keys
 - Network calls or model execution
 
-See the [example directory](../examples/integrations/openai-agents-python/) for full runnable code.
+See the [example directory](../../examples/integrations/openai-agents-python/) for full runnable code.

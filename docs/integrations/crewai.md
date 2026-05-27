@@ -62,4 +62,4 @@ Written to `examples/integrations/crewai-python/.enforra/audit.jsonl`.
 - LLM provider API keys
 - Network calls
 
-See the [example directory](../examples/integrations/crewai-python/) for full runnable code.
+See the [example directory](../../examples/integrations/crewai-python/) for full runnable code.
