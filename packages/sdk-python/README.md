@@ -4,7 +4,13 @@ Local-first Python SDK for Enforra OSS.
 
 ## Install
 
-From this repository:
+```bash
+pip install enforra
+```
+
+### Local Development / Contributors
+
+To install from source for local development and testing:
 
 ```bash
 python3 -m pip install -e ".[dev]"
