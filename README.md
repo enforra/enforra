@@ -81,6 +81,19 @@ python3 -m pip install -e ".[dev]"
 - **Integrate in Python Applications**: Use the library directly in Python via `pip install enforra`.
 - **Log Local JSONL Audit Evidence**: Automatically generate local, structured audit trails (with optional hash-chain integrity verification) to document agent decisions without cloud telemetry.
 
+## Integrations
+
+Enforra can wrap tool execution in common agent framework patterns:
+
+- [LangGraph](docs/integrations/langgraph.md) (Python)
+- [OpenAI Agents SDK](docs/integrations/openai-agents.md) (Python)
+- [Vercel AI SDK](docs/integrations/vercel-ai-sdk.md) (Node.js)
+- [CrewAI](docs/integrations/crewai.md) (Python)
+- [AutoGen](docs/integrations/autogen.md) (Python)
+- [MCP-Style Tool Handlers](docs/mcp.md) (Node.js)
+
+These are integration examples and patterns, not hosted proxies or certified framework partnerships. See [docs/integrations.md](docs/integrations.md) for the full index.
+
 ## What this OSS runtime is not
 
 - **Not a hosted proxy by itself**: Enforra does not sit between your agent and external APIs as a proxy server.
