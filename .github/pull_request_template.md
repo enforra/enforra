@@ -2,20 +2,29 @@
 
 Describe the change and why it is needed.
 
-## Validation
+## Type of change
 
-List commands run and key outputs.
+- [ ] Docs only
+- [ ] Example/demo
+- [ ] Runtime/package
+- [ ] SDK
+- [ ] MCP
+- [ ] Policy engine/simulator
+- [ ] CI/dependencies
 
 ## Checklist
 
-- [ ] Tests added or updated when behavior changed
-- [ ] `pnpm format` passed
-- [ ] `pnpm build` passed
-- [ ] `pnpm test` passed
-- [ ] `pnpm lint` passed
-- [ ] Demo checked when applicable (`pnpm demo:support-refund`)
-- [ ] Package dry run checked when package metadata changed (`npm pack --dry-run`)
-- [ ] No secrets added
-- [ ] Redaction behavior considered (for args/context/errors)
-- [ ] Docs updated if behavior changed
-- [ ] No cloud/dashboard/auth/billing/RBAC/SSO/hosted API scope added
+- [ ] I kept the PR scoped and reviewable.
+- [ ] I updated docs/examples where needed.
+- [ ] I ran `pnpm format`.
+- [ ] I ran `pnpm verify:oss`.
+- [ ] I ran Python tests if Python changed.
+- [ ] I ran affected examples/demos.
+- [ ] I checked no secrets, tokens, or local absolute paths were committed.
+- [ ] I explained any new dependencies.
+- [ ] I ran benchmark/load/soak checks if runtime hot paths changed.
+- [ ] I cleaned generated files.
+
+## Commands run
+
+## Notes for reviewers
