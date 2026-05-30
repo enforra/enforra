@@ -43,7 +43,7 @@ updates:
           - "*"
 
   - package-ecosystem: "pip"
-    directory: "/examples/python-support-refund-agent"
+    directory: "/examples/quickstart/support-refund-python"
     schedule:
       interval: "weekly"
     labels:

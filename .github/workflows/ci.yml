@@ -48,7 +48,7 @@ jobs:
           python3 -m pytest
 
       - name: Run Python example (enforce)
-        run: python3 examples/python-support-refund-agent/example.py
+        run: python3 examples/quickstart/support-refund-python/example.py
 
       - name: Run Python example (observe)
-        run: python3 examples/python-support-refund-agent/example.py --observe
+        run: python3 examples/quickstart/support-refund-python/example.py --observe

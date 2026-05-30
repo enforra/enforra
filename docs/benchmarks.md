@@ -20,7 +20,7 @@ The benchmark runs locally and makes no external API calls or hosted service cal
 
 ## What It Measures
 
-`examples/benchmark-policy-eval` measures:
+`examples/benchmarks/policy-eval` measures:
 
 - policy evaluation only
 - policy evaluation with decision trace

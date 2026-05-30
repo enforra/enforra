@@ -29,11 +29,11 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@types/node@20.19.41)(tsx@4.21.0)(yaml@2.9.0)
 
-  examples/approval-evidence-demo:
+  examples/audit/approval-evidence:
     dependencies:
       "@enforra/sdk-node":
         specifier: workspace:*
-        version: link:../../packages/sdk-node
+        version: link:../../../packages/sdk-node
     devDependencies:
       tsup:
         specifier: ^8.5.0
@@ -42,14 +42,14 @@ importers:
         specifier: ^4.20.6
         version: 4.21.0
 
-  examples/audit-integrity-demo:
+  examples/audit/audit-integrity:
     dependencies:
       "@enforra/local-audit":
         specifier: workspace:*
-        version: link:../../packages/local-audit
+        version: link:../../../packages/local-audit
       "@enforra/sdk-node":
         specifier: workspace:*
-        version: link:../../packages/sdk-node
+        version: link:../../../packages/sdk-node
     devDependencies:
       tsup:
         specifier: ^8.5.0
@@ -58,14 +58,14 @@ importers:
         specifier: ^4.20.6
         version: 4.21.0
 
-  examples/benchmark-policy-eval:
+  examples/benchmarks/policy-eval:
     dependencies:
       "@enforra/policy-core":
         specifier: workspace:*
-        version: link:../../packages/policy-core
+        version: link:../../../packages/policy-core
       "@enforra/sdk-node":
         specifier: workspace:*
-        version: link:../../packages/sdk-node
+        version: link:../../../packages/sdk-node
     devDependencies:
       tsup:
         specifier: ^8.5.0
@@ -74,21 +74,21 @@ importers:
         specifier: ^4.20.6
         version: 4.21.0
 
-  examples/db-delete-video-demo:
+  examples/demos/db-delete-video:
     dependencies:
       "@enforra/sdk-node":
         specifier: workspace:*
-        version: link:../../packages/sdk-node
+        version: link:../../../packages/sdk-node
     devDependencies:
       tsup:
         specifier: ^8.5.0
         version: 8.5.1(postcss@8.5.14)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)
 
-  examples/mcp-style-tool-policy:
+  examples/demos/openai-style-tool-wrapper:
     dependencies:
       "@enforra/sdk-node":
         specifier: workspace:*
-        version: link:../../packages/sdk-node
+        version: link:../../../packages/sdk-node
     devDependencies:
       tsup:
         specifier: ^8.5.0
@@ -97,14 +97,14 @@ importers:
         specifier: ^4.20.6
         version: 4.21.0
 
-  examples/mcp-tool-guard-demo:
+  examples/mcp/mcp-coding-agent:
     dependencies:
       "@enforra/mcp":
         specifier: workspace:*
-        version: link:../../packages/mcp
+        version: link:../../../packages/mcp
       "@enforra/sdk-node":
         specifier: workspace:*
-        version: link:../../packages/sdk-node
+        version: link:../../../packages/sdk-node
     devDependencies:
       tsup:
         specifier: ^8.5.0
@@ -113,11 +113,14 @@ importers:
         specifier: ^4.20.6
         version: 4.21.0
 
-  examples/openai-style-tool-wrapper:
+  examples/mcp/mcp-github-agent:
     dependencies:
+      "@enforra/mcp":
+        specifier: workspace:*
+        version: link:../../../packages/mcp
       "@enforra/sdk-node":
         specifier: workspace:*
-        version: link:../../packages/sdk-node
+        version: link:../../../packages/sdk-node
     devDependencies:
       tsup:
         specifier: ^8.5.0
@@ -126,11 +129,56 @@ importers:
         specifier: ^4.20.6
         version: 4.21.0
 
-  examples/support-refund-agent:
+  examples/mcp/mcp-server-governance:
+    dependencies:
+      "@enforra/mcp":
+        specifier: workspace:*
+        version: link:../../../packages/mcp
+      "@enforra/sdk-node":
+        specifier: workspace:*
+        version: link:../../../packages/sdk-node
+    devDependencies:
+      tsup:
+        specifier: ^8.5.0
+        version: 8.5.1(postcss@8.5.14)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)
+      tsx:
+        specifier: ^4.20.6
+        version: 4.21.0
+
+  examples/mcp/mcp-style-policy:
     dependencies:
       "@enforra/sdk-node":
         specifier: workspace:*
-        version: link:../../packages/sdk-node
+        version: link:../../../packages/sdk-node
+    devDependencies:
+      tsup:
+        specifier: ^8.5.0
+        version: 8.5.1(postcss@8.5.14)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)
+      tsx:
+        specifier: ^4.20.6
+        version: 4.21.0
+
+  examples/mcp/mcp-tool-guard:
+    dependencies:
+      "@enforra/mcp":
+        specifier: workspace:*
+        version: link:../../../packages/mcp
+      "@enforra/sdk-node":
+        specifier: workspace:*
+        version: link:../../../packages/sdk-node
+    devDependencies:
+      tsup:
+        specifier: ^8.5.0
+        version: 8.5.1(postcss@8.5.14)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)
+      tsx:
+        specifier: ^4.20.6
+        version: 4.21.0
+
+  examples/quickstart/support-refund-node:
+    dependencies:
+      "@enforra/sdk-node":
+        specifier: workspace:*
+        version: link:../../../packages/sdk-node
     devDependencies:
       tsup:
         specifier: ^8.5.0

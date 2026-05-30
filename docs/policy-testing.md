@@ -90,7 +90,7 @@ The root scripts build `@enforra/policy-simulator` and run the compiled local CL
 pnpm --filter @enforra/policy-simulator build
 node packages/policy-simulator/dist/cli.js \
   --policy policies/starter/support-agent.yaml \
-  --cases examples/support-refund-agent/policy-cases.yaml
+  --cases examples/quickstart/support-refund-node/policy-cases.yaml
 ```
 
 ## Limitations

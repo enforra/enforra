@@ -1,3 +1,8 @@
 packages:
   - "packages/*"
   - "examples/*"
+  - "examples/quickstart/*"
+  - "examples/mcp/*"
+  - "examples/audit/*"
+  - "examples/demos/*"
+  - "examples/benchmarks/*"

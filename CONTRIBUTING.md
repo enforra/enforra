@@ -65,3 +65,14 @@ Add policy templates as YAML files under `policies/starter`. Keep them generic, 
 ## Tests
 
 See "Security-sensitive changes" above for test expectations.
+
+## Pull request quality gates
+
+Before opening a PR, review:
+
+- [AGENTS.md](AGENTS.md)
+- [docs/quality-gates.md](docs/quality-gates.md)
+- [docs/pr-review-policy.md](docs/pr-review-policy.md)
+- [.github/pull_request_template.md](.github/pull_request_template.md)
+
+Do not duplicate the whole policy.

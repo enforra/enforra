@@ -1,0 +1,76 @@
+version: 1
+defaults:
+  decision: block
+policies:
+  - id: block-terminal-rm-rf
+    description: Block rm -rf command execution
+    match:
+      agent: coding-agent
+      tool: terminal.run
+    conditions:
+      - field: args.command
+        operator: contains
+        value: rm -rf
+    decision: block
+
+  - id: require-approval-terminal-npm-install
+    description: Require approval for terminal npm install
+    match:
+      agent: coding-agent
+      tool: terminal.run
+    conditions:
+      - field: args.command
+        operator: contains
+        value: npm install
+    decision: require_approval
+
+  - id: allow-other-terminal-run
+    description: Allow other terminal commands
+    match:
+      agent: coding-agent
+      tool: terminal.run
+    decision: allow
+
+  - id: block-env-read
+    description: Block reading .env configuration files
+    match:
+      agent: coding-agent
+      tool: filesystem.read
+    conditions:
+      - field: args.path
+        operator: contains
+        value: .env
+    decision: block
+
+  - id: block-private-key-read
+    description: Block reading ssh keys or certificate files
+    match:
+      agent: coding-agent
+      tool: filesystem.read
+    conditions:
+      any:
+        - field: args.path
+          operator: contains
+          value: id_rsa
+        - field: args.path
+          operator: contains
+          value: .pem
+    decision: block
+
+  - id: allow-safe-file-read
+    description: Allow safe file reads
+    match:
+      agent: coding-agent
+      tool: filesystem.read
+    conditions:
+      - field: args.path
+        operator: contains
+        value: /safe/
+    decision: allow
+
+  - id: require-approval-filesystem-write
+    description: Require approval for writing to files
+    match:
+      agent: coding-agent
+      tool: filesystem.write
+    decision: require_approval

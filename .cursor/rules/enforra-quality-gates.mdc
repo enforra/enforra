@@ -1,0 +1,19 @@
+---
+description: Enforra engineering rules, quality gates, testing, and PR readiness
+alwaysApply: true
+---
+
+AGENTS.md is the source of truth for Enforra engineering rules.
+
+Before making changes, read:
+- AGENTS.md
+- docs/quality-gates.md
+
+Follow AGENTS.md for:
+- package boundaries
+- local-first OSS runtime constraints
+- testing requirements
+- security checks
+- dependency rules
+- cleanup
+- final PR reporting

@@ -33,7 +33,7 @@ policies/enforra.cases.yaml
 `enforra test` defaults to those files, and also supports:
 
 ```bash
-enforra test --policy policies/starter/support-agent.yaml --cases examples/support-refund-agent/policy-cases.yaml
+enforra test --policy policies/starter/support-agent.yaml --cases examples/quickstart/support-refund-node/policy-cases.yaml
 enforra test --trace
 ```
 

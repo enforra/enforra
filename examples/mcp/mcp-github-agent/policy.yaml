@@ -1,0 +1,57 @@
+version: 1
+defaults:
+  decision: block
+policies:
+  - id: block-merge-main-prod
+    description: Block merging to main or production branch
+    match:
+      agent: github-agent
+      tool: github.merge_pr
+    conditions:
+      any:
+        - field: args.branch
+          operator: eq
+          value: main
+        - field: args.branch
+          operator: eq
+          value: production
+    decision: block
+
+  - id: require-approval-merge
+    description: Require approval for other pull request merges
+    match:
+      agent: github-agent
+      tool: github.merge_pr
+    decision: require_approval
+
+  - id: require-approval-create-issue
+    description: Require approval to create issues
+    match:
+      agent: github-agent
+      tool: github.create_issue
+    decision: require_approval
+
+  - id: allow-comment-non-prod
+    description: Allow comments on non-production repositories
+    match:
+      agent: github-agent
+      tool: github.comment
+    conditions:
+      - field: context.repo_environment
+        operator: neq
+        value: production
+    decision: allow
+
+  - id: log-repo-status
+    description: Log repository status reads
+    match:
+      agent: github-agent
+      tool: github.get_repo_status
+    decision: log_only
+
+  - id: log-list-issues
+    description: Log issues list reads
+    match:
+      agent: github-agent
+      tool: github.list_issues
+    decision: log_only
