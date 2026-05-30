@@ -45,8 +45,8 @@ python3 -m pytest
 Run the Python example from the repository root:
 
 ```bash
-python3 examples/python-support-refund-agent/example.py
-python3 examples/python-support-refund-agent/example.py --observe
+python3 examples/quickstart/support-refund-python/example.py
+python3 examples/quickstart/support-refund-python/example.py --observe
 ```
 
 ### Publishing to TestPyPI / PyPI

@@ -107,8 +107,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 For comprehensive demonstrations of MCP-style tool handler governance, explore the following examples:
 
-- [MCP Coding Agent](../examples/mcp-coding-agent)
-- [MCP GitHub Agent](../examples/mcp-github-agent)
-- [MCP Server Governance](../examples/mcp-server-governance)
+- [MCP Coding Agent](../examples/mcp/mcp-coding-agent)
+- [MCP GitHub Agent](../examples/mcp/mcp-github-agent)
+- [MCP Server Governance](../examples/mcp/mcp-server-governance)
 
 For a detailed comparative breakdown, see the [MCP Examples Guide](mcp-examples.md).

@@ -69,7 +69,7 @@ The policy simulator supports `--trace`.
 ```bash
 node packages/policy-simulator/dist/cli.js \
   --policy policies/starter/support-agent.yaml \
-  --cases examples/support-refund-agent/policy-cases.yaml \
+  --cases examples/quickstart/support-refund-node/policy-cases.yaml \
   --trace
 ```
 

@@ -201,14 +201,14 @@ Audit log written to .enforra/audit.jsonl
 
 ## Examples
 
-- `examples/support-refund-agent`: runnable local demo for allow, require approval, and block decisions.
-- `examples/python-support-refund-agent`: runnable local Python demo for enforce mode and observe mode.
-- `examples/openai-style-tool-wrapper`: wrapper pattern for calling `enforceToolCall` before an application tool callback.
-- `examples/mcp-style-tool-policy`: starter policy pattern for MCP-style tool names at the application boundary; this repository does not implement an MCP gateway.
-- `examples/mcp-tool-guard-demo`: runnable local demo of Enforra MCP tool handler guarding.
-- `examples/approval-evidence-demo`: local evidence demo for allow, require approval, block, and log-only decisions.
-- `examples/audit-integrity-demo`: optional hash-chain audit integrity demo for local audit logs.
-- `examples/db-delete-video-demo`: simple video demo contrasting a direct table-delete callback with the same callback protected by Enforra.
+Start with:
+
+- `examples/quickstart/support-refund-node` for the fastest local demo
+- `examples/quickstart/support-refund-python` for Python SDK usage
+- `examples/mcp/mcp-tool-guard` for MCP-style tool protection
+- `examples/integrations` for LangGraph, Vercel AI SDK, OpenAI Agents SDK, CrewAI, and AutoGen
+
+See [examples/README.md](examples/README.md) for the full examples guide.
 
 ## Basic usage
 
@@ -360,14 +360,12 @@ packages/sdk-node          Node SDK enforcement wrapper
 packages/cli               CLI for init, policy tests, audit verification, and setup checks
 packages/local-audit       Local JSONL audit logging and redaction
 packages/mcp               MCP-style tool handler guard
-examples/support-refund-agent
-examples/openai-style-tool-wrapper
-examples/mcp-style-tool-policy
-examples/mcp-tool-guard-demo
-examples/approval-evidence-demo
-examples/audit-integrity-demo
-examples/db-delete-video-demo
-examples/benchmark-policy-eval
+examples/quickstart        Fastest demos for Node and Python
+examples/mcp               MCP tool guarding and handler policies
+examples/audit             Approval evidence and audit integrity demos
+examples/demos             Database safety and raw wrapper patterns
+examples/benchmarks        Policy evaluation benchmarks
+examples/integrations      LangGraph, Vercel AI SDK, OpenAI, etc.
 policies/starter
 docs
 packages/*/test

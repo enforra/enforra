@@ -29,11 +29,11 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@types/node@20.19.41)(tsx@4.21.0)(yaml@2.9.0)
 
-  examples/approval-evidence-demo:
+  examples/audit/approval-evidence:
     dependencies:
       "@enforra/sdk-node":
         specifier: workspace:*
-        version: link:../../packages/sdk-node
+        version: link:../../../packages/sdk-node
     devDependencies:
       tsup:
         specifier: ^8.5.0
@@ -42,14 +42,14 @@ importers:
         specifier: ^4.20.6
         version: 4.21.0
 
-  examples/audit-integrity-demo:
+  examples/audit/audit-integrity:
     dependencies:
       "@enforra/local-audit":
         specifier: workspace:*
-        version: link:../../packages/local-audit
+        version: link:../../../packages/local-audit
       "@enforra/sdk-node":
         specifier: workspace:*
-        version: link:../../packages/sdk-node
+        version: link:../../../packages/sdk-node
     devDependencies:
       tsup:
         specifier: ^8.5.0
@@ -58,14 +58,14 @@ importers:
         specifier: ^4.20.6
         version: 4.21.0
 
-  examples/benchmark-policy-eval:
+  examples/benchmarks/policy-eval:
     dependencies:
       "@enforra/policy-core":
         specifier: workspace:*
-        version: link:../../packages/policy-core
+        version: link:../../../packages/policy-core
       "@enforra/sdk-node":
         specifier: workspace:*
-        version: link:../../packages/sdk-node
+        version: link:../../../packages/sdk-node
     devDependencies:
       tsup:
         specifier: ^8.5.0
@@ -74,24 +74,53 @@ importers:
         specifier: ^4.20.6
         version: 4.21.0
 
-  examples/db-delete-video-demo:
+  examples/demos/db-delete-video:
     dependencies:
       "@enforra/sdk-node":
         specifier: workspace:*
-        version: link:../../packages/sdk-node
+        version: link:../../../packages/sdk-node
     devDependencies:
       tsup:
         specifier: ^8.5.0
         version: 8.5.1(postcss@8.5.14)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)
 
-  examples/mcp-coding-agent:
+  examples/demos/openai-style-tool-wrapper:
+    dependencies:
+      "@enforra/sdk-node":
+        specifier: workspace:*
+        version: link:../../../packages/sdk-node
+    devDependencies:
+      tsup:
+        specifier: ^8.5.0
+        version: 8.5.1(postcss@8.5.14)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)
+      tsx:
+        specifier: ^4.20.6
+        version: 4.21.0
+
+  examples/integrations/vercel-ai-sdk-node:
+    dependencies:
+      "@enforra/sdk-node":
+        specifier: ^0.2.1
+        version: link:../../../packages/sdk-node
+      ai:
+        specifier: ^6.0.191
+        version: 6.0.193(zod@4.4.3)
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      tsx:
+        specifier: ^4.20.6
+        version: 4.21.0
+
+  examples/mcp/mcp-coding-agent:
     dependencies:
       "@enforra/mcp":
         specifier: workspace:*
-        version: link:../../packages/mcp
+        version: link:../../../packages/mcp
       "@enforra/sdk-node":
         specifier: workspace:*
-        version: link:../../packages/sdk-node
+        version: link:../../../packages/sdk-node
     devDependencies:
       tsup:
         specifier: ^8.5.0
@@ -100,14 +129,14 @@ importers:
         specifier: ^4.20.6
         version: 4.21.0
 
-  examples/mcp-github-agent:
+  examples/mcp/mcp-github-agent:
     dependencies:
       "@enforra/mcp":
         specifier: workspace:*
-        version: link:../../packages/mcp
+        version: link:../../../packages/mcp
       "@enforra/sdk-node":
         specifier: workspace:*
-        version: link:../../packages/sdk-node
+        version: link:../../../packages/sdk-node
     devDependencies:
       tsup:
         specifier: ^8.5.0
@@ -116,14 +145,14 @@ importers:
         specifier: ^4.20.6
         version: 4.21.0
 
-  examples/mcp-server-governance:
+  examples/mcp/mcp-server-governance:
     dependencies:
       "@enforra/mcp":
         specifier: workspace:*
-        version: link:../../packages/mcp
+        version: link:../../../packages/mcp
       "@enforra/sdk-node":
         specifier: workspace:*
-        version: link:../../packages/sdk-node
+        version: link:../../../packages/sdk-node
     devDependencies:
       tsup:
         specifier: ^8.5.0
@@ -132,11 +161,11 @@ importers:
         specifier: ^4.20.6
         version: 4.21.0
 
-  examples/mcp-style-tool-policy:
+  examples/mcp/mcp-style-policy:
     dependencies:
       "@enforra/sdk-node":
         specifier: workspace:*
-        version: link:../../packages/sdk-node
+        version: link:../../../packages/sdk-node
     devDependencies:
       tsup:
         specifier: ^8.5.0
@@ -145,14 +174,14 @@ importers:
         specifier: ^4.20.6
         version: 4.21.0
 
-  examples/mcp-tool-guard-demo:
+  examples/mcp/mcp-tool-guard:
     dependencies:
       "@enforra/mcp":
         specifier: workspace:*
-        version: link:../../packages/mcp
+        version: link:../../../packages/mcp
       "@enforra/sdk-node":
         specifier: workspace:*
-        version: link:../../packages/sdk-node
+        version: link:../../../packages/sdk-node
     devDependencies:
       tsup:
         specifier: ^8.5.0
@@ -161,24 +190,11 @@ importers:
         specifier: ^4.20.6
         version: 4.21.0
 
-  examples/openai-style-tool-wrapper:
+  examples/quickstart/support-refund-node:
     dependencies:
       "@enforra/sdk-node":
         specifier: workspace:*
-        version: link:../../packages/sdk-node
-    devDependencies:
-      tsup:
-        specifier: ^8.5.0
-        version: 8.5.1(postcss@8.5.14)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)
-      tsx:
-        specifier: ^4.20.6
-        version: 4.21.0
-
-  examples/support-refund-agent:
-    dependencies:
-      "@enforra/sdk-node":
-        specifier: workspace:*
-        version: link:../../packages/sdk-node
+        version: link:../../../packages/sdk-node
     devDependencies:
       tsup:
         specifier: ^8.5.0
@@ -287,6 +303,31 @@ importers:
         version: 4.21.0
 
 packages:
+  "@ai-sdk/gateway@3.0.121":
+    resolution:
+      {
+        integrity: sha512-uY248djJRxa5W68MHiyqO8WLdOeKQoRClGg7PVX/VPhVW8SJNM7/l5DcrA5WAM3YfQrLyNkgZa2VOu8T0t8LUw==
+      }
+    engines: { node: ">=18" }
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
+  "@ai-sdk/provider-utils@4.0.27":
+    resolution:
+      {
+        integrity: sha512-ubkAJ+xODouwtmN1tYlvTPphH1hPOBfZaEQe8U7skGvFAnIRs9PPpsq57bC2+Ky/MB4yzhd6YOsxTAx9sGpazw==
+      }
+    engines: { node: ">=18" }
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
+  "@ai-sdk/provider@3.0.10":
+    resolution:
+      {
+        integrity: sha512-Q3BZ27qfpYqnCYGvE3vt+Qi6LGOF9R5Nmzn+9JoM1lCRsD9mYaIhfJLkSunN48nfGXJ6n+XNV0J/XVpqGQl7Dw==
+      }
+    engines: { node: ">=18" }
+
   "@esbuild/aix-ppc64@0.27.7":
     resolution:
       {
@@ -646,6 +687,13 @@ packages:
         integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==
       }
 
+  "@opentelemetry/api@1.9.1":
+    resolution:
+      {
+        integrity: sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q==
+      }
+    engines: { node: ">=8.0.0" }
+
   "@rollup/rollup-android-arm-eabi@4.60.3":
     resolution:
       {
@@ -846,6 +894,12 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  "@standard-schema/spec@1.1.0":
+    resolution:
+      {
+        integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==
+      }
+
   "@types/chai@5.2.3":
     resolution:
       {
@@ -971,6 +1025,13 @@ packages:
       }
     engines: { node: ^18.18.0 || ^20.9.0 || >=21.1.0 }
 
+  "@vercel/oidc@3.2.0":
+    resolution:
+      {
+        integrity: sha512-UycprH3T6n3jH0k44NHMa7pnFHGu/N05MjojYr+Mc6I7obkoLIJujSWwin1pCvdy/eOxrI/l3uDLQsmcrOb4ug==
+      }
+    engines: { node: ">= 20" }
+
   "@vitest/expect@3.2.4":
     resolution:
       {
@@ -1036,6 +1097,15 @@ packages:
       }
     engines: { node: ">=0.4.0" }
     hasBin: true
+
+  ai@6.0.193:
+    resolution:
+      {
+        integrity: sha512-VQOTOse8+X8kMtg61DNSXlYJzwOW4NjMLDJNk/qxClWsFe4oiyFJDHGGG1oezfGcFzuYuQe/8Z7r4kwiZWh2YQ==
+      }
+    engines: { node: ">=18" }
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
 
   ajv@6.15.0:
     resolution:
@@ -1320,6 +1390,13 @@ packages:
       }
     engines: { node: ">=0.10.0" }
 
+  eventsource-parser@3.1.0:
+    resolution:
+      {
+        integrity: sha512-kJezFj9YFAMLeORyi7aCLxLbD5/qWMQnoMVlVPyHIll7lgRJCc3JVln9Vgl9nwQi0YkMnhdGTMNn7CkRRAptMg==
+      }
+    engines: { node: ">=18.0.0" }
+
   expect-type@1.3.0:
     resolution:
       {
@@ -1503,6 +1580,12 @@ packages:
     resolution:
       {
         integrity: sha512-xbbCH5dCYU5T8LcEhhuh7HJ88HXuW3qsI3Y0zOZFKfZEHcpWiHU/Jxzk629Brsab/mMiHQti9wMP+845RPe3Vg==
+      }
+
+  json-schema@0.4.0:
+    resolution:
+      {
+        integrity: sha512-es94M3nTIfsEPisRafak+HDLfHXnKBhV3vU5eqPcS3flIWqcxJWgXHXiey3YrpaNsanY5ei1VoYEbOzijuq9BA==
       }
 
   json-stable-stringify-without-jsonify@1.0.1:
@@ -2143,7 +2226,31 @@ packages:
         integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==
       }
 
+  zod@4.4.3:
+    resolution:
+      {
+        integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==
+      }
+
 snapshots:
+  "@ai-sdk/gateway@3.0.121(zod@4.4.3)":
+    dependencies:
+      "@ai-sdk/provider": 3.0.10
+      "@ai-sdk/provider-utils": 4.0.27(zod@4.4.3)
+      "@vercel/oidc": 3.2.0
+      zod: 4.4.3
+
+  "@ai-sdk/provider-utils@4.0.27(zod@4.4.3)":
+    dependencies:
+      "@ai-sdk/provider": 3.0.10
+      "@standard-schema/spec": 1.1.0
+      eventsource-parser: 3.1.0
+      zod: 4.4.3
+
+  "@ai-sdk/provider@3.0.10":
+    dependencies:
+      json-schema: 0.4.0
+
   "@esbuild/aix-ppc64@0.27.7":
     optional: true
 
@@ -2298,6 +2405,8 @@ snapshots:
       "@jridgewell/resolve-uri": 3.1.2
       "@jridgewell/sourcemap-codec": 1.5.5
 
+  "@opentelemetry/api@1.9.1": {}
+
   "@rollup/rollup-android-arm-eabi@4.60.3":
     optional: true
 
@@ -2372,6 +2481,8 @@ snapshots:
 
   "@rollup/rollup-win32-x64-msvc@4.60.3":
     optional: true
+
+  "@standard-schema/spec@1.1.0": {}
 
   "@types/chai@5.2.3":
     dependencies:
@@ -2481,6 +2592,8 @@ snapshots:
       "@typescript-eslint/types": 8.59.3
       eslint-visitor-keys: 5.0.1
 
+  "@vercel/oidc@3.2.0": {}
+
   "@vitest/expect@3.2.4":
     dependencies:
       "@types/chai": 5.2.3
@@ -2528,6 +2641,14 @@ snapshots:
       acorn: 8.16.0
 
   acorn@8.16.0: {}
+
+  ai@6.0.193(zod@4.4.3):
+    dependencies:
+      "@ai-sdk/gateway": 3.0.121(zod@4.4.3)
+      "@ai-sdk/provider": 3.0.10
+      "@ai-sdk/provider-utils": 4.0.27(zod@4.4.3)
+      "@opentelemetry/api": 1.9.1
+      zod: 4.4.3
 
   ajv@6.15.0:
     dependencies:
@@ -2720,6 +2841,8 @@ snapshots:
 
   esutils@2.0.3: {}
 
+  eventsource-parser@3.1.0: {}
+
   expect-type@1.3.0: {}
 
   fast-deep-equal@3.1.3: {}
@@ -2799,6 +2922,8 @@ snapshots:
   json-buffer@3.0.1: {}
 
   json-schema-traverse@0.4.1: {}
+
+  json-schema@0.4.0: {}
 
   json-stable-stringify-without-jsonify@1.0.1: {}
 
@@ -3179,3 +3304,5 @@ snapshots:
   yocto-queue@0.1.0: {}
 
   zod@3.25.76: {}
+
+  zod@4.4.3: {}
