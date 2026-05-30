@@ -1,0 +1,6 @@
+# Enforra CODEOWNERS
+# This file designates maintainers for human review requests.
+# Human code ownership and approval complements automated CI checks and AI-assisted reviews.
+# CODEOWNERS should not be seen as a replacement for security scans, CI tests, or AI checks.
+
+* @rohitguptap
