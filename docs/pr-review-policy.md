@@ -17,6 +17,7 @@ To maintain Enforra's engineering standards, safety parameters, and OSS principl
      - CodeRabbit
      - Qodo
    - These tools provide advisory feedback to detect edge cases, potential performance bottlenecks, and security oversights. AI checks are supportive and do not replace human or CI verification.
+   - CodeRabbit is the recommended default AI PR reviewer for this repository when enabled through the GitHub App. See [docs/ai-pr-review.md](ai-pr-review.md).
 
 3. **Human Maintainer Review (Final Approval)**
    - Review from core repository maintainers.

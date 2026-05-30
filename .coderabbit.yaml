@@ -1,0 +1,51 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "en-US"
+
+reviews:
+  profile: "chill"
+  auto_review:
+    enabled: true
+    drafts: false
+  request_changes_workflow: false
+  high_level_summary: true
+  review_status: true
+  poem: false
+  instructions: |
+    Please follow Enforra's repository-wide engineering doctrine and guidelines described in:
+    - AGENTS.md
+    - docs/quality-gates.md
+    - docs/pr-review-policy.md
+  path_instructions:
+    - path: "packages/policy-core/**"
+      instructions: |
+        Review policy semantics carefully. Do not allow changes that weaken first-match policy evaluation, observe mode semantics, condition matching, or default block behavior.
+    - path: "packages/sdk-node/**"
+      instructions: |
+        Review callback execution semantics carefully. block and require_approval must never execute callbacks. allow and log_only may execute callbacks according to existing semantics.
+    - path: "packages/sdk-python/**"
+      instructions: |
+        Review callback execution semantics carefully. block and require_approval must never execute callbacks. allow and log_only may execute callbacks according to existing semantics.
+    - path: "packages/local-audit/**"
+      instructions: |
+        Review redaction carefully. Audit logs must not write raw secrets. Conservative redaction for token, secret, api_key, password, private_key-style fields must be preserved.
+    - path: "packages/mcp/**"
+      instructions: |
+        Review MCP guard behavior carefully. Enforra should enforce before MCP-style handler execution. Do not turn this into a hosted proxy or require Enforra Cloud.
+    - path: "examples/**"
+      instructions: |
+        Examples should be runnable, local-first, and require no API keys unless explicitly documented. Pattern-only examples must be labelled honestly.
+    - path: "docs/**"
+      instructions: |
+        Docs must not overclaim official/certified integrations, hosted telemetry, or cloud requirements for OSS.
+    - path: "package.json"
+      instructions: |
+        Review dependency changes carefully. New dependencies must be justified. Heavy framework dependencies should stay isolated in examples.
+    - path: "pnpm-lock.yaml"
+      instructions: |
+        Review dependency changes carefully. New dependencies must be justified. Heavy framework dependencies should stay isolated in examples.
+    - path: "pyproject.toml"
+      instructions: |
+        Review dependency changes carefully. New dependencies must be justified. Heavy framework dependencies should stay isolated in examples.
+    - path: "requirements.txt"
+      instructions: |
+        Review dependency changes carefully. New dependencies must be justified. Heavy framework dependencies should stay isolated in examples.
