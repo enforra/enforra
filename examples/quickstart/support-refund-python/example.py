@@ -13,7 +13,7 @@ def main() -> None:
 
     repo_root = Path(__file__).resolve().parents[3]
     policy_path = (
-        repo_root / "examples" / "quickstart" / "support-refund-node" / "policies" / "observe-policy.yaml"
+        repo_root / "examples" / "quickstart" / "support-refund-python" / "policies" / "observe-policy.yaml"
         if parsed.observe
         else repo_root / "policies" / "starter" / "support-agent.yaml"
     )

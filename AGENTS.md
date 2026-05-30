@@ -18,15 +18,15 @@ Core principles:
 
 ## Package boundaries
 
-- [packages/policy-core](file:///Users/swethavellampalli/Desktop/AI_Projects/enforra_repo/packages/policy-core): Policy loading, schema validation, and rule evaluation.
-- [packages/local-audit](file:///Users/swethavellampalli/Desktop/AI_Projects/enforra_repo/packages/local-audit): Local JSONL audit logs, redaction rules, and hash-chain integrity verification.
-- [packages/sdk-node](file:///Users/swethavellampalli/Desktop/AI_Projects/enforra_repo/packages/sdk-node): Node.js enforcement wrapper for tool calls.
-- [packages/sdk-python](file:///Users/swethavellampalli/Desktop/AI_Projects/enforra_repo/packages/sdk-python): Python SDK, published to PyPI as `enforra`.
-- [packages/mcp](file:///Users/swethavellampalli/Desktop/AI_Projects/enforra_repo/packages/mcp): Model Context Protocol (MCP) style tool handler wrapper.
-- [packages/cli](file:///Users/swethavellampalli/Desktop/AI_Projects/enforra_repo/packages/cli): Local command line interface (`enforra` command).
-- [packages/policy-simulator](file:///Users/swethavellampalli/Desktop/AI_Projects/enforra_repo/packages/policy-simulator): CLI/runtime utility for simulating policy test cases.
-- [examples/](file:///Users/swethavellampalli/Desktop/AI_Projects/enforra_repo/examples): Runnable demos and code patterns only.
-- [docs/](file:///Users/swethavellampalli/Desktop/AI_Projects/enforra_repo/docs): User-facing documentation.
+- [packages/policy-core](packages/policy-core): Policy loading, schema validation, and rule evaluation.
+- [packages/local-audit](packages/local-audit): Local JSONL audit logs, redaction rules, and hash-chain integrity verification.
+- [packages/sdk-node](packages/sdk-node): Node.js enforcement wrapper for tool calls.
+- [packages/sdk-python](packages/sdk-python): Python SDK, published to PyPI as `enforra`.
+- [packages/mcp](packages/mcp): Model Context Protocol (MCP) style tool handler wrapper.
+- [packages/cli](packages/cli): Local command line interface (`enforra` command).
+- [packages/policy-simulator](packages/policy-simulator): CLI/runtime utility for simulating policy test cases.
+- [examples/](examples/): Runnable demos and code patterns only.
+- [docs/](docs/): User-facing documentation.
 
 Rules:
 
@@ -161,7 +161,7 @@ _Note: Soak and load testing is not required for docs-only PRs._
 
 Every completed agent task should report:
 
-1. **files changed** (with file:/// links)
+1. **files changed** using repository-relative paths
 2. **behavior changed**
 3. **commands run**
 4. **verification results**

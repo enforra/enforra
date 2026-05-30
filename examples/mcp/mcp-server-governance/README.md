@@ -18,11 +18,7 @@ This example demonstrates how Enforra governs internal server tools and implemen
 
 ## Integration Flow
 
-The MCP-style tool handler starts.
-Enforra evaluates policy before the handler body runs.
-If the decision is allow or log_only, the handler executes.
-If the decision is block or require_approval, the handler does not execute.
-The application still owns the actual tool execution.
+In enforce mode, the MCP-style tool handler starts, Enforra evaluates policy before the handler body runs, and block or require_approval decisions do not execute the handler. In observe mode, Enforra records the shadow decision but allows the handler to run for testing. The application still owns the actual tool execution.
 
 ## Policy Behavior Table
 

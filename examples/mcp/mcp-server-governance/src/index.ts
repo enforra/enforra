@@ -53,8 +53,8 @@ const exportDataEnforce = guardMcpTool(enforraEnforce, {
 const deleteRowsEnforce = guardMcpTool(enforraEnforce, {
   agent,
   tool: "database.delete_rows",
-  context: (args: { table: string; isProd: boolean }) => ({
-    environment: args.isProd ? "production" : "development"
+  context: (args: { table: string; isProd?: boolean }) => ({
+    environment: args.isProd === false ? "development" : "production"
   }),
   execute: async () => {
     return { deletedCount: 15 };
@@ -124,8 +124,8 @@ const enforraObserve = await createEnforraClient({
 const deleteRowsObserve = guardMcpTool(enforraObserve, {
   agent,
   tool: "database.delete_rows",
-  context: (args: { table: string; isProd: boolean }) => ({
-    environment: args.isProd ? "production" : "development"
+  context: (args: { table: string; isProd?: boolean }) => ({
+    environment: args.isProd === false ? "development" : "production"
   }),
   execute: async () => {
     return { deletedCount: 15 };

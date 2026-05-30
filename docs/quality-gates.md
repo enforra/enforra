@@ -88,7 +88,7 @@ Every PR is reviewed against the following security checklist:
 
 - **No Raw Secrets**: No hardcoded API keys, tokens, passwords, or credentials.
 - **No Machine-Specific Paths**: No local absolute paths like `file:///Users/...`.
-- **TypeScript & Lint Escapes**: No un justified `as any` casting or `eslint-disable` comments.
+- **TypeScript & Lint Escapes**: No unjustified `as any` casting or `eslint-disable` comments.
 - **Data Protection**: Ensure redaction filters are applied to sensitive fields containing `token`, `secret`, `api_key`, `password`, or `private_key` in local audit trails.
 - **Local Isolation**: Verify no telemetry or unauthorized external calls are introduced to the core runtime.
 

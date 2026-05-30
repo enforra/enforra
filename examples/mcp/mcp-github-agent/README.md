@@ -1,6 +1,6 @@
 # MCP GitHub Agent Example
 
-This example demonstrates how Enforra governs a GitHub agent's access to create, comment on, and merge issues and pull requests using MCP-style handlers.
+This example demonstrates how Enforra governs a GitHub agent’s access to create issues, comment on issues, and merge pull requests using MCP-style handlers.
 
 ## What this example shows
 
