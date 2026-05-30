@@ -396,10 +396,10 @@ packages/*/test
 We are actively looking for feedback from developers building production AI agents, MCP servers, and agentic workflows.
 
 - Bugs and feature requests: open a [GitHub issue](https://github.com/enforra/enforra/issues).
-- Community and design partner conversations: see [FEEDBACK.md](FEEDBACK.md).
+- Community and design partner conversations: see [SUPPORT.md](SUPPORT.md).
 - Security-sensitive feedback: email security@enforra.com.
 
-Slack and Discord links live in [FEEDBACK.md](FEEDBACK.md).
+Slack and Discord links live in [SUPPORT.md](SUPPORT.md).
 
 ## Roadmap
 
