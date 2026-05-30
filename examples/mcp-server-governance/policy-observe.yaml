@@ -1,0 +1,47 @@
+version: 1
+mode: observe
+defaults:
+  decision: block
+policies:
+  - id: allow-analytics-report
+    description: Allow running analytics reports
+    match:
+      agent: internal-agent
+      tool: analytics.run_report
+    decision: allow
+
+  - id: require-approval-email
+    description: Require approval to send emails
+    match:
+      agent: internal-agent
+      tool: email.send
+    decision: require_approval
+
+  - id: require-approval-export
+    description: Require approval for customer data exports
+    match:
+      agent: internal-agent
+      tool: customer.export_data
+    decision: require_approval
+
+  - id: block-db-delete-prod
+    description: Block deleting database rows in production
+    match:
+      agent: internal-agent
+      tool: database.delete_rows
+    conditions:
+      - field: context.environment
+        operator: eq
+        value: production
+    decision: block
+
+  - id: allow-db-delete-non-prod
+    description: Allow deleting database rows in non-production
+    match:
+      agent: internal-agent
+      tool: database.delete_rows
+    conditions:
+      - field: context.environment
+        operator: neq
+        value: production
+    decision: allow

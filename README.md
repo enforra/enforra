@@ -92,7 +92,7 @@ Enforra includes runnable integration examples and framework-style tool wrapper 
 - **CrewAI** (Python): [CrewAI-style Tool Wrapper Pattern](docs/integrations/crewai.md) (avoids heavy ML dependencies)
 - **AutoGen** (Python): [AutoGen-style Tool Wrapper Pattern](docs/integrations/autogen.md) (avoids heavy ML dependencies)
 
-These are integration examples and patterns, not hosted proxies or certified framework partnerships. See [docs/integrations.md](docs/integrations.md) for the full index.
+These are integration examples and patterns, not hosted proxies or certified framework partnerships. See [docs/integrations.md](docs/integrations.md) for the full index. For MCP-style tool handlers, see the real-world MCP examples in examples/mcp-coding-agent, examples/mcp-github-agent, and examples/mcp-server-governance.
 
 ## What this OSS runtime is not
 
