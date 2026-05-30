@@ -46,3 +46,14 @@ The following settings are configured manually in repository administration:
 - **Require branches to be up-to-date**: Ensure PR branches are rebased/merged with the latest changes on main before merging.
 - **Require conversation resolution**: Require all review comments to be resolved or closed.
 - **Require review from CODEOWNERS**: Enforce code review from the designated CODEOWNERS when modifications affect core files.
+
+---
+
+## Associated PR Review Guides
+
+Before submitting a PR for review, please ensure you have read:
+
+- [AGENTS.md](../AGENTS.md)
+- [docs/quality-gates.md](quality-gates.md)
+- [docs/pr-review-policy.md](pr-review-policy.md) (this document)
+- [.github/pull_request_template.md](../.github/pull_request_template.md)
