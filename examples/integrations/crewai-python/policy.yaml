@@ -1,0 +1,32 @@
+version: 1
+defaults:
+  decision: block
+policies:
+  - id: allow-safe-reads
+    match:
+      agent: coding-agent
+      tool: filesystem.read
+    conditions:
+      - field: args.path
+        operator: not_contains
+        value: ".env"
+      - field: args.path
+        operator: not_contains
+        value: "private"
+    decision: allow
+
+  - id: require-approval-write
+    match:
+      agent: coding-agent
+      tool: filesystem.write
+    decision: require_approval
+
+  - id: allow-small-refunds
+    match:
+      agent: coding-agent
+      tool: support.refund
+    conditions:
+      - field: args.amount
+        operator: lte
+        value: 50
+    decision: allow
