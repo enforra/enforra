@@ -26,6 +26,13 @@ try {
   process.exitCode = 1;
 }
 
+/**
+ * Parse command-line arguments into CLI options for the policy simulator.
+ *
+ * @param args - Array of command-line arguments (typically process.argv.slice(2)); looks for `--policy <path>`, `--cases <path>`, `--trace`, and `--json`.
+ * @returns An object with `policyPath` and `casesPath` taken from the values following `--policy` and `--cases`, and boolean flags `trace` and `json` indicating presence of `--trace` and `--json`.
+ * @throws Error if either `--policy <path>` or `--cases <path>` is missing; the thrown error message contains the expected usage.
+ */
 function parseArgs(args: string[]): CliOptions {
   const policyPath = readOption(args, "--policy");
   const casesPath = readOption(args, "--cases");

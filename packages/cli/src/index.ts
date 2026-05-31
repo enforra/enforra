@@ -114,6 +114,15 @@ async function writeStarterFile(path: string, contents: string): Promise<void> {
   await writeFile(path, contents, "utf8");
 }
 
+/**
+ * Runs policy tests from specified policy and cases files, formats and prints the results, and reports failures.
+ *
+ * Accepts CLI-style options in `args` (recognized: `--policy`, `--cases`, `--trace`, `--json`) to locate files, enable trace mode, and select JSON output. Results are written to `stdout` (formatted) and individual test errors are written to `stderr`.
+ *
+ * @param args - CLI arguments for the test command
+ * @param cwd - Base directory used to resolve relative file paths
+ * @returns `0` if all tests passed, `1` otherwise
+ */
 async function runTest(
   args: string[],
   cwd: string,
@@ -144,6 +153,15 @@ async function runTest(
   return result.passed ? 0 : 1;
 }
 
+/**
+ * Verifies the integrity of a local audit log file and reports the outcome.
+ *
+ * @param args - CLI arguments; supports `--path` to specify the audit log file (otherwise uses the default path)
+ * @param cwd - Working directory used to resolve relative paths
+ * @param stdout - Logger used for informational output
+ * @param stderr - Logger used for error output
+ * @returns `0` if the audit log exists and is valid, `1` otherwise
+ */
 async function runAuditVerify(
   args: string[],
   cwd: string,
@@ -268,6 +286,16 @@ async function readPackageJson(cwd: string): Promise<Record<string, unknown> | u
     : undefined;
 }
 
+/**
+ * Parse a CLI-style arguments array into value options, boolean flags, and positional arguments.
+ *
+ * @param args - The array of command-line arguments to parse.
+ * @returns An object with:
+ *  - `values`: Map of options that require a value (e.g. `--policy`, `--cases`, `--path`) to their supplied value.
+ *  - `flags`: Set of boolean flags present (e.g. `--force`, `--trace`, `--json`).
+ *  - `positionals`: Array of remaining non-option arguments in order.
+ * @throws Error if an option that requires a value is missing its value or if an unknown `--` option is encountered.
+ */
 function parseOptions(args: string[]): ParsedOptions {
   const values = new Map<string, string>();
   const flags = new Set<string>();
