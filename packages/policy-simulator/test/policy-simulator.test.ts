@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import {
   formatPolicyTestRun,
+  formatPolicyTestRunJson,
   parsePolicyCasesYaml,
   runPolicyTests,
   type PolicyCasesFile
@@ -163,6 +164,107 @@ cases:
     expect(output).toContain('conditions.all: passed ("2/2 passed")');
     expect(output).toContain('conditions.any: failed ("0/2 passed")');
     expect(output).toContain('context.environment [any] eq "production"');
+  });
+
+  it("includes matched policy ID or default decision in output", () => {
+    const resultMatched = runPolicyTests(policyFile, singleCase({ decision: "allow" }));
+    const outputMatched = formatPolicyTestRun(resultMatched);
+    expect(outputMatched).toContain("matched policy: allow-search");
+
+    const resultDefault = runPolicyTests(policyFile, {
+      version: 1,
+      cases: [
+        {
+          name: "unmatched tool uses default",
+          input: {
+            agent: "test-agent",
+            tool: "unknown.tool",
+            args: {}
+          },
+          expect: {
+            decision: "block"
+          }
+        }
+      ]
+    });
+    const outputDefault = formatPolicyTestRun(resultDefault);
+    expect(outputDefault).toContain("matched policy: default");
+  });
+
+  it("redacts sensitive keys in args on failure", () => {
+    const result = runPolicyTests(policyFile, {
+      version: 1,
+      cases: [
+        {
+          name: "failing case with secrets",
+          input: {
+            agent: "test-agent",
+            tool: "repo.search",
+            args: {
+              query: "hello",
+              safeField: "safe-value",
+              api_key: "secret-value",
+              my_token: "token-value",
+              password: "password-value",
+              private_key: "key-1",
+              privateKey: "key-2",
+              "private-key": "key-3",
+              apiKey: "key-4",
+              authorization: "bearer-token",
+              cookie: "sess-id"
+            }
+          },
+          expect: {
+            decision: "block"
+          }
+        }
+      ]
+    });
+    const output = formatPolicyTestRun(result);
+    expect(output).toContain('"api_key":"[REDACTED]"');
+    expect(output).toContain('"my_token":"[REDACTED]"');
+    expect(output).toContain('"password":"[REDACTED]"');
+    expect(output).toContain('"private_key":"[REDACTED]"');
+    expect(output).toContain('"privateKey":"[REDACTED]"');
+    expect(output).toContain('"private-key":"[REDACTED]"');
+    expect(output).toContain('"apiKey":"[REDACTED]"');
+    expect(output).toContain('"authorization":"[REDACTED]"');
+    expect(output).toContain('"cookie":"[REDACTED]"');
+    expect(output).toContain('"query":"hello"');
+    expect(output).toContain('"safeField":"safe-value"');
+  });
+
+  it("outputs valid JSON structure when requested", () => {
+    const result = runPolicyTests(policyFile, {
+      version: 1,
+      cases: [
+        {
+          name: "search is allowed",
+          input: {
+            agent: "test-agent",
+            tool: "repo.search",
+            args: {}
+          },
+          expect: {
+            decision: "allow",
+            matchedPolicyId: "allow-search"
+          }
+        }
+      ]
+    });
+    const jsonStr = formatPolicyTestRunJson(result);
+    const parsed = JSON.parse(jsonStr);
+    expect(parsed.total).toBe(1);
+    expect(parsed.passed).toBe(1);
+    expect(parsed.failed).toBe(0);
+    expect(parsed.cases).toHaveLength(1);
+    expect(parsed.cases[0].name).toBe("search is allowed");
+    expect(parsed.cases[0].agent).toBe("test-agent");
+    expect(parsed.cases[0].tool).toBe("repo.search");
+    expect(parsed.cases[0].expected).toBe("allow");
+    expect(parsed.cases[0].actual).toBe("allow");
+    expect(parsed.cases[0].matchedPolicyId).toBe("allow-search");
+    expect(parsed.cases[0].passed).toBe(true);
   });
 });
 

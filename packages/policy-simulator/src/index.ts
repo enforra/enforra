@@ -39,6 +39,7 @@ export interface PolicyTestResult {
   reason: string;
   errors: string[];
   trace?: PolicyEvaluationTrace;
+  input: ToolCallInput;
 }
 
 export interface PolicyTestRunResult {
@@ -116,28 +117,106 @@ export function runPolicyTests(
   };
 }
 
+const SENSITIVE_KEYS = [
+  "token",
+  "secret",
+  "api_key",
+  "apikey",
+  "password",
+  "private_key",
+  "privatekey",
+  "authorization",
+  "cookie"
+];
+
+function normalizeSensitiveKey(key: string): string {
+  return key.toLowerCase().replace(/[-_]/g, "");
+}
+
+const NORMALIZED_SENSITIVE_KEYS = SENSITIVE_KEYS.map(normalizeSensitiveKey);
+
+function shouldRedactKey(key: string): boolean {
+  const normalized = normalizeSensitiveKey(key);
+  return NORMALIZED_SENSITIVE_KEYS.some((sensitive) => normalized.includes(sensitive));
+}
+
+export function redactPayload(value: unknown): unknown {
+  if (value === null || value === undefined) {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map(redactPayload);
+  }
+  if (typeof value === "object") {
+    const redacted: Record<string, unknown> = {};
+    for (const [key, nestedValue] of Object.entries(value)) {
+      redacted[key] = shouldRedactKey(key) ? "[REDACTED]" : redactPayload(nestedValue);
+    }
+    return redacted;
+  }
+  return value;
+}
+
 export function formatPolicyTestRun(result: PolicyTestRunResult): string {
-  const lines = result.results.flatMap((testResult) => {
+  const lines: string[] = ["Policy test results", ""];
+
+  for (const testResult of result.results) {
     const status = testResult.passed ? "PASS" : "FAIL";
-    const heading = `${status} ${testResult.name}`;
-    if (testResult.passed) {
-      return [
-        `${heading} -> ${formatDecision(testResult.actualDecision, testResult.actualMatchedPolicyId)}`
-      ];
+    lines.push(`${status}  ${testResult.name}`);
+    lines.push(`  agent: ${testResult.input.agent}`);
+    lines.push(`  tool: ${testResult.input.tool}`);
+    if (!testResult.passed) {
+      lines.push(`  args: ${JSON.stringify(redactPayload(testResult.input.args))}`);
+    }
+    lines.push(`  expected: ${testResult.expectedDecision}`);
+    lines.push(`  actual: ${testResult.actualDecision}`);
+
+    const matchedPolicy = testResult.actualMatchedPolicyId ?? "default";
+    lines.push(`  matched policy: ${matchedPolicy}`);
+
+    if (!testResult.passed) {
+      lines.push(`  reason: ${testResult.reason}`);
+      if (testResult.trace) {
+        lines.push(...formatTraceLines(testResult.trace));
+      }
     }
 
-    return [
-      `${heading} -> ${formatDecision(testResult.actualDecision, testResult.actualMatchedPolicyId)}`,
-      ...testResult.errors.map((error) => `  - ${error}`),
-      ...formatTraceLines(testResult.trace)
-    ];
-  });
+    lines.push("");
+  }
 
-  const passedCount = result.results.filter((testResult) => testResult.passed).length;
-  lines.push("");
-  lines.push(`Policy tests: ${passedCount}/${result.results.length} passed`);
+  const passedCount = result.results.filter((r) => r.passed).length;
+  const failedCount = result.results.length - passedCount;
+  lines.push("Summary:");
+  lines.push(`${passedCount} passed, ${failedCount} failed`);
 
   return lines.join("\n");
+}
+
+export function formatPolicyTestRunJson(result: PolicyTestRunResult): string {
+  const passedCount = result.results.filter((r) => r.passed).length;
+  const failedCount = result.results.length - passedCount;
+
+  const cases = result.results.map((r) => ({
+    name: r.name,
+    agent: r.input.agent,
+    tool: r.input.tool,
+    expected: r.expectedDecision,
+    actual: r.actualDecision,
+    matchedPolicyId: r.actualMatchedPolicyId,
+    reason: r.reason,
+    passed: r.passed
+  }));
+
+  return JSON.stringify(
+    {
+      total: result.results.length,
+      passed: passedCount,
+      failed: failedCount,
+      cases
+    },
+    null,
+    2
+  );
 }
 
 function runPolicyTest(
@@ -175,12 +254,9 @@ function runPolicyTest(
     actualMatchedPolicyId: evaluation.matchedPolicyId,
     reason: evaluation.reason,
     errors,
-    trace
+    trace,
+    input: testCase.input
   };
-}
-
-function formatDecision(decision: Decision, matchedPolicyId: string | undefined): string {
-  return matchedPolicyId === undefined ? decision : `${decision} (${matchedPolicyId})`;
 }
 
 function formatTraceLines(trace: PolicyEvaluationTrace | undefined): string[] {

@@ -64,8 +64,8 @@ describe("cli", () => {
     const exitCode = await runCli(["test"], { cwd: dir, stdout: output.stdout });
 
     expect(exitCode).toBe(0);
-    expect(output.lines.join("\n")).toContain("Enforra policy test");
-    expect(output.lines.join("\n")).toContain("✓ blocks production customer delete");
+    expect(output.lines.join("\n")).toContain("Policy test results");
+    expect(output.lines.join("\n")).toContain("PASS  blocks production customer delete");
     expect(output.lines.join("\n")).toContain("4 passed, 0 failed");
   });
 
@@ -250,6 +250,25 @@ cases:
     expect(exitCode).toBe(0);
     expect(output.lines.join("\n")).toContain("Enforra doctor");
     expect(output.lines.join("\n")).toContain("✓ Node.js >=20");
+  });
+
+  it("test command outputs JSON when --json is provided", async () => {
+    const dir = await createTempDir();
+    const output = createOutput();
+    await runCli(["init"], { cwd: dir, stdout: createOutput().stdout });
+
+    const exitCode = await runCli(["test", "--json"], { cwd: dir, stdout: output.stdout });
+
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(output.lines.join("\n"));
+    expect(parsed.total).toBe(4);
+    expect(parsed.passed).toBe(4);
+    expect(parsed.failed).toBe(0);
+    expect(parsed.cases).toHaveLength(4);
+    expect(parsed.cases[0].name).toBe("blocks production customer delete");
+    expect(parsed.cases[0].expected).toBe("block");
+    expect(parsed.cases[0].actual).toBe("block");
+    expect(parsed.cases[0].passed).toBe(true);
   });
 });
 

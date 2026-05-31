@@ -55,21 +55,64 @@ If `matchedPolicyId` is omitted, the simulator only checks the decision.
 
 ## Readable Output
 
+Enforra formats results to be immediately understandable by developers and in CI logs.
+
 Passing output:
 
 ```text
-PASS small refund is allowed -> allow (allow-small-refunds)
+Policy test results
 
-Policy tests: 1/1 passed
+PASS  small refund is allowed
+  agent: support-agent
+  tool: stripe.refund
+  expected: allow
+  actual: allow
+  matched policy: allow-small-refunds
+
+Summary:
+1 passed, 0 failed
 ```
 
 Failing output:
 
 ```text
-FAIL small refund is allowed -> allow (allow-small-refunds)
-  - expected decision block, received allow
+Policy test results
 
-Policy tests: 0/1 passed
+FAIL  small refund is allowed
+  agent: support-agent
+  tool: stripe.refund
+  args: {"amount":20}
+  expected: block
+  actual: allow
+  matched policy: allow-small-refunds
+  reason: matched policy allow-small-refunds
+
+Summary:
+0 passed, 1 failed
+```
+
+### JSON Output (`--json`)
+
+If you run the CLI with the `--json` flag, it outputs a clean, parseable JSON report:
+
+```json
+{
+  "total": 1,
+  "passed": 0,
+  "failed": 1,
+  "cases": [
+    {
+      "name": "small refund is allowed",
+      "agent": "support-agent",
+      "tool": "stripe.refund",
+      "expected": "block",
+      "actual": "allow",
+      "matchedPolicyId": "allow-small-refunds",
+      "reason": "matched policy allow-small-refunds",
+      "passed": false
+    }
+  ]
+}
 ```
 
 ## Add Policy Tests to CI
@@ -80,7 +123,7 @@ Add the root script to CI after build/test/lint:
 pnpm policy:test:all
 ```
 
-This validates the starter policies and examples without running tool callbacks.
+The simulator command exits with a non-zero code if any test fails, making it CI-safe and blocking merges on broken configurations.
 
 ## Direct Runner Usage
 
@@ -93,9 +136,16 @@ node packages/policy-simulator/dist/cli.js \
   --cases examples/quickstart/support-refund-node/policy-cases.yaml
 ```
 
+Options:
+
+- `--policy <path>`: Path to the YAML policy file.
+- `--cases <path>`: Path to the YAML test cases file.
+- `--trace`: Enable evaluation trace printouts for failed cases.
+- `--json`: Output results in structured JSON format instead of human-readable text.
+
 ## Limitations
 
-- The simulator evaluates policy only. It does not execute tool callbacks.
+- The simulator evaluates policy only. It does not execute real tool callbacks.
 - It does not test audit logging.
 - It does not simulate hosted approval workflows.
 - It does not proxy MCP traffic or call external services.
