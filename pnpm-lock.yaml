@@ -190,10 +190,10 @@ importers:
   packages/cli:
     dependencies:
       "@enforra/local-audit":
-        specifier: workspace:*
+        specifier: ^0.2.1
         version: link:../local-audit
       "@enforra/policy-simulator":
-        specifier: workspace:*
+        specifier: ^0.1.1
         version: link:../policy-simulator
     devDependencies:
       tsup:
@@ -254,7 +254,7 @@ importers:
   packages/policy-simulator:
     dependencies:
       "@enforra/policy-core":
-        specifier: workspace:*
+        specifier: ^0.2.1
         version: link:../policy-core
       yaml:
         specifier: ^2.8.1

@@ -1,6 +1,6 @@
 {
   "name": "@enforra/policy-simulator",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Local policy simulation and test runner for Enforra.",
   "type": "module",
   "main": "./dist/index.js",
@@ -18,7 +18,7 @@
     "prepack": "pnpm run build"
   },
   "dependencies": {
-    "@enforra/policy-core": "workspace:*",
+    "@enforra/policy-core": "^0.2.1",
     "yaml": "^2.8.1",
     "zod": "^3.25.76"
   },
