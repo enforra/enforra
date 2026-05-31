@@ -1,9 +1,10 @@
-import { formatPolicyTestRun, runPolicyTestsFromFiles } from "./index.js";
+import { formatPolicyTestRun, formatPolicyTestRunJson, runPolicyTestsFromFiles } from "./index.js";
 
 interface CliOptions {
   policyPath: string;
   casesPath: string;
   trace: boolean;
+  json: boolean;
 }
 
 try {
@@ -11,7 +12,11 @@ try {
   const result = await runPolicyTestsFromFiles(options.policyPath, options.casesPath, {
     trace: options.trace
   });
-  console.log(formatPolicyTestRun(result));
+  if (options.json) {
+    console.log(formatPolicyTestRunJson(result));
+  } else {
+    console.log(formatPolicyTestRun(result));
+  }
 
   if (!result.passed) {
     process.exitCode = 1;
@@ -26,13 +31,16 @@ function parseArgs(args: string[]): CliOptions {
   const casesPath = readOption(args, "--cases");
 
   if (policyPath === undefined || casesPath === undefined) {
-    throw new Error("usage: enforra-policy-simulator --policy <policy.yaml> --cases <cases.yaml>");
+    throw new Error(
+      "usage: enforra-policy-simulator --policy <policy.yaml> --cases <cases.yaml> [--json] [--trace]"
+    );
   }
 
   return {
     policyPath,
     casesPath,
-    trace: args.includes("--trace")
+    trace: args.includes("--trace"),
+    json: args.includes("--json")
   };
 }
 

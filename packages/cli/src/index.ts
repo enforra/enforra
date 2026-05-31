@@ -1,7 +1,11 @@
 import { access, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { constants } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
-import { runPolicyTestsFromFiles, type PolicyTestRunResult } from "@enforra/policy-simulator";
+import {
+  runPolicyTestsFromFiles,
+  formatPolicyTestRun,
+  formatPolicyTestRunJson
+} from "@enforra/policy-simulator";
 import { verifyAuditLog } from "@enforra/local-audit";
 
 export interface CliIo {
@@ -120,9 +124,14 @@ async function runTest(
   const policyPath = resolveCliPath(cwd, options.values.get("--policy") ?? defaultPolicyPath);
   const casesPath = resolveCliPath(cwd, options.values.get("--cases") ?? defaultCasesPath);
   const trace = options.flags.has("--trace");
+  const json = options.flags.has("--json");
   const result = await runPolicyTestsFromFiles(policyPath, casesPath, { trace });
 
-  stdout.log(formatCliPolicyTestRun(result));
+  if (json) {
+    stdout.log(formatPolicyTestRunJson(result));
+  } else {
+    stdout.log(formatPolicyTestRun(result));
+  }
 
   if (!result.passed) {
     for (const failedResult of result.results.filter((testResult) => !testResult.passed)) {
@@ -133,21 +142,6 @@ async function runTest(
   }
 
   return result.passed ? 0 : 1;
-}
-
-function formatCliPolicyTestRun(result: PolicyTestRunResult): string {
-  const lines = ["Enforra policy test", ""];
-
-  for (const testResult of result.results) {
-    lines.push(`${testResult.passed ? "✓" : "✗"} ${testResult.name}`);
-  }
-
-  const passedCount = result.results.filter((testResult) => testResult.passed).length;
-  const failedCount = result.results.length - passedCount;
-  lines.push("");
-  lines.push(`${passedCount} passed, ${failedCount} failed`);
-
-  return lines.join("\n");
 }
 
 async function runAuditVerify(
@@ -285,7 +279,7 @@ function parseOptions(args: string[]): ParsedOptions {
       continue;
     }
 
-    if (arg === "--force" || arg === "--trace") {
+    if (arg === "--force" || arg === "--trace" || arg === "--json") {
       flags.add(arg);
       continue;
     }
