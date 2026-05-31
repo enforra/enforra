@@ -202,9 +202,16 @@ cases:
             tool: "repo.search",
             args: {
               query: "hello",
+              safeField: "safe-value",
               api_key: "secret-value",
               my_token: "token-value",
-              password: "password-value"
+              password: "password-value",
+              private_key: "key-1",
+              privateKey: "key-2",
+              "private-key": "key-3",
+              apiKey: "key-4",
+              authorization: "bearer-token",
+              cookie: "sess-id"
             }
           },
           expect: {
@@ -217,7 +224,14 @@ cases:
     expect(output).toContain('"api_key":"[REDACTED]"');
     expect(output).toContain('"my_token":"[REDACTED]"');
     expect(output).toContain('"password":"[REDACTED]"');
+    expect(output).toContain('"private_key":"[REDACTED]"');
+    expect(output).toContain('"privateKey":"[REDACTED]"');
+    expect(output).toContain('"private-key":"[REDACTED]"');
+    expect(output).toContain('"apiKey":"[REDACTED]"');
+    expect(output).toContain('"authorization":"[REDACTED]"');
+    expect(output).toContain('"cookie":"[REDACTED]"');
     expect(output).toContain('"query":"hello"');
+    expect(output).toContain('"safeField":"safe-value"');
   });
 
   it("outputs valid JSON structure when requested", () => {

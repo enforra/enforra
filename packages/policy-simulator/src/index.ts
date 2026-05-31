@@ -117,25 +117,27 @@ export function runPolicyTests(
   };
 }
 
-const SENSITIVE_KEYS = new Set([
+const SENSITIVE_KEYS = [
   "token",
   "secret",
   "api_key",
   "apikey",
   "password",
   "private_key",
+  "privatekey",
   "authorization",
   "cookie"
-]);
+];
+
+function normalizeSensitiveKey(key: string): string {
+  return key.toLowerCase().replace(/[-_]/g, "");
+}
+
+const NORMALIZED_SENSITIVE_KEYS = SENSITIVE_KEYS.map(normalizeSensitiveKey);
 
 function shouldRedactKey(key: string): boolean {
-  const normalized = key.toLowerCase().replace(/[-_]/g, "");
-  for (const sensitive of SENSITIVE_KEYS) {
-    if (normalized.includes(sensitive)) {
-      return true;
-    }
-  }
-  return false;
+  const normalized = normalizeSensitiveKey(key);
+  return NORMALIZED_SENSITIVE_KEYS.some((sensitive) => normalized.includes(sensitive));
 }
 
 export function redactPayload(value: unknown): unknown {
