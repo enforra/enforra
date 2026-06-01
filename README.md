@@ -210,6 +210,18 @@ Start with:
 
 See [examples/README.md](examples/README.md) for the full examples guide.
 
+## Starter templates
+
+Use `templates/` if you want a copyable starting point for your own project.
+
+- Node agent
+- Python agent
+- MCP-style server
+- LangGraph agent
+- Vercel AI SDK agent
+
+See [templates/README.md](templates/README.md).
+
 ## Basic usage
 
 Call `enforceToolCall` with `agent`, `tool`, `args`, optional `context`, and an `execute` callback. Enforra only calls `execute` when the decision is `allow` or `log_only`.

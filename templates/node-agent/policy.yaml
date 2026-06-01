@@ -1,0 +1,40 @@
+version: 1
+defaults:
+  decision: block
+policies:
+  - id: allow-small-refunds
+    description: Allow small refunds automatically
+    match:
+      agent: support-agent
+      tool: support.refund
+    conditions:
+      - field: args.amount
+        operator: lte
+        value: 50
+    decision: allow
+
+  - id: require-approval-medium-refunds
+    description: Require approval for medium refunds
+    match:
+      agent: support-agent
+      tool: support.refund
+    conditions:
+      all:
+        - field: args.amount
+          operator: gt
+          value: 50
+        - field: args.amount
+          operator: lte
+          value: 500
+    decision: require_approval
+
+  - id: block-large-refunds
+    description: Block large refunds
+    match:
+      agent: support-agent
+      tool: support.refund
+    conditions:
+      - field: args.amount
+        operator: gt
+        value: 500
+    decision: block

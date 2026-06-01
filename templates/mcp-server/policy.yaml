@@ -1,0 +1,28 @@
+version: 1
+defaults:
+  decision: block
+policies:
+  - id: allow-safe-reads
+    description: Allow reading safe source files
+    match:
+      agent: mcp-agent
+      tool: filesystem.read
+    conditions:
+      - field: args.path
+        operator: not_contains
+        value: ".env"
+    decision: allow
+
+  - id: require-approval-terminal
+    description: Require approval for command executions
+    match:
+      agent: mcp-agent
+      tool: terminal.run
+    decision: require_approval
+
+  - id: log-github-issue
+    description: Log GitHub issue creation
+    match:
+      agent: mcp-agent
+      tool: github.create_issue
+    decision: log_only

@@ -1,0 +1,31 @@
+version: 1
+cases:
+  - name: reading a safe file is allowed
+    input:
+      agent: coding-agent
+      tool: filesystem.read
+      args:
+        path: src/app.ts
+    expect:
+      decision: allow
+      matchedPolicyId: allow-safe-file-read
+
+  - name: reading .env is blocked
+    input:
+      agent: coding-agent
+      tool: filesystem.read
+      args:
+        path: /workspace/.env
+    expect:
+      decision: block
+      matchedPolicyId: block-sensitive-file-read
+
+  - name: running terminal command requires approval
+    input:
+      agent: coding-agent
+      tool: terminal.run
+      args:
+        command: npm install express
+    expect:
+      decision: require_approval
+      matchedPolicyId: require-approval-terminal-run
