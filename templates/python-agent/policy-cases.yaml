@@ -1,0 +1,31 @@
+version: 1
+cases:
+  - name: small refund is allowed
+    input:
+      agent: support-agent
+      tool: support.refund
+      args:
+        amount: 25
+    expect:
+      decision: allow
+      matchedPolicyId: allow-small-refunds
+
+  - name: medium refund requires approval
+    input:
+      agent: support-agent
+      tool: support.refund
+      args:
+        amount: 150
+    expect:
+      decision: require_approval
+      matchedPolicyId: require-approval-medium-refunds
+
+  - name: large refund is blocked
+    input:
+      agent: support-agent
+      tool: support.refund
+      args:
+        amount: 800
+    expect:
+      decision: block
+      matchedPolicyId: block-large-refunds

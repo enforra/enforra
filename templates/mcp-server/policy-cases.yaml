@@ -1,0 +1,40 @@
+version: 1
+cases:
+  - name: allow safe read
+    input:
+      agent: mcp-agent
+      tool: filesystem.read
+      args:
+        path: "/workspace/src/app.ts"
+    expect:
+      decision: allow
+      matchedPolicyId: allow-safe-reads
+
+  - name: block .env read
+    input:
+      agent: mcp-agent
+      tool: filesystem.read
+      args:
+        path: "/workspace/.env"
+    expect:
+      decision: block
+
+  - name: require approval for terminal command
+    input:
+      agent: mcp-agent
+      tool: terminal.run
+      args:
+        command: "npm install express"
+    expect:
+      decision: require_approval
+      matchedPolicyId: require-approval-terminal
+
+  - name: log GitHub issue creation
+    input:
+      agent: mcp-agent
+      tool: github.create_issue
+      args:
+        title: "Fix bug"
+    expect:
+      decision: log_only
+      matchedPolicyId: log-github-issue

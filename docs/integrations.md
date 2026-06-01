@@ -15,7 +15,7 @@ These are integration examples and patterns, not hosted proxies or certified fra
 
 ## Framework Integrations & Wrapper Patterns
 
-Some examples import and use real framework packages; others are framework-style wrapper patterns that demonstrate policy enforcement without introducing heavy dependencies or API key requirements:
+Some examples import and use real framework packages; others are framework-style wrapper patterns that demonstrate policy enforcement without introducing heavy dependencies or API key requirements. For copyable starter projects, see [templates/](../templates):
 
 | Framework                                                       | Status               | Package used                  | API keys required |
 | :-------------------------------------------------------------- | :------------------- | :---------------------------- | :---------------- |

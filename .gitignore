@@ -146,6 +146,8 @@ dist
 !.yarn/versions
 
 # Vite files
-vite.config.js.timestamp-*
-vite.config.ts.timestamp-*
 .vite/
+
+# Template package lockfiles
+package-lock.json
+
