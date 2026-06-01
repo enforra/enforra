@@ -2,7 +2,7 @@ import { createEnforraClient } from "@enforra/sdk-node";
 
 // 1. Initialize Enforra client loaded with our local policy
 const client = await createEnforraClient({
-  policyPath: "./policy.yaml",
+  policyPath: "./policy.yaml"
 });
 
 // 2. Define a tool function wrapped with Enforra policy enforcement
