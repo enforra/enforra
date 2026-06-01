@@ -105,6 +105,14 @@ export async function runPolicyTestsFromFiles(
   return runPolicyTests(policyFile, casesFile, options);
 }
 
+/**
+ * Execute a set of policy test cases against a policy and collect the per-case outcomes.
+ *
+ * @param policyFile - The policy definition to evaluate test cases against
+ * @param casesFile - The collection of test cases to run
+ * @param options - Optional run options (e.g., `trace` to collect evaluation traces)
+ * @returns A `PolicyTestRunResult` with `passed` set to `true` if every test passed, and `results` containing individual `PolicyTestResult` entries
+ */
 export function runPolicyTests(
   policyFile: PolicyFile,
   casesFile: PolicyCasesFile,
@@ -135,11 +143,25 @@ function normalizeSensitiveKey(key: string): string {
 
 const NORMALIZED_SENSITIVE_KEYS = SENSITIVE_KEYS.map(normalizeSensitiveKey);
 
+/**
+ * Determine whether an object key should be redacted based on sensitive substrings.
+ *
+ * @param key - The object property name to check
+ * @returns `true` if the key contains a sensitive substring after lowercasing and removing hyphens/underscores, `false` otherwise
+ */
 function shouldRedactKey(key: string): boolean {
   const normalized = normalizeSensitiveKey(key);
   return NORMALIZED_SENSITIVE_KEYS.some((sensitive) => normalized.includes(sensitive));
 }
 
+/**
+ * Produces a copy of the input with values for sensitive object keys replaced by "[REDACTED]".
+ *
+ * Recursively traverses arrays and objects; object properties whose keys match known sensitive substrings (for example: token, secret, api_key, password, private_key, authorization, cookie) have their values replaced with the literal string `"[REDACTED]"`. Null and undefined are returned unchanged; non-object primitive values are returned as-is.
+ *
+ * @param value - The value to redact.
+ * @returns A redacted copy of `value` with sensitive property values replaced by `"[REDACTED]"`.
+ */
 export function redactPayload(value: unknown): unknown {
   if (value === null || value === undefined) {
     return value;
@@ -157,6 +179,12 @@ export function redactPayload(value: unknown): unknown {
   return value;
 }
 
+/**
+ * Format a policy test run result as a human-readable multi-line report.
+ *
+ * @param result - The aggregated policy test run outcome to format
+ * @returns A multi-line string listing each case with pass/fail status, agent, tool, expected and actual decisions, matched policy id, and — for failures — redacted arguments, reason, and optional trace; ends with a summary count of passed and failed cases
+ */
 export function formatPolicyTestRun(result: PolicyTestRunResult): string {
   const lines: string[] = ["Policy test results", ""];
 
@@ -192,6 +220,17 @@ export function formatPolicyTestRun(result: PolicyTestRunResult): string {
   return lines.join("\n");
 }
 
+/**
+ * Format a policy test run result as a pretty-printed JSON string.
+ *
+ * The output includes total counts and an array of per-case summaries.
+ *
+ * @returns A pretty-printed JSON string containing:
+ *  - `total`: total number of test cases
+ *  - `passed`: number of passing cases
+ *  - `failed`: number of failing cases
+ *  - `cases`: an array of case objects with `name`, `agent`, `tool`, `expected`, `actual`, `matchedPolicyId`, `reason`, and `passed`
+ */
 export function formatPolicyTestRunJson(result: PolicyTestRunResult): string {
   const passedCount = result.results.filter((r) => r.passed).length;
   const failedCount = result.results.length - passedCount;
@@ -219,6 +258,21 @@ export function formatPolicyTestRunJson(result: PolicyTestRunResult): string {
   );
 }
 
+/**
+ * Execute a single policy test case against a policy and produce a structured test result.
+ *
+ * @param policyFile - The policy definition to evaluate the test case against.
+ * @param testCase - The test case containing the input to evaluate and the expected decision (and optional expected matched policy id).
+ * @param options - Run options; when `options.trace` is `true`, the evaluation includes a trace and the returned result will contain a `trace` field.
+ * @returns A PolicyTestResult containing:
+ * - `passed`: `true` if the actual decision and (when provided) matched policy id match the expectations, `false` otherwise.
+ * - `expectedDecision` and `actualDecision`: the expected and observed decisions.
+ * - `expectedMatchedPolicyId` and `actualMatchedPolicyId`: expected and observed matched policy ids (when present).
+ * - `reason`: textual reason from the evaluation.
+ * - `errors`: array of mismatch messages (empty when passed).
+ * - optional `trace`: evaluation trace when `options.trace` is `true`.
+ * - `input`: the original test case input.
+ */
 function runPolicyTest(
   policyFile: PolicyFile,
   testCase: PolicyTestCase,
@@ -259,6 +313,17 @@ function runPolicyTest(
   };
 }
 
+/**
+ * Format a policy evaluation trace as an indented list of human-readable lines for display.
+ *
+ * The output includes one block per policy (policy id, optional priority, matched status),
+ * followed by each check within the policy (condition groups or individual checks with operator,
+ * expected and actual values and pass/fail), and a final line with the overall decision and
+ * matched policy id or indication that the default decision was used.
+ *
+ * @param trace - The policy evaluation trace to format; if `undefined`, no lines are produced.
+ * @returns An array of indented strings representing the formatted trace; returns an empty array when `trace` is `undefined`.
+ */
 function formatTraceLines(trace: PolicyEvaluationTrace | undefined): string[] {
   if (trace === undefined) {
     return [];
