@@ -1,0 +1,88 @@
+# Copy-ready coding agent policy pack.
+# Uses only Enforra v1 policy syntax.
+#
+# This pack is a starter template for the "Coding Agent Safety" use case.
+# It is not loaded by the demos directly.
+#
+# Related examples:
+# - examples/mcp/mcp-coding-agent/policy.yaml
+# - policies/starter/coding-agent.yaml
+
+version: 1
+
+defaults:
+  decision: block
+
+# Default behavior is block.
+# This rule explicitly documents that secret file access should be blocked.
+policies:
+  - id: block-env-read
+    description: Block reading .env files
+    match:
+      agent: coding-agent
+      tool: file.read
+    conditions:
+      - field: args.path
+        operator: contains
+        value: ".env"
+    decision: block
+
+  - id: block-private-key-read
+    description: Block accessing private keys
+    match:
+      agent: coding-agent
+      tool: file.read
+    conditions:
+      - field: args.path
+        operator: contains
+        value: "private_key"
+    decision: block
+
+  - id: require-approval-package-install
+    description: Require approval before installing packages
+    match:
+      agent: coding-agent
+      tool: package.install
+    decision: require_approval
+
+  # Default behavior is block.
+  # This rule highlights production shell commands as a protected action.
+  - id: block-production-shell
+    description: Block shell commands in production
+    match:
+      agent: coding-agent
+      tool: shell.run
+    conditions:
+      - field: context.environment
+        operator: eq
+        value: production
+    decision: block
+
+  - id: block-file-delete
+    description: Block deleting files
+    match:
+      agent: coding-agent
+      tool: file.delete
+    decision: block
+
+  - id: log-repository-search
+    description: Log normal read-only repository search activity
+    match:
+      agent: coding-agent
+      tool: repo.search
+    decision: log_only
+
+  # The task requests approval for git push or repository mutation if supported.
+  # No git.push-style tool exists in the current starter/demo policies.
+  # Add a rule like the example below if your application exposes such a tool.
+  #
+  # - id: require-approval-git-push
+  #   match:
+  #     agent: coding-agent
+  #     tool: git.push
+  #   decision: require_approval
+
+  # The task requests blocking dangerous delete patterns if supported.
+  # The current policy language cannot inspect filesystem path traversal,
+  # normalize paths, or detect arbitrary delete patterns.
+  # The pack therefore blocks file.delete entirely using supported syntax.

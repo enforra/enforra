@@ -1,0 +1,70 @@
+# Copy-ready MCP production guard policy pack.
+# Uses only Enforra v1 policy syntax.
+#
+# This pack is a starter template for the "MCP Production Guard" use case.
+# It is not loaded by the demo directly.
+#
+# Related demo policy:
+# - policies/starter/mcp-tools.yaml
+# - pnpm demo:mcp-guard
+
+version: 1
+
+defaults:
+  # Unknown MCP tools are blocked by default.
+  decision: block
+
+policies:
+  - id: block-shell-run-production
+    description: Block MCP shell execution in production
+    match:
+      agent: mcp-agent
+      tool: mcp.shell.run
+    conditions:
+      - field: context.environment
+        operator: eq
+        value: production
+    decision: block
+
+  - id: require-approval-filesystem-write
+    description: Require approval for filesystem write operations
+    match:
+      agent: mcp-agent
+      tool: mcp.filesystem.write
+    decision: require_approval
+
+  - id: block-filesystem-delete
+    description: Block destructive filesystem delete operations
+    match:
+      agent: mcp-agent
+      tool: filesystem.delete
+    decision: block
+
+  - id: block-mcp-filesystem-delete
+    description: Block MCP-prefixed destructive filesystem delete operations
+    match:
+      agent: mcp-agent
+      tool: mcp.filesystem.delete
+    decision: block
+
+  # The task calls for logging low-risk MCP tools.
+  # No dedicated low-risk MCP audit example is demonstrated in the repo.
+  # Example only — customize to match your MCP tool names.
+  #
+  # - id: log-low-risk-mcp-read
+  #   match:
+  #     agent: mcp-agent
+  #     tool: mcp.read
+  #   decision: log_only
+
+  # The starter MCP policy includes approval gating using args.approved.
+  # Keep this example commented because approval metadata is application-defined.
+  #
+  # - id: require-approved-mcp-server
+  #   match:
+  #     agent: mcp-agent
+  #   conditions:
+  #     - field: args.approved
+  #       operator: eq
+  #       value: true
+  #   decision: allow

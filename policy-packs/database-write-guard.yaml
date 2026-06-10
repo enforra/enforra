@@ -1,0 +1,69 @@
+# Copy-ready database write guard policy pack.
+# Uses only Enforra v1 policy syntax.
+#
+# This pack is a starter template for the "Database Write Guard" use case.
+# It is not loaded by the demo directly.
+#
+# Related demo:
+# - policies/starter/db-delete-video.yaml
+# - pnpm demo:db-enforra
+
+version: 1
+
+defaults:
+  # Unknown database tools are blocked by default.
+  decision: block
+
+policies:
+  - id: block-production-customer-delete
+    description: Block deleting customer data in production
+    match:
+      tool: db.deleteTable
+    conditions:
+      all:
+        - field: args.table
+          operator: eq
+          value: customers
+        - field: context.environment
+          operator: eq
+          value: production
+    decision: block
+
+  # The task calls for allowing read-only queries.
+  # No read-only database tool is demonstrated in the current repo.
+  # Example only — customize to match your application's tool names.
+  #
+  # - id: allow-read-only-query
+  #   match:
+  #     tool: db.query
+  #   conditions:
+  #     - field: args.operation
+  #       operator: eq
+  #       value: select
+  #   decision: allow
+
+  # The task calls for approval on production updates.
+  # No production update tool is demonstrated in the current repo.
+  # Example only — customize to match your application's tool names.
+  #
+  # - id: require-approval-production-update
+  #   match:
+  #     tool: db.update
+  #   conditions:
+  #     - field: context.environment
+  #       operator: eq
+  #       value: production
+  #   decision: require_approval
+
+  # The task calls for logging non-production writes where appropriate.
+  # No non-production write tool is demonstrated in the current repo.
+  # Example only — customize to match your application's tool names.
+  #
+  # - id: log-non-production-write
+  #   match:
+  #     tool: db.update
+  #   conditions:
+  #     - field: context.environment
+  #       operator: neq
+  #       value: production
+  #   decision: log_only

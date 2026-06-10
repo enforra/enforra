@@ -2,13 +2,14 @@
 
 Start here:
 
-| Goal                   | Example                          | Command                                                      |
-| ---------------------- | -------------------------------- | ------------------------------------------------------------ |
-| Fastest demo           | quickstart/support-refund-node   | pnpm demo:support-refund                                     |
-| Python SDK             | quickstart/support-refund-python | python3 examples/quickstart/support-refund-python/example.py |
-| MCP guard              | mcp/mcp-tool-guard               | pnpm demo:mcp-guard                                          |
-| Framework integrations | integrations                     | see examples/integrations/README.md                          |
-| Audit evidence         | audit/audit-integrity            | pnpm demo:audit-integrity                                    |
+| Goal                   | Example                          | Command                                                                                  |
+| ---------------------- | -------------------------------- | ---------------------------------------------------------------------------------------- |
+| Use case packs         | docs/examples.md                 | See [docs/examples.md](../docs/examples.md) for coding, support, MCP, and database packs |
+| Fastest demo           | quickstart/support-refund-node   | pnpm demo:support-refund                                                                 |
+| Python SDK             | quickstart/support-refund-python | python3 examples/quickstart/support-refund-python/example.py                             |
+| MCP guard              | mcp/mcp-tool-guard               | pnpm demo:mcp-guard                                                                      |
+| Framework integrations | integrations                     | see examples/integrations/README.md                                                      |
+| Audit evidence         | audit/audit-integrity            | pnpm demo:audit-integrity                                                                |
 
 ## Quickstart
 

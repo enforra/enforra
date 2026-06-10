@@ -81,6 +81,27 @@ python3 -m pip install -e ".[dev]"
 - **Integrate in Python Applications**: Use the library directly in Python via `pip install enforra`.
 - **Log Local JSONL Audit Evidence**: Automatically generate local, structured audit trails (with optional hash-chain integrity verification) to document agent decisions without cloud telemetry.
 
+## Runtime positioning
+
+Most agent security failures happen when an agent moves from text to action.
+
+Enforra gives developers a small enforcement point before that action runs.
+
+The agent can ask to call a tool. Enforra decides whether the call is allowed, blocked, approval required, or log only. The caller executes only when the decision allows it. Every decision can be written to local audit.
+
+## Use case packs
+
+Enforra includes use case packs for common agent risks:
+
+- [Coding agent safety](docs/use-cases/coding-agent-safety.md)
+- [Support agent refunds and customer changes](docs/use-cases/support-agent-safety.md)
+- [MCP production tool guarding](docs/use-cases/mcp-production-guard.md)
+- [Database write controls](docs/use-cases/database-write-guard.md)
+
+Each pack shows a runnable example, sample policy, and local audit record. See the full index in [docs/examples.md](docs/examples.md). Copy-ready policies are in [policy-packs/](policy-packs/).
+
+Enforra does not execute tools itself. Your application owns execution. Enforra evaluates policy before the tool handler runs and returns `allow`, `block`, `require_approval`, or `log_only`. In the OSS runtime, `require_approval` means your application must pause and handle approval locally; it is not a hosted approval workflow.
+
 ## Integrations
 
 Enforra includes runnable integration examples and framework-style tool wrapper patterns. Some examples use real framework packages. Others intentionally avoid heavy dependencies and show where Enforra sits before tool execution:
