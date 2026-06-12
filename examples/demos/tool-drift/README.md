@@ -24,10 +24,10 @@ We have two tool manifests:
 
 ### 1. Record the Approved Baseline
 
-Generate a tool baseline snapshot from the approved definitions:
+Generate a tool baseline snapshot from the approved definitions (writes to `.enforra/tool-baseline.json` by default):
 
 ```bash
-node packages/cli/dist/cli.js drift baseline --tools examples/demos/tool-drift/tools-approved.json --out /tmp/enforra-tool-baseline.json
+node packages/cli/dist/cli.js drift baseline --tools examples/demos/tool-drift/tools-approved.json
 ```
 
 ### 2. Run Clean Check
@@ -35,14 +35,14 @@ node packages/cli/dist/cli.js drift baseline --tools examples/demos/tool-drift/t
 Checking the approved manifest against its own baseline will report no drift:
 
 ```bash
-node packages/cli/dist/cli.js drift check --tools examples/demos/tool-drift/tools-approved.json --baseline /tmp/enforra-tool-baseline.json
+node packages/cli/dist/cli.js drift check --tools examples/demos/tool-drift/tools-approved.json
 ```
 
 Output:
 
 ```
 Enforra drift check
-Baseline file: /tmp/enforra-tool-baseline.json
+Baseline file: .enforra/tool-baseline.json
 Tools file: examples/demos/tool-drift/tools-approved.json
 Checked at: ...
 Total tools: 2 (Baseline: 2)
@@ -55,12 +55,12 @@ No drift detected.
 Check the current manifest against the baseline:
 
 ```bash
-node packages/cli/dist/cli.js drift check --tools examples/demos/tool-drift/tools-current.json --baseline /tmp/enforra-tool-baseline.json
+node packages/cli/dist/cli.js drift check --tools examples/demos/tool-drift/tools-current.json
 ```
 
 This will report:
 
-- `[LOW] terminal.run: tool_added` (new tool)
+- `[HIGH] terminal.run: tool_added` (new tool with high-risk shell capabilities)
 - `[MEDIUM] filesystem.read: schema_changed` (gained `sudo` option)
 - `[HIGH] database.query: capabilities_changed` (gained `production-risk` capability)
 
@@ -69,6 +69,6 @@ This will report:
 You can export findings in JSON or Markdown format:
 
 ```bash
-node packages/cli/dist/cli.js drift check --tools examples/demos/tool-drift/tools-current.json --baseline /tmp/enforra-tool-baseline.json --format json
-node packages/cli/dist/cli.js drift check --tools examples/demos/tool-drift/tools-current.json --baseline /tmp/enforra-tool-baseline.json --format markdown
+node packages/cli/dist/cli.js drift check --tools examples/demos/tool-drift/tools-current.json --format json
+node packages/cli/dist/cli.js drift check --tools examples/demos/tool-drift/tools-current.json --format markdown
 ```

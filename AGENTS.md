@@ -70,6 +70,42 @@ pnpm verify:oss
 > [!IMPORTANT]
 > Run `pnpm format` _before_ running `git commit` to ensure formatting changes in TS/JS/Markdown/YAML files are staged and committed.
 
+## Code quality and architecture rules
+
+Agents must keep Enforra code simple, modular, and reviewable.
+
+Core rules:
+
+- Prefer small focused modules over large files or large classes.
+- Follow SOLID principles where practical, especially single responsibility and dependency inversion.
+- Do not create god classes, large procedural blocks, or long files that mix parsing, evaluation, IO, logging, and CLI behavior.
+- Keep policy evaluation logic data driven where possible. Avoid hardcoded chains of special case rules.
+- Do not hardcode product behavior, security decisions, tool names, package names, or severity mappings unless they are explicitly part of a documented policy, schema, or constant.
+- If a rule, decision, severity, or mapping can be represented as policy config, schema, fixture, or test case, prefer that over hardcoded logic.
+- Keep business logic separate from CLI formatting, file IO, audit writing, and demo code.
+- Prefer pure functions for policy evaluation, classification, redaction, and drift comparison.
+- Add or update tests when changing policy behavior, audit behavior, drift behavior, SDK execution semantics, or MCP wrapping behavior.
+- Do not make broad rewrites unless the task explicitly asks for refactoring.
+- If code starts becoming complex, split it into named helpers with clear inputs and outputs.
+
+Avoid:
+
+- Large classes with many responsibilities.
+- Long `if/else` or `switch` blocks for policy behavior.
+- Hardcoded demo-specific logic inside reusable packages.
+- Hidden defaults that change enforcement semantics.
+- Duplicated rule logic across packages.
+- Adding abstractions before there are at least two real use cases.
+
+Preferred pattern:
+
+1. Parse or load input.
+2. Validate against schema.
+3. Normalize into typed internal structures.
+4. Evaluate with small pure functions.
+5. Return explicit decisions.
+6. Keep logging, CLI output, and file writes outside the core evaluator.
+
 ### Python SDK Checks
 
 When Python code, docs, or examples have changed, install and test:

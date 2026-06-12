@@ -139,6 +139,27 @@ export function parseBaselineFile(contents: string): BaselineFile {
     throw new Error("Baseline file must contain a 'tools' array");
   }
 
+  for (const tool of tools) {
+    if (
+      !isRecord(tool) ||
+      typeof tool["name"] !== "string" ||
+      tool["name"].length === 0 ||
+      typeof tool["hash"] !== "string" ||
+      tool["hash"].length === 0
+    ) {
+      throw new Error("Each baseline tool must have a non-empty 'name' and 'hash' string");
+    }
+  }
+
+  const seen = new Set<string>();
+  for (const tool of tools) {
+    const name = (tool as Record<string, unknown>)["name"] as string;
+    if (seen.has(name)) {
+      throw new Error(`Duplicate tool name found in baseline: ${name}`);
+    }
+    seen.add(name);
+  }
+
   return parsed as unknown as BaselineFile;
 }
 

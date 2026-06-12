@@ -98,23 +98,32 @@ export function compareTool(current: ToolDefinition, baseline: BaselineTool): Dr
   const currentCaps = new Set(current.capabilities ?? []);
   const baselineCaps = new Set(baseline.capabilities ?? []);
 
-  const addedCaps = [...currentCaps].filter((c) => !baselineCaps.has(c)).sort();
-  const removedCaps = [...baselineCaps].filter((c) => !currentCaps.has(c)).sort();
+  const currentInferredCaps = new Set(inferCapabilities(current.name, current.description));
+  const baselineInferredCaps = new Set(baseline.inferredCapabilities ?? []);
 
-  if (addedCaps.length > 0) {
+  const addedCaps = [...currentCaps].filter((c) => !baselineCaps.has(c));
+  const removedCaps = [...baselineCaps].filter((c) => !currentCaps.has(c));
+
+  const addedInferred = [...currentInferredCaps].filter((c) => !baselineInferredCaps.has(c));
+  const removedInferred = [...baselineInferredCaps].filter((c) => !currentInferredCaps.has(c));
+
+  const allAddedCaps = [...new Set([...addedCaps, ...addedInferred])].sort();
+  const allRemovedCaps = [...new Set([...removedCaps, ...removedInferred])].sort();
+
+  if (allAddedCaps.length > 0) {
     findings.push({
       tool: current.name,
       type: "capabilities_changed",
       severity: "high",
-      detail: `capabilities expanded: added [${addedCaps.join(", ")}]`
+      detail: `capabilities expanded: added [${allAddedCaps.join(", ")}]`
     });
   }
-  if (removedCaps.length > 0) {
+  if (allRemovedCaps.length > 0) {
     findings.push({
       tool: current.name,
       type: "capabilities_changed",
       severity: "low",
-      detail: `capabilities reduced: removed [${removedCaps.join(", ")}]`
+      detail: `capabilities reduced: removed [${allRemovedCaps.join(", ")}]`
     });
   }
 
