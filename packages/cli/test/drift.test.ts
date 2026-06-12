@@ -13,6 +13,8 @@ import {
   driftSeverity,
   formatDriftMarkdown,
   formatDriftText,
+  getEffectiveCapabilities,
+  guessCapabilitiesFromToolMetadata,
   inferCapabilities,
   newToolSeverity,
   parseBaselineFile,
@@ -67,6 +69,44 @@ describe("drift", () => {
 
     it("returns empty for unrecognized tools", () => {
       expect(inferCapabilities("calculator.add", "Add two numbers")).toEqual([]);
+    });
+  });
+
+  describe("guessCapabilitiesFromToolMetadata and getEffectiveCapabilities", () => {
+    it("preserves explicitly declared capabilities", () => {
+      const tool = { name: "terminal.run", capabilities: ["read", "write"] };
+      const caps = getEffectiveCapabilities(tool);
+      expect(caps).toEqual(["read", "write"]);
+    });
+
+    it("uses heuristic suggestions only as a fallback", () => {
+      const toolWithOverriddenCaps = { name: "terminal.run", capabilities: [] };
+      expect(getEffectiveCapabilities(toolWithOverriddenCaps)).toEqual([]);
+
+      const toolWithoutCaps = { name: "terminal.run" };
+      expect(getEffectiveCapabilities(toolWithoutCaps)).toContain("shell");
+    });
+
+    it("deduplicates capabilities", () => {
+      const tool = { name: "test", capabilities: ["read", "read", "write"] };
+      const caps = getEffectiveCapabilities(tool);
+      expect(caps).toEqual(["read", "write"]);
+    });
+
+    it("ensures output is stable and sorted", () => {
+      const tool = { name: "test", capabilities: ["write", "read"] };
+      const caps = getEffectiveCapabilities(tool);
+      expect(caps).toEqual(["read", "write"]);
+    });
+
+    it("returns correct metadata structure for guessCapabilitiesFromToolMetadata", () => {
+      const guesses = guessCapabilitiesFromToolMetadata("terminal.run");
+      expect(guesses.length).toBeGreaterThan(0);
+      expect(guesses[0]).toEqual({
+        capability: "shell",
+        source: "heuristic",
+        confidence: "low"
+      });
     });
   });
 

@@ -93,9 +93,13 @@ Default: `medium`.
 
 ## Capability inference
 
-Enforra infers capabilities from tool names and descriptions. For example, a tool named `filesystem.read` is inferred to have the `filesystem` capability, and a tool named `terminal.run` is inferred to have `code_execution`.
+Explicitly declared tool capabilities are the preferred source of truth in Enforra.
 
-Inferred capabilities are stored in the baseline for reference. They do not affect drift severity — only explicitly declared capabilities trigger high-severity drift findings.
+If a tool does not explicitly declare capabilities in the manifest, Enforra heuristically guesses capabilities from tool names and descriptions as a best-effort fallback hint. For example, a tool named `terminal.run` is guessed to have the `shell` capability.
+
+Users and contributors should explicitly declare custom capabilities on tools instead of relying on built-in regex guesses, as inferred capabilities are best-effort hints only and should not be treated as authoritative security boundaries.
+
+Inferred capabilities are stored in the baseline for reference, but explicit capability declarations always override and take precedence over these heuristic hints.
 
 ## CI usage
 

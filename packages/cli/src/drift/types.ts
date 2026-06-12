@@ -89,3 +89,9 @@ export interface DriftOptionSpec {
   commandName: string;
   values?: string[];
 }
+
+export interface SuggestedCapability {
+  capability: string;
+  source: "heuristic";
+  confidence: "low";
+}

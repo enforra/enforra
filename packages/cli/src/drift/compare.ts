@@ -43,12 +43,22 @@ const highRiskCapabilities = new Set([
   "deployment"
 ]);
 
-/** Determine severity for a newly added tool based on inferred capabilities. */
+/** Get effective capabilities for a tool, preferring explicit declarations over heuristic fallbacks. */
+export function getEffectiveCapabilities(tool: ToolDefinition | BaselineTool): string[] {
+  if (tool.capabilities !== undefined) {
+    // Preserves explicit capabilities (deduplicated and sorted)
+    return [...new Set(tool.capabilities)].sort();
+  }
+  // Heuristic suggestions are fallback only
+  const inferred =
+    (tool as BaselineTool).inferredCapabilities ?? inferCapabilities(tool.name, tool.description);
+  return [...new Set(inferred)].sort();
+}
+
+/** Determine severity for a newly added tool. Explicit capabilities are preferred; heuristics are fallback only. */
 export function newToolSeverity(tool: ToolDefinition): DriftSeverity {
-  const inferred = inferCapabilities(tool.name, tool.description);
-  const declared = tool.capabilities ?? [];
-  const all = [...inferred, ...declared];
-  if (all.some((cap) => highRiskCapabilities.has(cap))) {
+  const caps = getEffectiveCapabilities(tool);
+  if (caps.some((cap) => highRiskCapabilities.has(cap))) {
     return "high";
   }
   return "low";
@@ -95,35 +105,26 @@ export function compareTool(current: ToolDefinition, baseline: BaselineTool): Dr
   }
 
   // Capabilities drift (expanded vs reduced)
-  const currentCaps = new Set(current.capabilities ?? []);
-  const baselineCaps = new Set(baseline.capabilities ?? []);
+  const currentCaps = getEffectiveCapabilities(current);
+  const baselineCaps = getEffectiveCapabilities(baseline);
 
-  const currentInferredCaps = new Set(inferCapabilities(current.name, current.description));
-  const baselineInferredCaps = new Set(baseline.inferredCapabilities ?? []);
+  const addedCaps = currentCaps.filter((c) => !baselineCaps.includes(c)).sort();
+  const removedCaps = baselineCaps.filter((c) => !currentCaps.includes(c)).sort();
 
-  const addedCaps = [...currentCaps].filter((c) => !baselineCaps.has(c));
-  const removedCaps = [...baselineCaps].filter((c) => !currentCaps.has(c));
-
-  const addedInferred = [...currentInferredCaps].filter((c) => !baselineInferredCaps.has(c));
-  const removedInferred = [...baselineInferredCaps].filter((c) => !currentInferredCaps.has(c));
-
-  const allAddedCaps = [...new Set([...addedCaps, ...addedInferred])].sort();
-  const allRemovedCaps = [...new Set([...removedCaps, ...removedInferred])].sort();
-
-  if (allAddedCaps.length > 0) {
+  if (addedCaps.length > 0) {
     findings.push({
       tool: current.name,
       type: "capabilities_changed",
       severity: "high",
-      detail: `capabilities expanded: added [${allAddedCaps.join(", ")}]`
+      detail: `capabilities expanded: added [${addedCaps.join(", ")}]`
     });
   }
-  if (allRemovedCaps.length > 0) {
+  if (removedCaps.length > 0) {
     findings.push({
       tool: current.name,
       type: "capabilities_changed",
       severity: "low",
-      detail: `capabilities reduced: removed [${allRemovedCaps.join(", ")}]`
+      detail: `capabilities reduced: removed [${removedCaps.join(", ")}]`
     });
   }
 

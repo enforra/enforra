@@ -60,16 +60,40 @@ export const CAPABILITY_RULES: CapabilityRule[] = [
   }
 ];
 
-/** Infer capabilities from a tool name and optional description. */
-export function inferCapabilities(name: string, description?: string): string[] {
+import type { SuggestedCapability } from "./types.js";
+
+/**
+ * Heuristically guess capabilities from tool metadata (name and description) using regex keyword patterns.
+ * IMPORTANT: This is a best-effort heuristic fallback hint only. It is NOT authoritative security logic.
+ * OSS users and contributors should explicitly declare custom capabilities on tools instead of relying on regex guesses.
+ */
+export function guessCapabilitiesFromToolMetadata(
+  name: string,
+  description?: string
+): SuggestedCapability[] {
   const text = `${name} ${description ?? ""}`;
-  const capabilities = new Set<string>();
+  const suggestions: SuggestedCapability[] = [];
 
   for (const { pattern, capability } of CAPABILITY_RULES) {
     if (pattern.test(text)) {
-      capabilities.add(capability);
+      suggestions.push({
+        capability,
+        source: "heuristic",
+        confidence: "low"
+      });
     }
   }
 
-  return [...capabilities].sort();
+  return suggestions;
+}
+
+/**
+ * Infer capabilities from a tool name and optional description.
+ * @deprecated Prefer explicit capability declarations on tool metadata/manifests, or use guessCapabilitiesFromToolMetadata.
+ * This is a best-effort heuristic fallback only.
+ */
+export function inferCapabilities(name: string, description?: string): string[] {
+  const guesses = guessCapabilitiesFromToolMetadata(name, description);
+  const capabilities = guesses.map((g) => g.capability);
+  return [...new Set(capabilities)].sort();
 }
