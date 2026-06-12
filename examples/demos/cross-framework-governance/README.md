@@ -28,6 +28,12 @@ The shared policy file `policies/starter/cross-framework.yaml` implements the fo
 
 ## How to Run
 
+Ensure that you have installed the required Python dependencies first:
+
+```bash
+pip install -r examples/demos/cross-framework-governance/requirements.txt
+```
+
 Run the demo from the workspace root:
 
 ```bash
