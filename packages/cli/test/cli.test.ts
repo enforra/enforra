@@ -1,9 +1,12 @@
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
-import { join, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { tmpdir } from "node:os";
+import { fileURLToPath } from "node:url";
 import { createLocalAuditLogger } from "@enforra/local-audit";
 import { describe, expect, it } from "vitest";
 import { runCli } from "../src/index.js";
+
+const fixtureAuditPath = fileURLToPath(new URL("./fixtures/audit.jsonl", import.meta.url));
 
 describe("cli", () => {
   it("init creates starter files", async () => {
@@ -235,6 +238,284 @@ cases:
     expect(output.lines.join("\n")).toContain("First invalid line: 1");
   });
 
+  it("audit verify rejects report-only --audit option", async () => {
+    const dir = await createTempDir();
+    const output = createOutput();
+
+    const exitCode = await runCli(["audit", "verify", "--audit", "audit.jsonl"], {
+      cwd: dir,
+      stdout: output.stdout,
+      stderr: output.stderr
+    });
+
+    expect(exitCode).toBe(1);
+    expect(output.errors.join("\n")).toContain("Unsupported option for audit verify: --audit");
+    expect(output.errors.join("\n")).toContain("Use --path for audit verification.");
+  });
+
+  it("report exits non-zero when the audit file is missing", async () => {
+    const dir = await createTempDir();
+    const output = createOutput();
+
+    const exitCode = await runCli(["report"], {
+      cwd: dir,
+      stdout: output.stdout,
+      stderr: output.stderr
+    });
+
+    expect(exitCode).toBe(1);
+    expect(output.errors.join("\n")).toContain("Audit log not found:");
+  });
+
+  it("report accepts --audit", async () => {
+    const output = createOutput();
+
+    const exitCode = await runCli(["report", "--audit", fixtureAuditPath], {
+      stdout: output.stdout
+    });
+
+    expect(exitCode).toBe(0);
+    expect(output.lines.join("\n")).toContain("Total events: 4");
+  });
+
+  it("report rejects audit verify --path option", async () => {
+    const output = createOutput();
+
+    const exitCode = await runCli(["report", "--path", fixtureAuditPath], {
+      stdout: output.stdout,
+      stderr: output.stderr
+    });
+
+    expect(exitCode).toBe(1);
+    expect(output.errors.join("\n")).toContain("Unsupported option for report: --path");
+    expect(output.errors.join("\n")).toContain("Use --audit for audit reports.");
+  });
+
+  it("report returns zero events for an empty audit file", async () => {
+    const dir = await createTempDir();
+    const auditPath = join(dir, ".enforra/audit.jsonl");
+    const output = createOutput();
+    await mkdir(join(dir, ".enforra"), { recursive: true });
+    await writeFile(auditPath, "", "utf8");
+
+    const exitCode = await runCli(["report"], { cwd: dir, stdout: output.stdout });
+
+    expect(exitCode).toBe(0);
+    expect(output.lines.join("\n")).toContain("Total events: 0");
+    expect(output.lines.join("\n")).toContain("Allowed: 0");
+  });
+
+  it("report counts decisions from valid JSONL", async () => {
+    const dir = await createTempDir();
+    const auditPath = join(dir, ".enforra/audit.jsonl");
+    const output = createOutput();
+    await writeAuditLog(auditPath, [
+      auditEvent({ decision: "allow", status: "decision_logged" }),
+      auditEvent({ decision: "block", status: "blocked" }),
+      auditEvent({ decision: "require_approval", status: "pending_approval" }),
+      auditEvent({ decision: "log_only", status: "logged" })
+    ]);
+
+    const exitCode = await runCli(["report"], { cwd: dir, stdout: output.stdout });
+    const text = output.lines.join("\n");
+
+    expect(exitCode).toBe(0);
+    expect(text).toContain("Total events: 4");
+    expect(text).toContain("Allowed: 1");
+    expect(text).toContain("Blocked: 1");
+    expect(text).toContain("Required approval: 1");
+    expect(text).toContain("Logged only: 1");
+  });
+
+  it("non-report commands reject report-only --audit option", async () => {
+    const dir = await createTempDir();
+    const output = createOutput();
+
+    const exitCode = await runCli(["test", "--audit", "audit.jsonl"], {
+      cwd: dir,
+      stdout: output.stdout,
+      stderr: output.stderr
+    });
+
+    expect(exitCode).toBe(1);
+    expect(output.errors.join("\n")).toContain("Unsupported option for test: --audit");
+  });
+
+  it("report skips malformed JSONL lines and reports the count", async () => {
+    const dir = await createTempDir();
+    const auditPath = join(dir, ".enforra/audit.jsonl");
+    const output = createOutput();
+    await writeAuditLog(auditPath, [auditEvent({ decision: "block", status: "blocked" })]);
+    await writeFile(auditPath, `${await readFile(auditPath, "utf8")}not-json\n`, "utf8");
+
+    const exitCode = await runCli(["report"], { cwd: dir, stdout: output.stdout });
+    const text = output.lines.join("\n");
+
+    expect(exitCode).toBe(0);
+    expect(text).toContain("Total events: 1");
+    expect(text).toContain("Skipped malformed lines: 1");
+  });
+
+  it("report filters by agent", async () => {
+    const dir = await createTempDir();
+    const auditPath = join(dir, ".enforra/audit.jsonl");
+    const output = createOutput();
+    await writeAuditLog(auditPath, [
+      auditEvent({ agent: "coding-agent", decision: "block", status: "blocked" }),
+      auditEvent({ agent: "support-agent", decision: "allow", status: "decision_logged" })
+    ]);
+
+    const exitCode = await runCli(["report", "--agent", "coding-agent"], {
+      cwd: dir,
+      stdout: output.stdout
+    });
+
+    expect(exitCode).toBe(0);
+    expect(output.lines.join("\n")).toContain("Total events: 1");
+    expect(output.lines.join("\n")).toContain("coding-agent: 1");
+    expect(output.lines.join("\n")).not.toContain("support-agent: 1");
+  });
+
+  it("report filters by tool", async () => {
+    const dir = await createTempDir();
+    const auditPath = join(dir, ".enforra/audit.jsonl");
+    const output = createOutput();
+    await writeAuditLog(auditPath, [
+      auditEvent({ tool: "filesystem.read", decision: "block", status: "blocked" }),
+      auditEvent({ tool: "terminal.run", decision: "allow", status: "decision_logged" })
+    ]);
+
+    const exitCode = await runCli(["report", "--tool", "filesystem.read"], {
+      cwd: dir,
+      stdout: output.stdout
+    });
+
+    expect(exitCode).toBe(0);
+    expect(output.lines.join("\n")).toContain("Total events: 1");
+    expect(output.lines.join("\n")).toContain("filesystem.read: 1");
+    expect(output.lines.join("\n")).not.toContain("terminal.run: 1");
+  });
+
+  it("report filters by decision", async () => {
+    const dir = await createTempDir();
+    const auditPath = join(dir, ".enforra/audit.jsonl");
+    const output = createOutput();
+    await writeAuditLog(auditPath, [
+      auditEvent({ decision: "block", status: "blocked" }),
+      auditEvent({ decision: "allow", status: "decision_logged" })
+    ]);
+
+    const exitCode = await runCli(["report", "--decision", "block"], {
+      cwd: dir,
+      stdout: output.stdout
+    });
+
+    expect(exitCode).toBe(0);
+    expect(output.lines.join("\n")).toContain("Total events: 1");
+    expect(output.lines.join("\n")).toContain("Blocked: 1");
+    expect(output.lines.join("\n")).toContain("Allowed: 0");
+  });
+
+  it("report since filter excludes missing and invalid timestamps", async () => {
+    const dir = await createTempDir();
+    const auditPath = join(dir, ".enforra/audit.jsonl");
+    const output = createOutput();
+    await writeAuditLog(auditPath, [
+      auditEvent({ timestamp: "2026-06-12T10:29:59.000Z", tool: "filesystem.old" }),
+      auditEvent({ timestamp: "2026-06-12T10:30:00.000Z", tool: "filesystem.new" }),
+      auditEvent({ timestamp: "not-a-date", tool: "filesystem.invalid" }),
+      auditEvent({ timestamp: undefined, tool: "filesystem.missing" })
+    ]);
+
+    const exitCode = await runCli(["report", "--since", "2026-06-12T10:30:00.000Z"], {
+      cwd: dir,
+      stdout: output.stdout
+    });
+    const text = output.lines.join("\n");
+
+    expect(exitCode).toBe(0);
+    expect(text).toContain("Total events: 1");
+    expect(text).toContain("filesystem.new: 1");
+    expect(text).not.toContain("filesystem.old");
+    expect(text).not.toContain("filesystem.invalid");
+    expect(text).not.toContain("filesystem.missing");
+  });
+
+  it("report outputs valid JSON with safe event fields", async () => {
+    const output = createOutput();
+
+    const exitCode = await runCli(["report", "--audit", fixtureAuditPath, "--format", "json"], {
+      stdout: output.stdout
+    });
+
+    const parsed = JSON.parse(output.lines.join("\n")) as {
+      summary: { total: number; block: number; skippedMalformedLines: number };
+      events: Array<{ decision?: string; tool?: string; argsRedacted?: unknown }>;
+    };
+
+    expect(exitCode).toBe(0);
+    expect(parsed.summary.total).toBe(4);
+    expect(parsed.summary.block).toBe(1);
+    expect(parsed.summary.skippedMalformedLines).toBe(0);
+    expect(parsed.events[0]?.decision).toBe("block");
+    expect(parsed.events[0]?.argsRedacted).toBeUndefined();
+    expect(parsed.events[3]?.tool).toBe("github.create_issue");
+  });
+
+  it("report markdown includes a summary table", async () => {
+    const output = createOutput();
+
+    const exitCode = await runCli(["report", "--audit", fixtureAuditPath, "--format", "markdown"], {
+      stdout: output.stdout
+    });
+
+    expect(exitCode).toBe(0);
+    expect(output.lines.join("\n")).toContain("| Metric | Count |");
+    expect(output.lines.join("\n")).toContain("| Total events | 4 |");
+  });
+
+  it("report markdown includes an agent summary", async () => {
+    const output = createOutput();
+
+    const exitCode = await runCli(["report", "--audit", fixtureAuditPath, "--format", "markdown"], {
+      stdout: output.stdout
+    });
+
+    expect(exitCode).toBe(0);
+    expect(output.lines.join("\n")).toContain("## Top Agents");
+    expect(output.lines.join("\n")).toContain("| Agent | Count |");
+    expect(output.lines.join("\n")).toContain("| `coding-agent` | 2 |");
+    expect(output.lines.join("\n")).toContain("| `support-agent` | 2 |");
+  });
+
+  it("report does not print sensitive args", async () => {
+    const dir = await createTempDir();
+    const auditPath = join(dir, ".enforra/audit.jsonl");
+    const output = createOutput();
+    await writeAuditLog(auditPath, [
+      {
+        timestamp: "2026-06-12T10:30:00.000Z",
+        agent: "coding-agent",
+        tool: "terminal.run",
+        decision: "block",
+        matchedPolicyId: "block-secret",
+        status: "blocked",
+        argsRedacted: {
+          apiKey: "[REDACTED]",
+          token: "sk_live_should_not_print"
+        },
+        reason: "token=sk_live_should_not_print"
+      }
+    ]);
+
+    const exitCode = await runCli(["report"], { cwd: dir, stdout: output.stdout });
+    const text = output.lines.join("\n");
+
+    expect(exitCode).toBe(0);
+    expect(text).not.toContain("sk_live_should_not_print");
+    expect(text).toContain("token=[REDACTED]");
+  });
+
   it("doctor runs without throwing", async () => {
     const dir = await createTempDir();
     const output = createOutput();
@@ -300,6 +581,24 @@ async function writePolicyFiles(dir: string, policy: string, cases: string): Pro
   await mkdir(join(dir, "policies"), { recursive: true });
   await writeFile(join(dir, "policies/enforra.yaml"), policy, "utf8");
   await writeFile(join(dir, "policies/enforra.cases.yaml"), cases, "utf8");
+}
+
+async function writeAuditLog(path: string, events: Record<string, unknown>[]): Promise<void> {
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, `${events.map((event) => JSON.stringify(event)).join("\n")}\n`, "utf8");
+}
+
+function auditEvent(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    timestamp: "2026-06-12T10:30:00.000Z",
+    agent: "coding-agent",
+    tool: "filesystem.read",
+    decision: "allow",
+    matchedPolicyId: "allow-filesystem-read",
+    status: "decision_logged",
+    argsRedacted: { path: "README.md" },
+    ...overrides
+  };
 }
 
 function starterPolicy(): string {

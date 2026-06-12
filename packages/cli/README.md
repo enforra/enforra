@@ -19,6 +19,7 @@ From this monorepo, run the CLI package with pnpm filters or after building the 
 ```bash
 enforra init
 enforra test
+enforra report
 enforra audit verify
 enforra doctor
 ```
@@ -41,4 +42,13 @@ enforra test --trace
 
 ```text
 .enforra/audit.jsonl
+```
+
+`enforra report` reads local JSONL audit logs and prints text, JSON, or markdown summaries:
+
+```bash
+enforra report --audit .enforra/audit.jsonl
+enforra report --audit .enforra/audit.jsonl --format json
+enforra report --audit .enforra/audit.jsonl --format markdown
+enforra report --decision block
 ```
