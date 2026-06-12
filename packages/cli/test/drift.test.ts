@@ -14,6 +14,7 @@ import {
   formatDriftMarkdown,
   formatDriftText,
   inferCapabilities,
+  newToolSeverity,
   parseBaselineFile,
   parseToolManifest,
   shouldFail
@@ -96,6 +97,48 @@ describe("drift", () => {
 
     it("classifies tool_added as low", () => {
       expect(driftSeverity("tool_added")).toBe("low");
+    });
+  });
+
+  describe("newToolSeverity", () => {
+    it("returns high for terminal.run", () => {
+      expect(newToolSeverity({ name: "terminal.run" })).toBe("high");
+    });
+
+    it("returns high for shell.run", () => {
+      expect(newToolSeverity({ name: "shell.run" })).toBe("high");
+    });
+
+    it("returns high for command.exec", () => {
+      expect(newToolSeverity({ name: "command.exec" })).toBe("high");
+    });
+
+    it("returns high for bash.run", () => {
+      expect(newToolSeverity({ name: "bash.run" })).toBe("high");
+    });
+
+    it("returns high when description mentions shell execution", () => {
+      expect(newToolSeverity({ name: "my.tool", description: "Run a shell command" })).toBe("high");
+    });
+
+    it("returns high for tools with declared code_execution capability", () => {
+      expect(newToolSeverity({ name: "custom.tool", capabilities: ["code_execution"] })).toBe(
+        "high"
+      );
+    });
+
+    it("returns high for tools with secrets_access capability", () => {
+      expect(newToolSeverity({ name: "vault.read", capabilities: ["secrets_access"] })).toBe(
+        "high"
+      );
+    });
+
+    it("returns high for tools with deployment capability", () => {
+      expect(newToolSeverity({ name: "ci.deploy", capabilities: ["deployment"] })).toBe("high");
+    });
+
+    it("returns low for a benign tool", () => {
+      expect(newToolSeverity({ name: "calculator.add", description: "Add numbers" })).toBe("low");
     });
   });
 
@@ -240,7 +283,7 @@ describe("drift", () => {
       expect(result.summary.total).toBe(0);
     });
 
-    it("detects a new tool", () => {
+    it("detects a new benign tool as low severity", () => {
       const original: ToolManifest = { tools: [{ name: "a.tool" }] };
       const baseline = buildBaseline(original);
       const current: ToolManifest = {
@@ -251,6 +294,22 @@ describe("drift", () => {
       expect(result.findings).toHaveLength(1);
       expect(result.findings[0]?.type).toBe("tool_added");
       expect(result.findings[0]?.tool).toBe("b.tool");
+      expect(result.findings[0]?.severity).toBe("low");
+    });
+
+    it("detects a new high-risk tool as high severity", () => {
+      const original: ToolManifest = { tools: [{ name: "a.tool" }] };
+      const baseline = buildBaseline(original);
+      const current: ToolManifest = {
+        tools: [{ name: "a.tool" }, { name: "terminal.run" }]
+      };
+      const result = checkDrift(current, baseline, "tools.json", "baseline.json");
+
+      expect(result.findings).toHaveLength(1);
+      expect(result.findings[0]?.type).toBe("tool_added");
+      expect(result.findings[0]?.tool).toBe("terminal.run");
+      expect(result.findings[0]?.severity).toBe("high");
+      expect(result.findings[0]?.detail).toContain("high-risk");
     });
 
     it("detects a removed tool", () => {

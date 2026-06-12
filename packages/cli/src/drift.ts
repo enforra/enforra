@@ -91,7 +91,10 @@ const capabilityPatterns: Array<{ pattern: RegExp; capability: string }> = [
   { pattern: /\bfile|filesystem|fs\b/i, capability: "filesystem" },
   { pattern: /\bread|write|delete|create|list|move|copy\b/i, capability: "data_modification" },
   { pattern: /\bnetwork|http|fetch|request|api|url|curl|wget\b/i, capability: "network" },
-  { pattern: /\bterminal|shell|exec|command|run|process|spawn\b/i, capability: "code_execution" },
+  {
+    pattern: /\bterminal|shell|bash|exec|command|run|process|spawn\b/i,
+    capability: "code_execution"
+  },
   { pattern: /\bdb|database|sql|query|table|collection\b/i, capability: "database" },
   { pattern: /\bemail|mail|send|notify|notification\b/i, capability: "communication" },
   { pattern: /\bgit|github|gitlab|repo|commit|branch|pr\b/i, capability: "version_control" },
@@ -220,6 +223,20 @@ export function driftSeverity(type: DriftType): DriftSeverity {
   }
 }
 
+/** Capabilities that make a new tool high-risk. */
+const highRiskCapabilities = new Set(["code_execution", "secrets_access", "deployment"]);
+
+/** Determine severity for a newly added tool based on inferred capabilities. */
+export function newToolSeverity(tool: ToolDefinition): DriftSeverity {
+  const inferred = inferCapabilities(tool.name, tool.description);
+  const declared = tool.capabilities ?? [];
+  const all = [...inferred, ...declared];
+  if (all.some((cap) => highRiskCapabilities.has(cap))) {
+    return "high";
+  }
+  return "low";
+}
+
 /** Compare a current tool definition against a baseline tool entry. */
 export function compareTool(current: ToolDefinition, baseline: BaselineTool): DriftFinding[] {
   const findings: DriftFinding[] = [];
@@ -298,11 +315,15 @@ export function checkDrift(
   for (const tool of manifest.tools) {
     const baselineTool = baselineMap.get(tool.name);
     if (baselineTool === undefined) {
+      const severity = newToolSeverity(tool);
       findings.push({
         tool: tool.name,
         type: "tool_added",
-        severity: driftSeverity("tool_added"),
-        detail: "tool is new and was not in the baseline"
+        severity,
+        detail:
+          severity === "high"
+            ? "tool is new and has high-risk capabilities"
+            : "tool is new and was not in the baseline"
       });
     } else {
       findings.push(...compareTool(tool, baselineTool));
