@@ -8,6 +8,7 @@ Start here:
 | Fastest demo           | quickstart/support-refund-node   | pnpm demo:support-refund                                                                 |
 | Python SDK             | quickstart/support-refund-python | python3 examples/quickstart/support-refund-python/example.py                             |
 | MCP guard              | mcp/mcp-tool-guard               | pnpm demo:mcp-guard                                                                      |
+| Cross-framework demo   | demos/cross-framework-governance | pnpm demo:cross-framework                                                                |
 | Framework integrations | integrations                     | see examples/integrations/README.md                                                      |
 | Audit evidence         | audit/audit-integrity            | pnpm demo:audit-integrity                                                                |
 
@@ -37,6 +38,7 @@ Start here:
 
 - [demos/db-delete-video](demos/db-delete-video): Contrasts a direct database delete callback with the same callback protected by Enforra.
 - [demos/openai-style-tool-wrapper](demos/openai-style-tool-wrapper): Wrapper pattern for calling `enforceToolCall` before an application-owned tool callback.
+- [demos/cross-framework-governance](demos/cross-framework-governance): Shows one shared policy file enforcing the same decisions across Vercel AI SDK, LangGraph, and OpenAI Agents SDK style tool calls.
 
 ## Benchmarks
 

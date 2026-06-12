@@ -25,6 +25,11 @@ Some examples import and use real framework packages; others are framework-style
 | **[CrewAI (Python)](integrations/crewai.md)**                   | pattern              | none                          | no                |
 | **[AutoGen (Python)](integrations/autogen.md)**                 | pattern              | none                          | no                |
 | **[MCP (Node.js)](mcp.md)**                                     | real Enforra wrapper | `@enforra/mcp`                | no                |
+| **[Cross-Framework Governance](../examples/demos/cross-framework-governance/README.md)** | multi-framework demo | `ai`, `langgraph`, `openai-agents` | no          |
+
+## Cross-Framework Governance
+
+For a complete demonstration of Enforra's consistency, see the [Cross-Framework Governance Demo](../examples/demos/cross-framework-governance/README.md). This demo shows how one shared policy file enforces the same decisions across Vercel AI SDK, LangGraph, and OpenAI Agents SDK style tool calls.
 
 ## How It Works
 

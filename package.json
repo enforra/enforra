@@ -31,15 +31,17 @@
     "demo:db-enforra": "pnpm --filter @enforra/example-db-delete-video-demo build && node examples/demos/db-delete-video/dist/agent_db_enforra.js",
     "demo:db-unsafe:run": "node examples/demos/db-delete-video/dist/agent_db.js",
     "demo:db-enforra:run": "node examples/demos/db-delete-video/dist/agent_db_enforra.js",
-    "demo:all": "pnpm demo:support-refund && pnpm demo:openai-style && pnpm demo:mcp-style && pnpm demo:approval-evidence && pnpm demo:audit-integrity && pnpm demo:mcp-guard && pnpm demo:mcp-coding && pnpm demo:mcp-github && pnpm demo:mcp-governance && pnpm demo:observe",
+    "demo:cross-framework": "pnpm --filter @enforra/example-cross-framework-governance build && pnpm --filter @enforra/example-cross-framework-governance start",
+    "demo:all": "pnpm demo:support-refund && pnpm demo:openai-style && pnpm demo:mcp-style && pnpm demo:approval-evidence && pnpm demo:audit-integrity && pnpm demo:mcp-guard && pnpm demo:mcp-coding && pnpm demo:mcp-github && pnpm demo:mcp-governance && pnpm demo:observe && pnpm demo:cross-framework",
     "benchmark:policy": "pnpm --filter @enforra/example-benchmark-policy-eval build && pnpm --filter @enforra/example-benchmark-policy-eval start",
-    "benchmark:all": "pnpm benchmark:policy",
+    "benchmark:all": "pnpm benchmark:all",
     "bench": "pnpm benchmark:all",
     "policy:test:support-refund": "pnpm --filter @enforra/policy-simulator build && node packages/policy-simulator/dist/cli.js --policy policies/starter/support-agent.yaml --cases examples/quickstart/support-refund-node/policy-cases.yaml",
     "policy:test:openai-style": "pnpm --filter @enforra/policy-simulator build && node packages/policy-simulator/dist/cli.js --policy policies/starter/openai-style-agent.yaml --cases examples/demos/openai-style-tool-wrapper/policy-cases.yaml",
     "policy:test:mcp-style": "pnpm --filter @enforra/policy-simulator build && node packages/policy-simulator/dist/cli.js --policy policies/starter/mcp-tools.yaml --cases examples/mcp/mcp-style-policy/policy-cases.yaml",
     "policy:test:approval-evidence": "pnpm --filter @enforra/policy-simulator build && node packages/policy-simulator/dist/cli.js --policy policies/starter/approval-evidence.yaml --cases examples/audit/approval-evidence/policy-cases.yaml",
-    "policy:test:all": "pnpm policy:test:support-refund && pnpm policy:test:openai-style && pnpm policy:test:mcp-style && pnpm policy:test:approval-evidence"
+    "policy:test:cross-framework": "pnpm --filter @enforra/policy-simulator build && node packages/policy-simulator/dist/cli.js --policy policies/starter/cross-framework.yaml --cases examples/demos/cross-framework-governance/policy-cases.yaml",
+    "policy:test:all": "pnpm policy:test:support-refund && pnpm policy:test:openai-style && pnpm policy:test:mcp-style && pnpm policy:test:approval-evidence && pnpm policy:test:cross-framework"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

@@ -1,0 +1,64 @@
+version: 1
+cases:
+  - name: safe file read is allowed
+    input:
+      agent: coding-agent
+      tool: filesystem.read
+      args:
+        path: /workspace/src/app.ts
+    expect:
+      decision: allow
+      matchedPolicyId: allow-safe-file-read
+
+  - name: .env read is blocked
+    input:
+      agent: coding-agent
+      tool: filesystem.read
+      args:
+        path: /workspace/.env
+    expect:
+      decision: block
+      matchedPolicyId: block-env-read
+
+  - name: terminal command requires approval
+    input:
+      agent: coding-agent
+      tool: terminal.run
+      args:
+        command: npm install express
+    expect:
+      decision: require_approval
+      matchedPolicyId: approve-terminal-run
+
+  - name: GitHub issue is logged only
+    input:
+      agent: coding-agent
+      tool: github.create_issue
+      args:
+        title: Fix login bug
+        repo: acme/app
+    expect:
+      decision: log_only
+      matchedPolicyId: log-github-issue
+
+  - name: small refund is allowed
+    input:
+      agent: coding-agent
+      tool: support.refund
+      args:
+        amount: 25
+        customerId: cus_123
+    expect:
+      decision: allow
+      matchedPolicyId: allow-small-refund
+
+  - name: large refund is blocked
+    input:
+      agent: coding-agent
+      tool: support.refund
+      args:
+        amount: 150
+        customerId: cus_456
+    expect:
+      decision: block
+      matchedPolicyId: block-large-refund
