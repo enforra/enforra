@@ -17,15 +17,15 @@ These are integration examples and patterns, not hosted proxies or certified fra
 
 Some examples import and use real framework packages; others are framework-style wrapper patterns that demonstrate policy enforcement without introducing heavy dependencies or API key requirements. For copyable starter projects, see [templates/](../templates):
 
-| Framework                                                       | Status               | Package used                  | API keys required |
-| :-------------------------------------------------------------- | :------------------- | :---------------------------- | :---------------- |
-| **[LangGraph (Python)](integrations/langgraph.md)**             | real example         | `langgraph`, `langchain-core` | no                |
-| **[OpenAI Agents SDK (Python)](integrations/openai-agents.md)** | real example         | `openai-agents`               | no                |
-| **[Vercel AI SDK (Node.js)](integrations/vercel-ai-sdk.md)**    | real example         | `ai`, `zod`                   | no                |
-| **[CrewAI (Python)](integrations/crewai.md)**                   | pattern              | none                          | no                |
-| **[AutoGen (Python)](integrations/autogen.md)**                 | pattern              | none                          | no                |
-| **[MCP (Node.js)](mcp.md)**                                     | real Enforra wrapper | `@enforra/mcp`                | no                |
-| **[Cross-Framework Governance](../examples/demos/cross-framework-governance/README.md)** | multi-framework demo | `ai`, `langgraph`, `openai-agents` | no          |
+| Framework                                                                                | Status               | Package used                       | API keys required |
+| :--------------------------------------------------------------------------------------- | :------------------- | :--------------------------------- | :---------------- |
+| **[LangGraph (Python)](integrations/langgraph.md)**                                      | real example         | `langgraph`, `langchain-core`      | no                |
+| **[OpenAI Agents SDK (Python)](integrations/openai-agents.md)**                          | real example         | `openai-agents`                    | no                |
+| **[Vercel AI SDK (Node.js)](integrations/vercel-ai-sdk.md)**                             | real example         | `ai`, `zod`                        | no                |
+| **[CrewAI (Python)](integrations/crewai.md)**                                            | pattern              | none                               | no                |
+| **[AutoGen (Python)](integrations/autogen.md)**                                          | pattern              | none                               | no                |
+| **[MCP (Node.js)](mcp.md)**                                                              | real Enforra wrapper | `@enforra/mcp`                     | no                |
+| **[Cross-Framework Governance](../examples/demos/cross-framework-governance/README.md)** | multi-framework demo | `ai`, `langgraph`, `openai-agents` | no                |
 
 ## Cross-Framework Governance
 
