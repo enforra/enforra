@@ -378,6 +378,7 @@ This repository includes:
 - policy loading, validation, and evaluation
 - Node SDK wrapper for agent tool calls
 - local JSONL audit logging with redaction
+- local audit summaries with `enforra report`
 - optional hash-chain integrity for local audit logs
 - starter policy examples
 - runnable support, OpenAI-style, MCP-style, MCP tool guard, approval evidence, audit integrity, database guard, and benchmark demos
@@ -412,6 +413,7 @@ packages/*/test
 - [SDK reference](docs/sdk-reference.md)
 - [Framework integration patterns](docs/integrations.md)
 - [Audit behavior](docs/audit-behavior.md)
+- [Audit reporting](docs/audit-reporting.md)
 - [Audit integrity](docs/audit-integrity.md)
 - [Write your first policy](docs/write-your-first-policy.md)
 - [Policy testing](docs/policy-testing.md)

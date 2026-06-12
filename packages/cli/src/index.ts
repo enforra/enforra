@@ -20,6 +20,45 @@ interface ParsedOptions {
   positionals: string[];
 }
 
+type AuditDecision = "allow" | "block" | "require_approval" | "log_only";
+
+type ReportFormat = "text" | "json" | "markdown";
+
+interface SafeAuditEvent {
+  timestamp?: string;
+  agent?: string;
+  tool?: string;
+  decision?: AuditDecision;
+  matchedPolicyId?: string;
+  reason?: string;
+  status?: string;
+}
+
+interface AuditReportSummary {
+  total: number;
+  allow: number;
+  block: number;
+  require_approval: number;
+  log_only: number;
+  skippedMalformedLines: number;
+}
+
+interface AuditReport {
+  auditFile: string;
+  summary: AuditReportSummary;
+  agents: Record<string, number>;
+  tools: Record<string, number>;
+  decisions: Record<AuditDecision, number>;
+  events: SafeAuditEvent[];
+}
+
+interface ReportFilters {
+  since?: Date;
+  agent?: string;
+  tool?: string;
+  decision?: AuditDecision;
+}
+
 const defaultPolicyPath = "policies/enforra.yaml";
 const defaultCasesPath = "policies/enforra.cases.yaml";
 const defaultAuditPath = ".enforra/audit.jsonl";
@@ -43,6 +82,10 @@ export async function runCli(args: string[], io: CliIo = {}): Promise<number> {
 
     if (command === "test") {
       return await runTest(args.slice(1), cwd, stdout, stderr);
+    }
+
+    if (command === "report") {
+      return await runReport(args.slice(1), cwd, stdout, stderr);
     }
 
     if (command === "audit" && subcommand === "verify") {
@@ -69,6 +112,7 @@ function helpText(): string {
 Commands:
   init             Create starter policy and test files
   test             Run policy tests
+  report           Summarize local JSONL audit logs
   audit verify     Verify hash-chain audit log integrity
   doctor           Check local setup`;
 }
@@ -171,6 +215,346 @@ Events checked: ${result.eventsChecked}
 First invalid line: ${result.firstInvalidLine ?? "unknown"}
 Reason: ${result.reason ?? "unknown"}`);
   return 1;
+}
+
+async function runReport(
+  args: string[],
+  cwd: string,
+  stdout: Pick<typeof console, "log">,
+  stderr: Pick<typeof console, "error">
+): Promise<number> {
+  const options = parseOptions(args);
+  const auditPathInput = options.values.get("--audit") ?? defaultAuditPath;
+  const auditPath = resolveCliPath(cwd, auditPathInput);
+  const format = parseReportFormat(options.values.get("--format") ?? "text");
+  const filters = parseReportFilters(options);
+
+  if (!(await pathExists(auditPath))) {
+    stderr.error(`Audit log not found: ${auditPath}`);
+    stderr.error("Run an Enforra-protected tool call first, then try again.");
+    return 1;
+  }
+
+  const report = buildAuditReport(await readFile(auditPath, "utf8"), auditPathInput, filters);
+
+  if (format === "json") {
+    stdout.log(JSON.stringify(report, null, 2));
+    return 0;
+  }
+
+  if (format === "markdown") {
+    stdout.log(formatAuditReportMarkdown(report));
+    return 0;
+  }
+
+  stdout.log(formatAuditReportText(report));
+  return 0;
+}
+
+function parseReportFormat(format: string): ReportFormat {
+  if (format === "text" || format === "json" || format === "markdown") {
+    return format;
+  }
+
+  throw new Error("--format must be one of: text, json, markdown");
+}
+
+function parseReportFilters(options: ParsedOptions): ReportFilters {
+  const sinceInput = options.values.get("--since");
+  const since = sinceInput === undefined ? undefined : new Date(sinceInput);
+  if (since !== undefined && Number.isNaN(since.getTime())) {
+    throw new Error("--since must be a valid ISO date or timestamp");
+  }
+
+  const decisionInput = options.values.get("--decision");
+  const decision = decisionInput === undefined ? undefined : parseAuditDecision(decisionInput);
+
+  return {
+    since,
+    agent: options.values.get("--agent"),
+    tool: options.values.get("--tool"),
+    decision
+  };
+}
+
+function parseAuditDecision(decision: string): AuditDecision {
+  if (
+    decision === "allow" ||
+    decision === "block" ||
+    decision === "require_approval" ||
+    decision === "log_only"
+  ) {
+    return decision;
+  }
+
+  throw new Error("--decision must be one of: allow, block, require_approval, log_only");
+}
+
+function buildAuditReport(
+  contents: string,
+  auditFile: string,
+  filters: ReportFilters
+): AuditReport {
+  const events: SafeAuditEvent[] = [];
+  let skippedMalformedLines = 0;
+
+  for (const line of contents.split(/\r?\n/)) {
+    if (line.trim().length === 0) {
+      continue;
+    }
+
+    const parsed = parseAuditLine(line);
+    if (parsed === undefined) {
+      skippedMalformedLines += 1;
+      continue;
+    }
+
+    const event = toSafeAuditEvent(parsed);
+    if (matchesReportFilters(event, filters)) {
+      events.push(event);
+    }
+  }
+
+  return {
+    auditFile,
+    summary: summarizeAuditEvents(events, skippedMalformedLines),
+    agents: countBy(events, (event) => event.agent),
+    tools: countBy(events, (event) => event.tool),
+    decisions: {
+      allow: countDecision(events, "allow"),
+      block: countDecision(events, "block"),
+      require_approval: countDecision(events, "require_approval"),
+      log_only: countDecision(events, "log_only")
+    },
+    events
+  };
+}
+
+function parseAuditLine(line: string): Record<string, unknown> | undefined {
+  try {
+    const parsed = JSON.parse(line) as unknown;
+    return isRecord(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function toSafeAuditEvent(event: Record<string, unknown>): SafeAuditEvent {
+  return removeUndefinedProperties({
+    timestamp: getString(event, "timestamp"),
+    agent: getString(event, "agent"),
+    tool: getString(event, "tool") ?? getString(event, "tool_name"),
+    decision: getDecision(event, "decision"),
+    matchedPolicyId: getString(event, "matchedPolicyId") ?? getString(event, "matched_policy_id"),
+    reason: redactSensitiveText(getString(event, "reason")),
+    status: getString(event, "status")
+  });
+}
+
+function matchesReportFilters(event: SafeAuditEvent, filters: ReportFilters): boolean {
+  if (filters.agent !== undefined && event.agent !== filters.agent) {
+    return false;
+  }
+
+  if (filters.tool !== undefined && event.tool !== filters.tool) {
+    return false;
+  }
+
+  if (filters.decision !== undefined && event.decision !== filters.decision) {
+    return false;
+  }
+
+  if (filters.since !== undefined && event.timestamp !== undefined) {
+    const eventDate = new Date(event.timestamp);
+    if (!Number.isNaN(eventDate.getTime()) && eventDate < filters.since) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function summarizeAuditEvents(
+  events: SafeAuditEvent[],
+  skippedMalformedLines: number
+): AuditReportSummary {
+  return {
+    total: events.length,
+    allow: countDecision(events, "allow"),
+    block: countDecision(events, "block"),
+    require_approval: countDecision(events, "require_approval"),
+    log_only: countDecision(events, "log_only"),
+    skippedMalformedLines
+  };
+}
+
+function countDecision(events: SafeAuditEvent[], decision: AuditDecision): number {
+  return events.filter((event) => event.decision === decision).length;
+}
+
+function countBy(
+  events: SafeAuditEvent[],
+  valueForEvent: (event: SafeAuditEvent) => string | undefined
+): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const event of events) {
+    const value = valueForEvent(event);
+    if (value !== undefined) {
+      counts[value] = (counts[value] ?? 0) + 1;
+    }
+  }
+  return sortCounts(counts);
+}
+
+function sortCounts(counts: Record<string, number>): Record<string, number> {
+  return Object.fromEntries(
+    Object.entries(counts).sort(([leftKey, leftCount], [rightKey, rightCount]) => {
+      if (rightCount !== leftCount) {
+        return rightCount - leftCount;
+      }
+
+      return leftKey.localeCompare(rightKey);
+    })
+  );
+}
+
+function formatAuditReportText(report: AuditReport): string {
+  const lines = [
+    "Enforra audit report",
+    "",
+    "Audit file:",
+    report.auditFile,
+    "",
+    "Summary:",
+    `Total events: ${report.summary.total}`,
+    `Allowed: ${report.summary.allow}`,
+    `Blocked: ${report.summary.block}`,
+    `Required approval: ${report.summary.require_approval}`,
+    `Logged only: ${report.summary.log_only}`
+  ];
+
+  if (report.summary.skippedMalformedLines > 0) {
+    lines.push(`Skipped malformed lines: ${report.summary.skippedMalformedLines}`);
+  }
+
+  lines.push("", "Top agents:", ...formatCountLines(report.agents));
+  lines.push("", "Top tools:", ...formatCountLines(report.tools));
+  lines.push("", "Blocked actions:", ...formatActionLines(blockedEvents(report)));
+  lines.push("", "Approval required:", ...formatActionLines(approvalRequiredEvents(report)));
+
+  return lines.join("\n");
+}
+
+function formatAuditReportMarkdown(report: AuditReport): string {
+  const lines = [
+    "# Enforra Audit Report",
+    "",
+    `Audit file: \`${report.auditFile}\``,
+    "",
+    "## Summary",
+    "",
+    "| Metric | Count |",
+    "| --- | ---: |",
+    `| Total events | ${report.summary.total} |`,
+    `| Allowed | ${report.summary.allow} |`,
+    `| Blocked | ${report.summary.block} |`,
+    `| Required approval | ${report.summary.require_approval} |`,
+    `| Logged only | ${report.summary.log_only} |`,
+    `| Skipped malformed lines | ${report.summary.skippedMalformedLines} |`,
+    "",
+    "## Decision Counts",
+    "",
+    "| Decision | Count |",
+    "| --- | ---: |",
+    `| allow | ${report.decisions.allow} |`,
+    `| block | ${report.decisions.block} |`,
+    `| require_approval | ${report.decisions.require_approval} |`,
+    `| log_only | ${report.decisions.log_only} |`,
+    "",
+    "## Top Tools",
+    "",
+    ...formatMarkdownCountLines(report.tools),
+    "",
+    "## Blocked Actions",
+    "",
+    ...formatMarkdownActionLines(blockedEvents(report)),
+    "",
+    "## Approval Required Actions",
+    "",
+    ...formatMarkdownActionLines(approvalRequiredEvents(report))
+  ];
+
+  return lines.join("\n");
+}
+
+function formatCountLines(counts: Record<string, number>): string[] {
+  const entries = Object.entries(counts);
+  if (entries.length === 0) {
+    return ["(none)"];
+  }
+
+  return entries.map(([name, count]) => `${name}: ${count}`);
+}
+
+function formatMarkdownCountLines(counts: Record<string, number>): string[] {
+  const entries = Object.entries(counts);
+  if (entries.length === 0) {
+    return ["(none)"];
+  }
+
+  return [
+    "| Tool | Count |",
+    "| --- | ---: |",
+    ...entries.map(([name, count]) => `| \`${name}\` | ${count} |`)
+  ];
+}
+
+function formatActionLines(events: SafeAuditEvent[]): string[] {
+  if (events.length === 0) {
+    return ["(none)"];
+  }
+
+  return events.flatMap((event) => {
+    const lines = [`* ${formatEventHeader(event)}`];
+    if (event.reason !== undefined) {
+      lines.push(`  reason: ${event.reason}`);
+    }
+    if (event.matchedPolicyId !== undefined) {
+      lines.push(`  matched policy: ${event.matchedPolicyId}`);
+    }
+    return lines;
+  });
+}
+
+function formatMarkdownActionLines(events: SafeAuditEvent[]): string[] {
+  if (events.length === 0) {
+    return ["(none)"];
+  }
+
+  return events.flatMap((event) => {
+    const lines = [`- ${formatEventHeader(event)}`];
+    if (event.reason !== undefined) {
+      lines.push(`  - reason: ${event.reason}`);
+    }
+    if (event.matchedPolicyId !== undefined) {
+      lines.push(`  - matched policy: \`${event.matchedPolicyId}\``);
+    }
+    return lines;
+  });
+}
+
+function formatEventHeader(event: SafeAuditEvent): string {
+  return [event.timestamp, event.agent, event.tool]
+    .filter((value) => value !== undefined)
+    .join(" ");
+}
+
+function blockedEvents(report: AuditReport): SafeAuditEvent[] {
+  return report.events.filter((event) => event.decision === "block");
+}
+
+function approvalRequiredEvents(report: AuditReport): SafeAuditEvent[] {
+  return report.events.filter((event) => event.decision === "require_approval");
 }
 
 function resolveCliPath(cwd: string, inputPath: string): string {
@@ -284,7 +668,17 @@ function parseOptions(args: string[]): ParsedOptions {
       continue;
     }
 
-    if (arg === "--policy" || arg === "--cases" || arg === "--path") {
+    if (
+      arg === "--policy" ||
+      arg === "--cases" ||
+      arg === "--path" ||
+      arg === "--audit" ||
+      arg === "--format" ||
+      arg === "--since" ||
+      arg === "--agent" ||
+      arg === "--tool" ||
+      arg === "--decision"
+    ) {
       const value = args[index + 1];
       if (value === undefined || value.startsWith("--")) {
         throw new Error(`${arg} requires a value`);
@@ -334,6 +728,50 @@ function readRecord(value: unknown): Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
+}
+
+function getString(record: Record<string, unknown>, key: string): string | undefined {
+  const value = record[key];
+  return typeof value === "string" ? value : undefined;
+}
+
+function getDecision(record: Record<string, unknown>, key: string): AuditDecision | undefined {
+  const value = record[key];
+  return typeof value === "string" ? parseOptionalAuditDecision(value) : undefined;
+}
+
+function parseOptionalAuditDecision(decision: string): AuditDecision | undefined {
+  if (
+    decision === "allow" ||
+    decision === "block" ||
+    decision === "require_approval" ||
+    decision === "log_only"
+  ) {
+    return decision;
+  }
+
+  return undefined;
+}
+
+function removeUndefinedProperties(event: SafeAuditEvent): SafeAuditEvent {
+  return Object.fromEntries(
+    Object.entries(event).filter(([, value]) => value !== undefined)
+  ) as SafeAuditEvent;
+}
+
+function redactSensitiveText(value: string | undefined): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  return value
+    .replace(/\bBearer\s+[-._~+/A-Za-z0-9]+=*/gi, "Bearer [REDACTED]")
+    .replace(/\b(token|api_key|apikey|authorization|password|secret)=([^&\s]+)/gi, "$1=[REDACTED]")
+    .replace(/\bsk_[A-Za-z0-9_=-]+/g, "[REDACTED]");
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function nodeMajorVersion(): number {
