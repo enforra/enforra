@@ -238,6 +238,21 @@ cases:
     expect(output.lines.join("\n")).toContain("First invalid line: 1");
   });
 
+  it("audit verify rejects report-only --audit option", async () => {
+    const dir = await createTempDir();
+    const output = createOutput();
+
+    const exitCode = await runCli(["audit", "verify", "--audit", "audit.jsonl"], {
+      cwd: dir,
+      stdout: output.stdout,
+      stderr: output.stderr
+    });
+
+    expect(exitCode).toBe(1);
+    expect(output.errors.join("\n")).toContain("Unsupported option for audit verify: --audit");
+    expect(output.errors.join("\n")).toContain("Use --path for audit verification.");
+  });
+
   it("report exits non-zero when the audit file is missing", async () => {
     const dir = await createTempDir();
     const output = createOutput();
@@ -250,6 +265,30 @@ cases:
 
     expect(exitCode).toBe(1);
     expect(output.errors.join("\n")).toContain("Audit log not found:");
+  });
+
+  it("report accepts --audit", async () => {
+    const output = createOutput();
+
+    const exitCode = await runCli(["report", "--audit", fixtureAuditPath], {
+      stdout: output.stdout
+    });
+
+    expect(exitCode).toBe(0);
+    expect(output.lines.join("\n")).toContain("Total events: 4");
+  });
+
+  it("report rejects audit verify --path option", async () => {
+    const output = createOutput();
+
+    const exitCode = await runCli(["report", "--path", fixtureAuditPath], {
+      stdout: output.stdout,
+      stderr: output.stderr
+    });
+
+    expect(exitCode).toBe(1);
+    expect(output.errors.join("\n")).toContain("Unsupported option for report: --path");
+    expect(output.errors.join("\n")).toContain("Use --audit for audit reports.");
   });
 
   it("report returns zero events for an empty audit file", async () => {
@@ -286,6 +325,20 @@ cases:
     expect(text).toContain("Blocked: 1");
     expect(text).toContain("Required approval: 1");
     expect(text).toContain("Logged only: 1");
+  });
+
+  it("non-report commands reject report-only --audit option", async () => {
+    const dir = await createTempDir();
+    const output = createOutput();
+
+    const exitCode = await runCli(["test", "--audit", "audit.jsonl"], {
+      cwd: dir,
+      stdout: output.stdout,
+      stderr: output.stderr
+    });
+
+    expect(exitCode).toBe(1);
+    expect(output.errors.join("\n")).toContain("Unsupported option for test: --audit");
   });
 
   it("report skips malformed JSONL lines and reports the count", async () => {

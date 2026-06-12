@@ -20,6 +20,13 @@ interface ParsedOptions {
   positionals: string[];
 }
 
+interface OptionSpec {
+  commandName: string;
+  flags?: string[];
+  values?: string[];
+  suggestions?: Record<string, string>;
+}
+
 type AuditDecision = "allow" | "block" | "require_approval" | "log_only";
 
 type ReportFormat = "text" | "json" | "markdown";
@@ -122,7 +129,10 @@ async function runInit(
   cwd: string,
   stdout: Pick<typeof console, "log">
 ): Promise<number> {
-  const options = parseOptions(args);
+  const options = parseOptions(args, {
+    commandName: "init",
+    flags: ["--force"]
+  });
   const force = options.flags.has("--force");
   const policyPath = join(cwd, defaultPolicyPath);
   const casesPath = join(cwd, defaultCasesPath);
@@ -164,7 +174,11 @@ async function runTest(
   stdout: Pick<typeof console, "log">,
   stderr: Pick<typeof console, "error">
 ): Promise<number> {
-  const options = parseOptions(args);
+  const options = parseOptions(args, {
+    commandName: "test",
+    flags: ["--trace", "--json"],
+    values: ["--policy", "--cases"]
+  });
   const policyPath = resolveCliPath(cwd, options.values.get("--policy") ?? defaultPolicyPath);
   const casesPath = resolveCliPath(cwd, options.values.get("--cases") ?? defaultCasesPath);
   const trace = options.flags.has("--trace");
@@ -194,7 +208,13 @@ async function runAuditVerify(
   stdout: Pick<typeof console, "log">,
   stderr: Pick<typeof console, "error">
 ): Promise<number> {
-  const options = parseOptions(args);
+  const options = parseOptions(args, {
+    commandName: "audit verify",
+    values: ["--path"],
+    suggestions: {
+      "--audit": "Use --path for audit verification."
+    }
+  });
   const auditPath = resolveCliPath(cwd, options.values.get("--path") ?? defaultAuditPath);
 
   if (!(await pathExists(auditPath))) {
@@ -223,7 +243,13 @@ async function runReport(
   stdout: Pick<typeof console, "log">,
   stderr: Pick<typeof console, "error">
 ): Promise<number> {
-  const options = parseOptions(args);
+  const options = parseOptions(args, {
+    commandName: "report",
+    values: ["--audit", "--format", "--since", "--agent", "--tool", "--decision"],
+    suggestions: {
+      "--path": "Use --audit for audit reports."
+    }
+  });
   const auditPathInput = options.values.get("--audit") ?? defaultAuditPath;
   const auditPath = resolveCliPath(cwd, auditPathInput);
   const format = parseReportFormat(options.values.get("--format") ?? "text");
@@ -652,10 +678,12 @@ async function readPackageJson(cwd: string): Promise<Record<string, unknown> | u
     : undefined;
 }
 
-function parseOptions(args: string[]): ParsedOptions {
+function parseOptions(args: string[], spec: OptionSpec): ParsedOptions {
   const values = new Map<string, string>();
   const flags = new Set<string>();
   const positionals: string[] = [];
+  const allowedFlags = new Set(spec.flags ?? []);
+  const allowedValues = new Set(spec.values ?? []);
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
@@ -663,22 +691,12 @@ function parseOptions(args: string[]): ParsedOptions {
       continue;
     }
 
-    if (arg === "--force" || arg === "--trace" || arg === "--json") {
+    if (allowedFlags.has(arg)) {
       flags.add(arg);
       continue;
     }
 
-    if (
-      arg === "--policy" ||
-      arg === "--cases" ||
-      arg === "--path" ||
-      arg === "--audit" ||
-      arg === "--format" ||
-      arg === "--since" ||
-      arg === "--agent" ||
-      arg === "--tool" ||
-      arg === "--decision"
-    ) {
+    if (allowedValues.has(arg)) {
       const value = args[index + 1];
       if (value === undefined || value.startsWith("--")) {
         throw new Error(`${arg} requires a value`);
@@ -689,7 +707,10 @@ function parseOptions(args: string[]): ParsedOptions {
     }
 
     if (arg.startsWith("--")) {
-      throw new Error(`Unknown option: ${arg}`);
+      const suggestion = spec.suggestions?.[arg];
+      throw new Error(
+        `Unsupported option for ${spec.commandName}: ${arg}${suggestion === undefined ? "" : `. ${suggestion}`}`
+      );
     }
 
     positionals.push(arg);
