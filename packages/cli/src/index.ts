@@ -390,9 +390,13 @@ function matchesReportFilters(event: SafeAuditEvent, filters: ReportFilters): bo
     return false;
   }
 
-  if (filters.since !== undefined && event.timestamp !== undefined) {
+  if (filters.since !== undefined) {
+    if (event.timestamp === undefined) {
+      return false;
+    }
+
     const eventDate = new Date(event.timestamp);
-    if (!Number.isNaN(eventDate.getTime()) && eventDate < filters.since) {
+    if (Number.isNaN(eventDate.getTime()) || eventDate < filters.since) {
       return false;
     }
   }
@@ -497,9 +501,13 @@ function formatAuditReportMarkdown(report: AuditReport): string {
     `| require_approval | ${report.decisions.require_approval} |`,
     `| log_only | ${report.decisions.log_only} |`,
     "",
+    "## Top Agents",
+    "",
+    ...formatMarkdownCountLines(report.agents, "Agent"),
+    "",
     "## Top Tools",
     "",
-    ...formatMarkdownCountLines(report.tools),
+    ...formatMarkdownCountLines(report.tools, "Tool"),
     "",
     "## Blocked Actions",
     "",
@@ -522,14 +530,14 @@ function formatCountLines(counts: Record<string, number>): string[] {
   return entries.map(([name, count]) => `${name}: ${count}`);
 }
 
-function formatMarkdownCountLines(counts: Record<string, number>): string[] {
+function formatMarkdownCountLines(counts: Record<string, number>, label: string): string[] {
   const entries = Object.entries(counts);
   if (entries.length === 0) {
     return ["(none)"];
   }
 
   return [
-    "| Tool | Count |",
+    `| ${label} | Count |`,
     "| --- | ---: |",
     ...entries.map(([name, count]) => `| \`${name}\` | ${count} |`)
   ];

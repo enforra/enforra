@@ -416,6 +416,31 @@ cases:
     expect(output.lines.join("\n")).toContain("Allowed: 0");
   });
 
+  it("report since filter excludes missing and invalid timestamps", async () => {
+    const dir = await createTempDir();
+    const auditPath = join(dir, ".enforra/audit.jsonl");
+    const output = createOutput();
+    await writeAuditLog(auditPath, [
+      auditEvent({ timestamp: "2026-06-12T10:29:59.000Z", tool: "filesystem.old" }),
+      auditEvent({ timestamp: "2026-06-12T10:30:00.000Z", tool: "filesystem.new" }),
+      auditEvent({ timestamp: "not-a-date", tool: "filesystem.invalid" }),
+      auditEvent({ timestamp: undefined, tool: "filesystem.missing" })
+    ]);
+
+    const exitCode = await runCli(["report", "--since", "2026-06-12T10:30:00.000Z"], {
+      cwd: dir,
+      stdout: output.stdout
+    });
+    const text = output.lines.join("\n");
+
+    expect(exitCode).toBe(0);
+    expect(text).toContain("Total events: 1");
+    expect(text).toContain("filesystem.new: 1");
+    expect(text).not.toContain("filesystem.old");
+    expect(text).not.toContain("filesystem.invalid");
+    expect(text).not.toContain("filesystem.missing");
+  });
+
   it("report outputs valid JSON with safe event fields", async () => {
     const output = createOutput();
 
@@ -447,6 +472,20 @@ cases:
     expect(exitCode).toBe(0);
     expect(output.lines.join("\n")).toContain("| Metric | Count |");
     expect(output.lines.join("\n")).toContain("| Total events | 4 |");
+  });
+
+  it("report markdown includes an agent summary", async () => {
+    const output = createOutput();
+
+    const exitCode = await runCli(["report", "--audit", fixtureAuditPath, "--format", "markdown"], {
+      stdout: output.stdout
+    });
+
+    expect(exitCode).toBe(0);
+    expect(output.lines.join("\n")).toContain("## Top Agents");
+    expect(output.lines.join("\n")).toContain("| Agent | Count |");
+    expect(output.lines.join("\n")).toContain("| `coding-agent` | 2 |");
+    expect(output.lines.join("\n")).toContain("| `support-agent` | 2 |");
   });
 
   it("report does not print sensitive args", async () => {
