@@ -7,6 +7,7 @@ import {
   formatPolicyTestRunJson
 } from "@enforra/policy-simulator";
 import { verifyAuditLog } from "@enforra/local-audit";
+import { runDriftBaseline, runDriftCheck } from "./drift.js";
 
 export interface CliIo {
   stdout?: Pick<typeof console, "log">;
@@ -99,6 +100,14 @@ export async function runCli(args: string[], io: CliIo = {}): Promise<number> {
       return await runAuditVerify(args.slice(2), cwd, stdout, stderr);
     }
 
+    if (command === "drift" && subcommand === "baseline") {
+      return await runDriftBaseline(args.slice(2), { cwd, stdout, stderr });
+    }
+
+    if (command === "drift" && subcommand === "check") {
+      return await runDriftCheck(args.slice(2), { cwd, stdout, stderr });
+    }
+
     if (command === "doctor") {
       return await runDoctor(cwd, stdout);
     }
@@ -121,6 +130,8 @@ Commands:
   test             Run policy tests
   report           Summarize local JSONL audit logs
   audit verify     Verify hash-chain audit log integrity
+  drift baseline   Record approved tool baseline
+  drift check      Detect tool definition drift from baseline
   doctor           Check local setup`;
 }
 

@@ -423,6 +423,7 @@ packages/*/test
 - [MCP Integration](docs/mcp.md)
 - [Security model](docs/security-model.md)
 - [Limitations](docs/limitations.md)
+- [Tool baseline drift detection](docs/tool-drift.md)
 
 ## Feedback and Community
 

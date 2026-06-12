@@ -1,0 +1,60 @@
+{
+  "tools": [
+    {
+      "name": "filesystem.read",
+      "description": "Read a file from the local filesystem",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string", "description": "Absolute path to the file" }
+        },
+        "required": ["path"]
+      },
+      "permissions": ["read"],
+      "capabilities": ["filesystem"],
+      "endpoint": "local://filesystem"
+    },
+    {
+      "name": "terminal.run",
+      "description": "Execute a shell command",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "command": { "type": "string", "description": "The command to execute" }
+        },
+        "required": ["command"]
+      },
+      "permissions": ["execute"],
+      "capabilities": ["code_execution", "filesystem"],
+      "endpoint": "local://terminal"
+    },
+    {
+      "name": "github.create_issue",
+      "description": "Create a GitHub issue",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "body": { "type": "string" },
+          "repo": { "type": "string" }
+        },
+        "required": ["title", "repo"]
+      },
+      "permissions": ["write"],
+      "capabilities": ["network", "version_control"]
+    },
+    {
+      "name": "support.refund",
+      "description": "Process a customer refund",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "amount": { "type": "number" },
+          "reason": { "type": "string" }
+        },
+        "required": ["amount"]
+      },
+      "permissions": ["write"]
+    }
+  ]
+}
