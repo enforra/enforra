@@ -49,16 +49,16 @@ describe("drift", () => {
   });
 
   describe("inferCapabilities", () => {
-    it("infers filesystem from tool name", () => {
-      expect(inferCapabilities("filesystem.read")).toContain("filesystem");
+    it("infers read from tool name", () => {
+      expect(inferCapabilities("filesystem.read")).toContain("read");
     });
 
-    it("infers code_execution from terminal tool", () => {
-      expect(inferCapabilities("terminal.run")).toContain("code_execution");
+    it("infers shell from terminal tool", () => {
+      expect(inferCapabilities("terminal.run")).toContain("shell");
     });
 
-    it("infers version_control from github tool", () => {
-      expect(inferCapabilities("github.create_issue")).toContain("version_control");
+    it("infers write from github create tool", () => {
+      expect(inferCapabilities("github.create_issue")).toContain("write");
     });
 
     it("infers network from description", () => {
@@ -140,6 +140,21 @@ describe("drift", () => {
     it("returns low for a benign tool", () => {
       expect(newToolSeverity({ name: "calculator.add", description: "Add numbers" })).toBe("low");
     });
+
+    it("regression: read-only tool is not high just because it says read", () => {
+      expect(newToolSeverity({ name: "filesystem.read", description: "Read files only" })).toBe(
+        "low"
+      );
+    });
+
+    it("regression: query is not automatically high unless risk metadata says so", () => {
+      expect(newToolSeverity({ name: "database.query", description: "Query database" })).toBe(
+        "low"
+      );
+      expect(newToolSeverity({ name: "database.query", capabilities: ["production"] })).toBe(
+        "high"
+      );
+    });
   });
 
   describe("createBaselineTool", () => {
@@ -156,7 +171,7 @@ describe("drift", () => {
       expect(entry.hash).toHaveLength(64);
       expect(entry.description).toBe("Read a file");
       expect(entry.permissions).toEqual(["read"]);
-      expect(entry.inferredCapabilities).toContain("filesystem");
+      expect(entry.inferredCapabilities).toContain("read");
     });
 
     it("omits undefined optional fields", () => {
@@ -169,6 +184,15 @@ describe("drift", () => {
       expect(entry.permissions).toBeUndefined();
       expect(entry.capabilities).toBeUndefined();
       expect(entry.endpoint).toBeUndefined();
+    });
+
+    it("regression: endpoint query strings are not stored", () => {
+      const tool: ToolDefinition = {
+        name: "test",
+        endpoint: "https://api.example.com/v1/data?token=secret123&query=foo"
+      };
+      const entry = createBaselineTool(tool);
+      expect(entry.endpoint).toBe("https://api.example.com/v1/data");
     });
   });
 
@@ -197,7 +221,7 @@ describe("drift", () => {
         description: "Test",
         inputSchema: { type: "object" },
         permissions: ["read"],
-        capabilities: ["filesystem"],
+        capabilities: ["read"],
         endpoint: "local://test"
       };
       const baseline = createBaselineTool(tool);
@@ -223,29 +247,45 @@ describe("drift", () => {
       expect(findings[0]?.severity).toBe("medium");
     });
 
-    it("detects permission changes", () => {
+    it("regression: differentiates permission expansion vs reduction", () => {
       const original: ToolDefinition = { name: "test.tool", permissions: ["read"] };
       const baseline = createBaselineTool(original);
-      const modified: ToolDefinition = { name: "test.tool", permissions: ["read", "write"] };
-      const findings = compareTool(modified, baseline);
 
-      expect(findings).toHaveLength(1);
-      expect(findings[0]?.type).toBe("permissions_changed");
-      expect(findings[0]?.severity).toBe("high");
+      // Expansion
+      const expanded = compareTool({ name: "test.tool", permissions: ["read", "write"] }, baseline);
+      expect(expanded).toHaveLength(1);
+      expect(expanded[0]?.type).toBe("permissions_changed");
+      expect(expanded[0]?.severity).toBe("high");
+      expect(expanded[0]?.detail).toContain("permissions expanded");
+
+      // Reduction
+      const reduced = compareTool({ name: "test.tool", permissions: [] }, baseline);
+      expect(reduced).toHaveLength(1);
+      expect(reduced[0]?.type).toBe("permissions_changed");
+      expect(reduced[0]?.severity).toBe("low");
+      expect(reduced[0]?.detail).toContain("permissions reduced");
     });
 
-    it("detects capability changes", () => {
-      const original: ToolDefinition = { name: "test.tool", capabilities: ["filesystem"] };
+    it("regression: differentiates capability expansion vs reduction", () => {
+      const original: ToolDefinition = { name: "test.tool", capabilities: ["read"] };
       const baseline = createBaselineTool(original);
-      const modified: ToolDefinition = {
-        name: "test.tool",
-        capabilities: ["filesystem", "network"]
-      };
-      const findings = compareTool(modified, baseline);
 
-      expect(findings).toHaveLength(1);
-      expect(findings[0]?.type).toBe("capabilities_changed");
-      expect(findings[0]?.severity).toBe("high");
+      // Expansion
+      const expanded = compareTool(
+        { name: "test.tool", capabilities: ["read", "write"] },
+        baseline
+      );
+      expect(expanded).toHaveLength(1);
+      expect(expanded[0]?.type).toBe("capabilities_changed");
+      expect(expanded[0]?.severity).toBe("high");
+      expect(expanded[0]?.detail).toContain("capabilities expanded");
+
+      // Reduction
+      const reduced = compareTool({ name: "test.tool", capabilities: [] }, baseline);
+      expect(reduced).toHaveLength(1);
+      expect(reduced[0]?.type).toBe("capabilities_changed");
+      expect(reduced[0]?.severity).toBe("low");
+      expect(reduced[0]?.detail).toContain("capabilities reduced");
     });
 
     it("detects endpoint changes", () => {
@@ -452,6 +492,16 @@ describe("drift", () => {
       expect(() =>
         parseToolManifest(JSON.stringify({ tools: [{ description: "no name" }] }))
       ).toThrow("non-empty 'name'");
+    });
+
+    it("regression: duplicate tool names fail clearly", () => {
+      expect(() =>
+        parseToolManifest(
+          JSON.stringify({
+            tools: [{ name: "dup.tool" }, { name: "dup.tool" }]
+          })
+        )
+      ).toThrow("Duplicate tool name found in manifest: dup.tool");
     });
   });
 
