@@ -60,12 +60,15 @@ git diff --stat
 
 ### Base Required Checks
 
-Run these checks before submitting:
+Run these checks and ensure they are staged/committed before submitting:
 
 ```bash
 pnpm format
 pnpm verify:oss
 ```
+
+> [!IMPORTANT]
+> Run `pnpm format` _before_ running `git commit` to ensure formatting changes in TS/JS/Markdown/YAML files are staged and committed.
 
 ### Python SDK Checks
 
