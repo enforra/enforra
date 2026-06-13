@@ -107,6 +107,7 @@ describe("drift CLI", () => {
   it("drift check detects schema drift and exits non-zero", async () => {
     const dir = await createTempDir();
     const toolsPath = join(dir, "tools.json");
+    const riskProfilePath = join(dir, "risk-profile.json");
     const output = createOutput();
 
     await writeFile(
@@ -135,10 +136,21 @@ describe("drift CLI", () => {
       "utf8"
     );
 
-    const exitCode = await runCli(["drift", "check", "--tools", toolsPath], {
-      cwd: dir,
-      stdout: output.stdout
-    });
+    await writeFile(
+      riskProfilePath,
+      JSON.stringify({
+        driftSeverities: { schema_changed: "medium" }
+      }),
+      "utf8"
+    );
+
+    const exitCode = await runCli(
+      ["drift", "check", "--tools", toolsPath, "--risk-profile", riskProfilePath],
+      {
+        cwd: dir,
+        stdout: output.stdout
+      }
+    );
 
     expect(exitCode).toBe(1);
     expect(output.lines.join("\n")).toContain("schema_changed");
@@ -236,6 +248,7 @@ describe("drift CLI", () => {
   it("drift check outputs markdown with --format markdown", async () => {
     const dir = await createTempDir();
     const toolsPath = join(dir, "tools.json");
+    const riskProfilePath = join(dir, "risk-profile.json");
     const output = createOutput();
 
     await writeFile(toolsPath, JSON.stringify({ tools: [{ name: "x.tool" }] }), "utf8");
@@ -244,8 +257,25 @@ describe("drift CLI", () => {
       stdout: createOutput().stdout
     });
 
+    await writeFile(
+      riskProfilePath,
+      JSON.stringify({
+        driftSeverities: { new_tool: "low" }
+      }),
+      "utf8"
+    );
+
     const exitCode = await runCli(
-      ["drift", "check", "--tools", toolsPath, "--format", "markdown"],
+      [
+        "drift",
+        "check",
+        "--tools",
+        toolsPath,
+        "--format",
+        "markdown",
+        "--risk-profile",
+        riskProfilePath
+      ],
       { cwd: dir, stdout: output.stdout }
     );
 
@@ -310,6 +340,7 @@ describe("drift CLI", () => {
     const dir = await createTempDir();
     const toolsPath = join(dir, "tools.json");
     const rulesPath = join(dir, "rules.json");
+    const riskProfilePath = join(dir, "risk-profile.json");
 
     // A tool named terminal.run declaring only 'read' capability
     const manifest = {
@@ -331,6 +362,14 @@ describe("drift CLI", () => {
 
     await writeFile(toolsPath, JSON.stringify(manifest), "utf8");
     await writeFile(rulesPath, JSON.stringify(rules), "utf8");
+    await writeFile(
+      riskProfilePath,
+      JSON.stringify({
+        driftSeverities: { capability_metadata_mismatch: "high" },
+        highRiskCapabilities: ["shell"]
+      }),
+      "utf8"
+    );
 
     await runCli(["drift", "baseline", "--tools", toolsPath], {
       cwd: dir,
@@ -349,7 +388,16 @@ describe("drift CLI", () => {
     // 2. With --lint-rules, capability_metadata_mismatch is flagged
     const outputWithLint = createOutput();
     const exitCodeWithLint = await runCli(
-      ["drift", "check", "--tools", toolsPath, "--lint-rules", rulesPath],
+      [
+        "drift",
+        "check",
+        "--tools",
+        toolsPath,
+        "--lint-rules",
+        rulesPath,
+        "--risk-profile",
+        riskProfilePath
+      ],
       {
         cwd: dir,
         stdout: outputWithLint.stdout

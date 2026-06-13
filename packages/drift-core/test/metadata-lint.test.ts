@@ -17,6 +17,13 @@ describe("metadata-lint", () => {
     }
   ];
 
+  const riskProfile = {
+    highRiskCapabilities: ["shell", "secret"],
+    driftSeverities: {
+      capability_metadata_mismatch: "high" as const
+    }
+  };
+
   describe("guessCapabilitiesFromToolMetadata", () => {
     it("guesses capabilities using custom rules", () => {
       const guesses = guessCapabilitiesFromToolMetadata(
@@ -39,12 +46,28 @@ describe("metadata-lint", () => {
   });
 
   describe("detectCapabilityMetadataMismatches", () => {
-    it("detects mismatch if tool suggests capability but omits it from declared list", () => {
+    it("detects mismatch without severity if no riskProfile is provided", () => {
       const warnings = detectCapabilityMetadataMismatches(
         {
           name: "terminal.run",
           capabilities: ["read"]
         },
+        undefined,
+        customRules
+      );
+      expect(warnings.length).toBeGreaterThan(0);
+      expect(warnings[0].type).toBe("capability_metadata_mismatch");
+      expect(warnings[0].severity).toBeUndefined();
+      expect(warnings[0].detail).toContain("shell");
+    });
+
+    it("detects mismatch with severity if riskProfile is provided", () => {
+      const warnings = detectCapabilityMetadataMismatches(
+        {
+          name: "terminal.run",
+          capabilities: ["read"]
+        },
+        riskProfile,
         customRules
       );
       expect(warnings.length).toBeGreaterThan(0);
@@ -59,6 +82,7 @@ describe("metadata-lint", () => {
           name: "terminal.run",
           capabilities: ["shell"]
         },
+        riskProfile,
         customRules
       );
       expect(warnings.length).toBe(0);
@@ -75,8 +99,9 @@ describe("metadata-lint", () => {
           }
         ]
       };
-      const warnings = lintToolMetadata({ manifest, rules: customRules });
+      const warnings = lintToolMetadata({ manifest, rules: customRules, riskProfile });
       expect(warnings.length).toBe(1);
+      expect(warnings[0].severity).toBe("high");
     });
   });
 });

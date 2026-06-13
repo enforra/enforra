@@ -93,11 +93,19 @@ export type DriftType =
 /** Severity levels for drift findings. */
 export type DriftSeverity = "high" | "medium" | "low";
 
+/** User-defined risk profile configuration. */
+export interface RiskProfile {
+  highRiskCapabilities?: string[];
+  highRiskRiskTags?: string[];
+  highRiskPermissions?: string[];
+  driftSeverities?: Record<string, DriftSeverity>;
+}
+
 /** A single drift finding for a tool. */
 export interface DriftFinding {
   tool: string;
   type: DriftType;
-  severity: DriftSeverity;
+  severity?: DriftSeverity;
   detail: string;
 }
 
@@ -121,7 +129,7 @@ export interface SuggestedCapability {
 export interface MetadataWarning {
   tool: string;
   type: "capability_metadata_mismatch";
-  severity: DriftSeverity;
+  severity?: DriftSeverity;
   detail: string;
 }
 
@@ -153,7 +161,7 @@ export interface AffectedPolicy {
   policyId: string;
   tool: string;
   reason: string;
-  severity: DriftSeverity;
+  severity?: DriftSeverity;
   suggestedAction: string;
 }
 
@@ -166,9 +174,9 @@ export interface DriftSummary {
   baselineTools: number;
   currentTools: number;
   driftFound: number;
-  high: number;
-  medium: number;
-  low: number;
+  high?: number;
+  medium?: number;
+  low?: number;
 }
 
 /** The full result of a drift check. */
@@ -185,6 +193,7 @@ export interface CheckToolDriftInput {
   currentManifest: ToolManifest;
   policyDocument?: PolicyDocumentRef;
   rules?: CapabilityRule[];
+  riskProfile?: RiskProfile;
 }
 
 /** Input for analyzePolicyImpact. */

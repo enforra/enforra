@@ -10,7 +10,8 @@ import type {
   ToolManifest,
   BaselineFile,
   PolicyDocumentRef,
-  CapabilityRule
+  CapabilityRule,
+  RiskProfile
 } from "@enforra/drift-core";
 import { loadPolicyFile } from "@enforra/policy-core";
 import { formatDriftMarkdown, formatDriftText } from "./format.js";
@@ -56,7 +57,7 @@ export function shouldFail(result: CliDriftReport, failLevel: DriftFailLevel): b
   }
 
   const threshold = failLevelRank[failLevel];
-  return result.drifts.some((f) => severityRank[f.severity] >= threshold);
+  return result.drifts.some((f) => f.severity && severityRank[f.severity] >= threshold);
 }
 
 const defaultBaselinePath = ".enforra/tool-baseline.json";
@@ -123,14 +124,22 @@ export async function runDriftCheck(args: string[], io: DriftCliIo = {}): Promis
   try {
     const options = parseDriftOptions(args, {
       commandName: "drift check",
-      values: ["--tools", "--baseline", "--format", "--fail-on", "--policy", "--lint-rules"]
+      values: [
+        "--tools",
+        "--baseline",
+        "--format",
+        "--fail-on",
+        "--policy",
+        "--lint-rules",
+        "--risk-profile"
+      ]
     });
 
     const toolsPathInput = options.values.get("--tools");
     if (toolsPathInput === undefined) {
       stderr.error("--tools is required");
       stderr.error(
-        "Usage: enforra drift check --tools tools.json [--baseline baseline.json] [--format text|json|markdown] [--fail-on none|low|medium|high] [--policy policy.yaml] [--lint-rules rules.json]"
+        "Usage: enforra drift check --tools tools.json [--baseline baseline.json] [--format text|json|markdown] [--fail-on none|low|medium|high] [--policy policy.yaml] [--lint-rules rules.json] [--risk-profile profile.json]"
       );
       return 1;
     }
@@ -217,12 +226,26 @@ export async function runDriftCheck(args: string[], io: DriftCliIo = {}): Promis
         return 1;
       }
     }
+    const riskProfilePathInput = options.values.get("--risk-profile");
+    let riskProfile: RiskProfile | undefined = undefined;
+    if (riskProfilePathInput !== undefined) {
+      const resolvedRiskProfilePath = resolvePath(cwd, riskProfilePathInput);
+      try {
+        riskProfile = JSON.parse(await readFile(resolvedRiskProfilePath, "utf8")) as RiskProfile;
+      } catch (error) {
+        stderr.error(
+          `Failed to load/parse --risk-profile file: ${error instanceof Error ? error.message : String(error)}`
+        );
+        return 1;
+      }
+    }
 
     const coreResult = checkToolDrift({
       baseline,
       currentManifest: manifest,
       policyDocument,
-      rules
+      rules,
+      riskProfile
     });
 
     const result: CliDriftReport = {

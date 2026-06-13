@@ -72,3 +72,17 @@ You can export findings in JSON or Markdown format:
 node packages/cli/dist/cli.js drift check --tools examples/demos/tool-drift/tools-current.json --format json
 node packages/cli/dist/cli.js drift check --tools examples/demos/tool-drift/tools-current.json --format markdown
 ```
+
+### 5. Configurable Severity and Heuristic Metadata Linting
+
+By default, Enforra's drift engine is neutral and manifest-based. To enable risk severity classification and heuristic capability checking, pass the optional `--risk-profile` and `--lint-rules` configurations:
+
+```bash
+node packages/cli/dist/cli.js drift check \
+  --tools examples/demos/tool-drift/tools-current.json \
+  --risk-profile examples/demos/tool-drift/risk-profile.json \
+  --lint-rules examples/demos/tool-drift/metadata-lint-rules.json
+```
+
+- `risk-profile.json`: Defines high-risk capabilities, risk tags, permissions, and custom drift severity assignments.
+- `metadata-lint-rules.json`: Contains regex patterns to heuristically map tool names/descriptions to capabilities and flag metadata mismatches (e.g., if a tool suggests `shell` but declares only `read`). This is provided as an optional starter example.

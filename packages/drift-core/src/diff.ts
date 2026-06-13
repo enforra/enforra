@@ -4,16 +4,21 @@ import type {
   DriftFinding,
   DriftCheckResult,
   CheckToolDriftInput,
-  MetadataWarning
+  MetadataWarning,
+  RiskProfile
 } from "./types.js";
 import { deterministicHash } from "./fingerprint.js";
 import { sanitizeEndpoint, extractRequiredArgs, extractSensitiveArgs } from "./normalize.js";
 import { detectCapabilityMetadataMismatches } from "./metadata-lint.js";
-import { newToolSeverity } from "./severity.js";
+import { newToolSeverity, driftSeverity } from "./severity.js";
 import { analyzePolicyImpact } from "./policy-impact.js";
 
 /** Compare a current tool definition against a baseline tool entry. */
-export function compareTool(current: ToolDefinition, baseline: BaselineTool): DriftFinding[] {
+export function compareTool(
+  current: ToolDefinition,
+  baseline: BaselineTool,
+  riskProfile?: RiskProfile
+): DriftFinding[] {
   const findings: DriftFinding[] = [];
 
   // 1. Schema drift
@@ -22,7 +27,7 @@ export function compareTool(current: ToolDefinition, baseline: BaselineTool): Dr
     findings.push({
       tool: current.name,
       type: "schema_changed",
-      severity: "medium",
+      severity: driftSeverity("schema_changed", riskProfile),
       detail: "input schema has changed since baseline"
     });
   }
@@ -33,7 +38,7 @@ export function compareTool(current: ToolDefinition, baseline: BaselineTool): Dr
     findings.push({
       tool: current.name,
       type: "description_changed",
-      severity: "low",
+      severity: driftSeverity("description_changed", riskProfile),
       detail: "description has changed since baseline"
     });
   }
@@ -47,7 +52,7 @@ export function compareTool(current: ToolDefinition, baseline: BaselineTool): Dr
     findings.push({
       tool: current.name,
       type: "required_args_added",
-      severity: "medium",
+      severity: driftSeverity("required_args_added", riskProfile),
       detail: `required arguments added: [${addedReq.join(", ")}]`
     });
   }
@@ -55,7 +60,7 @@ export function compareTool(current: ToolDefinition, baseline: BaselineTool): Dr
     findings.push({
       tool: current.name,
       type: "required_args_removed",
-      severity: "low",
+      severity: driftSeverity("required_args_removed", riskProfile),
       detail: `required arguments removed: [${removedReq.join(", ")}]`
     });
   }
@@ -68,7 +73,7 @@ export function compareTool(current: ToolDefinition, baseline: BaselineTool): Dr
     findings.push({
       tool: current.name,
       type: "sensitive_args_added",
-      severity: "medium",
+      severity: driftSeverity("sensitive_args_added", riskProfile),
       detail: `sensitive arguments added: [${addedSens.join(", ")}]`
     });
   }
@@ -82,7 +87,7 @@ export function compareTool(current: ToolDefinition, baseline: BaselineTool): Dr
     findings.push({
       tool: current.name,
       type: "permissions_expanded",
-      severity: "high",
+      severity: driftSeverity("permissions_expanded", riskProfile),
       detail: `permissions expanded: added [${addedPerms.join(", ")}]`
     });
   }
@@ -90,7 +95,7 @@ export function compareTool(current: ToolDefinition, baseline: BaselineTool): Dr
     findings.push({
       tool: current.name,
       type: "permissions_reduced",
-      severity: "low",
+      severity: driftSeverity("permissions_reduced", riskProfile),
       detail: `permissions reduced: removed [${removedPerms.join(", ")}]`
     });
   }
@@ -104,7 +109,7 @@ export function compareTool(current: ToolDefinition, baseline: BaselineTool): Dr
     findings.push({
       tool: current.name,
       type: "capabilities_expanded",
-      severity: "high",
+      severity: driftSeverity("capabilities_expanded", riskProfile),
       detail: `capabilities expanded: added [${addedCaps.join(", ")}]`
     });
   }
@@ -112,7 +117,7 @@ export function compareTool(current: ToolDefinition, baseline: BaselineTool): Dr
     findings.push({
       tool: current.name,
       type: "capabilities_reduced",
-      severity: "low",
+      severity: driftSeverity("capabilities_reduced", riskProfile),
       detail: `capabilities reduced: removed [${removedCaps.join(", ")}]`
     });
   }
@@ -126,7 +131,7 @@ export function compareTool(current: ToolDefinition, baseline: BaselineTool): Dr
     findings.push({
       tool: current.name,
       type: "risk_tags_added",
-      severity: "medium",
+      severity: driftSeverity("risk_tags_added", riskProfile),
       detail: `risk tags added: [${addedTags.join(", ")}]`
     });
   }
@@ -134,7 +139,7 @@ export function compareTool(current: ToolDefinition, baseline: BaselineTool): Dr
     findings.push({
       tool: current.name,
       type: "risk_tags_removed",
-      severity: "low",
+      severity: driftSeverity("risk_tags_removed", riskProfile),
       detail: `risk tags removed: [${removedTags.join(", ")}]`
     });
   }
@@ -147,7 +152,7 @@ export function compareTool(current: ToolDefinition, baseline: BaselineTool): Dr
     findings.push({
       tool: current.name,
       type: "endpoint_changed",
-      severity: "high",
+      severity: driftSeverity("endpoint_changed", riskProfile),
       detail: `endpoint changed: baseline=${baselineEndpointHash ? "changed" : "(none)"} current=${currentEndpoint ? currentEndpoint : "(none)"}`
     });
   }
@@ -158,15 +163,16 @@ export function compareTool(current: ToolDefinition, baseline: BaselineTool): Dr
     findings.push({
       tool: current.name,
       type: "metadata_changed",
-      severity: "low",
+      severity: driftSeverity("metadata_changed", riskProfile),
       detail: "metadata has changed since baseline"
     });
   }
   return findings;
 }
+
 /** Check tool definition drift from baseline. */
 export function checkToolDrift(input: CheckToolDriftInput): DriftCheckResult {
-  const { baseline, currentManifest, policyDocument, rules } = input;
+  const { baseline, currentManifest, policyDocument, rules, riskProfile } = input;
   const drifts: DriftFinding[] = [];
   const metadataWarnings: MetadataWarning[] = [];
   const runLint = rules && rules.length > 0;
@@ -178,7 +184,7 @@ export function checkToolDrift(input: CheckToolDriftInput): DriftCheckResult {
   for (const tool of currentManifest.tools) {
     const baselineTool = baselineMap.get(tool.name);
     if (baselineTool === undefined) {
-      const severity = newToolSeverity(tool, rules);
+      const severity = newToolSeverity(tool, riskProfile, rules);
       drifts.push({
         tool: tool.name,
         type: "new_tool",
@@ -191,7 +197,7 @@ export function checkToolDrift(input: CheckToolDriftInput): DriftCheckResult {
 
       // Check metadata mismatches on new tools
       if (runLint) {
-        const mismatches = detectCapabilityMetadataMismatches(tool, rules);
+        const mismatches = detectCapabilityMetadataMismatches(tool, riskProfile, rules);
         for (const mm of mismatches) {
           drifts.push({
             tool: tool.name,
@@ -203,11 +209,11 @@ export function checkToolDrift(input: CheckToolDriftInput): DriftCheckResult {
         }
       }
     } else {
-      const toolDrifts = compareTool(tool, baselineTool);
+      const toolDrifts = compareTool(tool, baselineTool, riskProfile);
       drifts.push(...toolDrifts);
 
       if (runLint) {
-        const mismatches = detectCapabilityMetadataMismatches(tool, rules);
+        const mismatches = detectCapabilityMetadataMismatches(tool, riskProfile, rules);
         metadataWarnings.push(...mismatches);
         for (const mm of mismatches) {
           drifts.push({
@@ -227,7 +233,7 @@ export function checkToolDrift(input: CheckToolDriftInput): DriftCheckResult {
       drifts.push({
         tool: baselineTool.name,
         type: "removed_tool",
-        severity: "high",
+        severity: driftSeverity("removed_tool", riskProfile),
         detail: "tool was in the baseline but is no longer present"
       });
     }
@@ -237,9 +243,10 @@ export function checkToolDrift(input: CheckToolDriftInput): DriftCheckResult {
   const affectedPolicies = policyDocument ? analyzePolicyImpact({ drifts, policyDocument }) : [];
 
   // Calculate summary
-  const high = drifts.filter((d) => d.severity === "high").length;
-  const medium = drifts.filter((d) => d.severity === "medium").length;
-  const low = drifts.filter((d) => d.severity === "low").length;
+  const hasRisk = riskProfile !== undefined;
+  const high = hasRisk ? drifts.filter((d) => d.severity === "high").length : undefined;
+  const medium = hasRisk ? drifts.filter((d) => d.severity === "medium").length : undefined;
+  const low = hasRisk ? drifts.filter((d) => d.severity === "low").length : undefined;
 
   return {
     summary: {

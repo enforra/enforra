@@ -18,19 +18,25 @@ export function formatDriftText(result: CliDriftReport): string {
     `Baseline tools: ${result.summary.baselineTools}`,
     `Current tools:  ${result.summary.currentTools}`,
     "",
-    "Summary:",
-    `  High:   ${result.summary.high}`,
-    `  Medium: ${result.summary.medium}`,
-    `  Low:    ${result.summary.low}`,
-    `  Total:  ${result.summary.driftFound}`
+    "Summary:"
   ];
+
+  if (result.summary.high !== undefined) {
+    lines.push(
+      `  High:   ${result.summary.high}`,
+      `  Medium: ${result.summary.medium}`,
+      `  Low:    ${result.summary.low}`
+    );
+  }
+  lines.push(`  Total:  ${result.summary.driftFound}`);
 
   if (result.drifts.length === 0) {
     lines.push("", "No drift detected.");
   } else {
     lines.push("", "Findings:");
     for (const finding of result.drifts) {
-      lines.push(`  [${finding.severity.toUpperCase()}] ${finding.tool}: ${finding.type}`);
+      const sevStr = finding.severity ? `[${finding.severity.toUpperCase()}] ` : "";
+      lines.push(`  ${sevStr}${finding.tool}: ${finding.type}`);
       lines.push(`    ${finding.detail}`);
     }
   }
@@ -38,9 +44,8 @@ export function formatDriftText(result: CliDriftReport): string {
   if (result.affectedPolicies && result.affectedPolicies.length > 0) {
     lines.push("", "Affected Policies:");
     for (const policy of result.affectedPolicies) {
-      lines.push(
-        `  [${policy.severity.toUpperCase()}] Policy Rule '${policy.policyId}' (tool: ${policy.tool})`
-      );
+      const sevStr = policy.severity ? `[${policy.severity.toUpperCase()}] ` : "";
+      lines.push(`  ${sevStr}Policy Rule '${policy.policyId}' (tool: ${policy.tool})`);
       lines.push(`    Reason: ${policy.reason}`);
       lines.push(`    Action: ${policy.suggestedAction}`);
     }
@@ -59,21 +64,29 @@ export function formatDriftMarkdown(result: CliDriftReport): string {
     `Checked: ${result.checkedAt}`,
     "",
     "## Summary",
-    "",
-    "| Severity | Count |",
-    "| --- | ---: |",
-    `| High | ${result.summary.high} |`,
-    `| Medium | ${result.summary.medium} |`,
-    `| Low | ${result.summary.low} |`,
-    `| **Total** | **${result.summary.driftFound}** |`
+    ""
   ];
+
+  if (result.summary.high !== undefined) {
+    lines.push(
+      "| Severity | Count |",
+      "| --- | ---: |",
+      `| High | ${result.summary.high} |`,
+      `| Medium | ${result.summary.medium} |`,
+      `| Low | ${result.summary.low} |`,
+      `| **Total** | **${result.summary.driftFound}** |`
+    );
+  } else {
+    lines.push(`- **Total Drift Found**: ${result.summary.driftFound}`);
+  }
 
   if (result.drifts.length === 0) {
     lines.push("", "No drift detected.");
   } else {
     lines.push("", "## Findings", "");
     for (const finding of result.drifts) {
-      lines.push(`- **[${finding.severity.toUpperCase()}]** \`${finding.tool}\`: ${finding.type}`);
+      const sevStr = finding.severity ? `**[${finding.severity.toUpperCase()}]** ` : "";
+      lines.push(`- ${sevStr}\`${finding.tool}\`: ${finding.type}`);
       lines.push(`  - ${finding.detail}`);
     }
   }
@@ -81,9 +94,8 @@ export function formatDriftMarkdown(result: CliDriftReport): string {
   if (result.affectedPolicies && result.affectedPolicies.length > 0) {
     lines.push("", "## Affected Policies", "");
     for (const policy of result.affectedPolicies) {
-      lines.push(
-        `- **[${policy.severity.toUpperCase()}]** Policy Rule \`${policy.policyId}\` (tool: \`${policy.tool}\`)`
-      );
+      const sevStr = policy.severity ? `**[${policy.severity.toUpperCase()}]** ` : "";
+      lines.push(`- ${sevStr}Policy Rule \`${policy.policyId}\` (tool: \`${policy.tool}\`)`);
       lines.push(`  - Reason: ${policy.reason}`);
       lines.push(`  - Action: ${policy.suggestedAction}`);
     }

@@ -3,7 +3,8 @@ import type {
   BaselineTool,
   SuggestedCapability,
   MetadataWarning,
-  CapabilityRule
+  CapabilityRule,
+  RiskProfile
 } from "./types.js";
 
 /**
@@ -31,29 +32,14 @@ export function guessCapabilitiesFromToolMetadata(
   return suggestions;
 }
 
-/** Capabilities that make a new tool high-risk. */
-export const HIGH_RISK_CAPABILITIES = new Set([
-  "shell",
-  "delete",
-  "payment",
-  "auth",
-  "secret",
-  "production",
-  "network",
-  "external_side_effect",
-  // Backwards compatibility aliases
-  "code_execution",
-  "secrets_access",
-  "deployment"
-]);
-
 /**
  * Detect capability metadata mismatches: when a tool has explicit capabilities but
  * its name/description suggests high-risk capabilities that are missing from the
- * declared list. Returns HIGH findings for shell/delete/payment/auth/secret/production/network.
+ * declared list. Returns HIGH findings if risk profile matches.
  */
 export function detectCapabilityMetadataMismatches(
   tool: ToolDefinition | BaselineTool,
+  riskProfile?: RiskProfile,
   rules: CapabilityRule[] = []
 ): MetadataWarning[] {
   // Only applies when the tool explicitly declares capabilities
@@ -69,13 +55,22 @@ export function detectCapabilityMetadataMismatches(
   const warnings: MetadataWarning[] = [];
 
   for (const guess of guesses) {
-    if (HIGH_RISK_CAPABILITIES.has(guess.capability) && !declared.has(guess.capability)) {
-      warnings.push({
-        tool: tool.name,
-        type: "capability_metadata_mismatch",
-        severity: "high",
-        detail: `tool name/description suggests '${guess.capability}' but declared capabilities omit it: [${[...declared].sort().join(", ")}]`
-      });
+    if (!declared.has(guess.capability)) {
+      const isHighRisk = riskProfile?.highRiskCapabilities
+        ? riskProfile.highRiskCapabilities.includes(guess.capability)
+        : true;
+
+      if (isHighRisk) {
+        const severity =
+          riskProfile?.driftSeverities?.["capability_metadata_mismatch"] ??
+          (riskProfile ? "high" : undefined);
+        warnings.push({
+          tool: tool.name,
+          type: "capability_metadata_mismatch",
+          severity,
+          detail: `tool name/description suggests '${guess.capability}' but declared capabilities omit it: [${[...declared].sort().join(", ")}]`
+        });
+      }
     }
   }
 
@@ -88,11 +83,12 @@ export function detectCapabilityMetadataMismatches(
 export function lintToolMetadata(input: {
   manifest: { tools: ToolDefinition[] };
   rules?: CapabilityRule[];
+  riskProfile?: RiskProfile;
 }): MetadataWarning[] {
-  const { manifest, rules = [] } = input;
+  const { manifest, rules = [], riskProfile } = input;
   const warnings: MetadataWarning[] = [];
   for (const tool of manifest.tools) {
-    warnings.push(...detectCapabilityMetadataMismatches(tool, rules));
+    warnings.push(...detectCapabilityMetadataMismatches(tool, riskProfile, rules));
   }
   return warnings;
 }

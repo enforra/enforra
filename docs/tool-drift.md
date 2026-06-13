@@ -56,7 +56,7 @@ Options:
 ### Check for drift
 
 ```bash
-enforra drift check --tools tools.json
+enforra drift check --tools tools.json --risk-profile examples/demos/tool-drift/risk-profile.json
 ```
 
 Options:
@@ -65,24 +65,25 @@ Options:
 - `--baseline`: Path to the baseline file. Default: `.enforra/tool-baseline.json`.
 - `--format`: Output format. One of `text`, `json`, `markdown`. Default: `text`.
 - `--fail-on`: Minimum severity that causes a non-zero exit code. One of `none`, `low`, `medium`, `high`. Default: `medium`.
-- `--lint-metadata`: Optional flag to enable heuristic metadata linting (checks for capability metadata mismatches).
+- `--risk-profile`: Path to a risk profile JSON file to classify drift severity.
+- `--lint-rules`: Path to a rules JSON file to perform heuristic capability checks and detect metadata mismatches.
 
 ## Drift types detected
 
-| Drift type                     | Severity | What it means                                                                                 |
-| ------------------------------ | -------- | --------------------------------------------------------------------------------------------- |
-| `permissions_changed`          | High     | Tool permissions have changed                                                                 |
-| `capabilities_changed`         | High     | Tool capabilities have changed                                                                |
-| `capability_metadata_mismatch` | High     | Tool name suggests a high-risk capability that declarations omit (requires `--lint-metadata`) |
-| `endpoint_changed`             | High     | Tool endpoint has changed                                                                     |
-| `tool_removed`                 | High     | A tool was in the baseline but is no longer present                                           |
-| `schema_changed`               | Medium   | The input schema has changed                                                                  |
-| `description_changed`          | Low      | The description has changed                                                                   |
-| `tool_added`                   | Low      | A new tool appeared that was not in the baseline                                              |
+| Drift type                     | Severity (with Risk Profile) | What it means                                                                    |
+| ------------------------------ | ---------------------------- | -------------------------------------------------------------------------------- |
+| `permissions_expanded`         | High                         | Tool permissions have been added                                                 |
+| `capabilities_expanded`        | High                         | Tool capabilities have been added                                                |
+| `capability_metadata_mismatch` | High                         | Tool name suggests a capability that declarations omit (requires `--lint-rules`) |
+| `endpoint_changed`             | High                         | Tool endpoint has changed                                                        |
+| `removed_tool`                 | High                         | A tool was in the baseline but is no longer present                              |
+| `schema_changed`               | Medium                       | The input schema has changed                                                     |
+| `description_changed`          | Low                          | The description has changed                                                      |
+| `new_tool`                     | Low                          | A new tool appeared that was not in the baseline                                 |
 
 ## Severity and exit codes
 
-The `--fail-on` flag controls when the check command exits with a non-zero code:
+The `--fail-on` flag controls when the check command exits with a non-zero code. This requires `--risk-profile` to be supplied, otherwise all findings are unclassified and will not trigger a failure exit code under standard severity rules.
 
 | `--fail-on` | Exits non-zero when                                  |
 | ----------- | ---------------------------------------------------- |
@@ -95,25 +96,48 @@ Default: `medium`.
 
 ## Pure Manifest-Based Drift Detection
 
-Drift detection is manifest based. Metadata lint is optional and best-effort. For accurate results, declare capabilities, permissions, and riskTags explicitly.
+Drift core is manifest based. Severity is applied through a risk profile. Enforra includes example starter profiles, but teams should define their own capabilities, permissions, and risk tags.
 
-If a tool does not explicitly declare capabilities in the manifest, Enforra does not automatically run heuristic checking by default. The default check runs strictly against declared manifest fields.
+By default, Enforra drift core is neutral and does not ship with any default risk model. Severity classification and metadata capability linting are strictly opt-in:
+
+- **Severity** is only classified if a `--risk-profile <path>` is provided.
+- **Metadata capability mismatches** are only linted if a `--lint-rules <path>` file is provided.
+
+### Example Starter Files
+
+Enforra includes starter examples for rules and risk profiles under `examples/demos/tool-drift/`:
+
+- `examples/demos/tool-drift/risk-profile.json`
+- `examples/demos/tool-drift/metadata-lint-rules.json`
+
+## Risk Profile Configuration
+
+A risk profile defines which capabilities, risk tags, and permissions are considered high-risk, and maps each drift type to a severity:
+
+```json
+{
+  "highRiskCapabilities": ["shell", "delete", "network"],
+  "highRiskRiskTags": ["production"],
+  "highRiskPermissions": ["admin"],
+  "driftSeverities": {
+    "permissions_expanded": "high",
+    "capabilities_expanded": "high",
+    "removed_tool": "high",
+    "schema_changed": "medium"
+  }
+}
+```
+
+If a risk profile is provided, the severity will be classified based on these settings. Without a risk profile, drift findings are returned with no assigned severity.
 
 ## Heuristic Metadata Linting
 
-If the optional `--lint-metadata` flag is passed, Enforra performs a best-effort heuristic check comparing declared capabilities against tool names and descriptions.
+If `--lint-rules <path>` is passed, Enforra performs a best-effort heuristic check comparing declared capabilities against tool names and descriptions using the provided regex patterns.
 
-### Capability metadata mismatch
+For example, using `examples/demos/tool-drift/metadata-lint-rules.json`:
 
-Under `--lint-metadata`, if a tool's name or description suggests a high-risk capability (such as `shell`, `delete`, `payment`, `auth`, `secret`, `production`, `network`, or `external_side_effect`) but the declared capabilities omit it, Enforra reports a `capability_metadata_mismatch` finding with HIGH severity.
-
-This prevents a scenario where a tool manifest incorrectly declares only `read` for a tool named `terminal.run`. The tool may genuinely have limited capabilities, but Enforra flags the mismatch so a human reviewer can confirm.
-
-Examples (under `--lint-metadata`):
-
-- `terminal.run` with `capabilities: ["read"]` → HIGH `capability_metadata_mismatch` (name suggests `shell`)
+- `terminal.run` with `capabilities: ["read"]` → `capability_metadata_mismatch` (name suggests `shell`)
 - `terminal.run` with `capabilities: ["read", "shell"]` → No mismatch
-- `terminal.run` with no capabilities → No mismatch (heuristics used as fallback instead)
 - `calculator.add` with `capabilities: ["read"]` → No mismatch (benign name)
 
 ## CI usage
@@ -122,8 +146,8 @@ Examples (under `--lint-metadata`):
 # Record baseline once
 enforra drift baseline --tools tools.json
 
-# Check on every CI run
-enforra drift check --tools tools.json --fail-on medium --format json
+# Check on every CI run using the starter risk profile
+enforra drift check --tools tools.json --risk-profile examples/demos/tool-drift/risk-profile.json --fail-on medium --format json
 ```
 
 ## Limitations
