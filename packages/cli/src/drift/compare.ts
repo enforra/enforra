@@ -8,7 +8,7 @@ import type {
   BaselineFile,
   DriftCheckResult
 } from "./types.js";
-import { inferCapabilities } from "./capability-rules.js";
+import { inferCapabilities, guessCapabilitiesFromToolMetadata } from "./capability-rules.js";
 import { deterministicHash } from "./fingerprints.js";
 import { sanitizeEndpoint, validateManifest } from "./normalize.js";
 
@@ -17,6 +17,7 @@ export function driftSeverity(type: DriftType): DriftSeverity {
   switch (type) {
     case "permissions_changed":
     case "capabilities_changed":
+    case "capability_metadata_mismatch":
     case "endpoint_changed":
     case "tool_removed":
       return "high";
@@ -36,6 +37,7 @@ const highRiskCapabilities = new Set([
   "auth",
   "secret",
   "production",
+  "network",
   "external_side_effect",
   // Backwards compatibility aliases
   "code_execution",
@@ -55,10 +57,44 @@ export function getEffectiveCapabilities(tool: ToolDefinition | BaselineTool): s
   return [...new Set(inferred)].sort();
 }
 
+/**
+ * Detect capability metadata mismatches: when a tool has explicit capabilities but
+ * its name/description suggests high-risk capabilities that are missing from the
+ * declared list. Returns HIGH findings for shell/delete/payment/auth/secret/production/network.
+ */
+export function detectCapabilityMetadataMismatches(
+  tool: ToolDefinition | BaselineTool
+): DriftFinding[] {
+  // Only applies when the tool explicitly declares capabilities
+  if (tool.capabilities === undefined || tool.capabilities.length === 0) {
+    return [];
+  }
+  const declared = new Set(tool.capabilities);
+  const guesses = guessCapabilitiesFromToolMetadata(tool.name, tool.description);
+  const findings: DriftFinding[] = [];
+
+  for (const guess of guesses) {
+    if (highRiskCapabilities.has(guess.capability) && !declared.has(guess.capability)) {
+      findings.push({
+        tool: tool.name,
+        type: "capability_metadata_mismatch",
+        severity: "high",
+        detail: `tool name/description suggests '${guess.capability}' but declared capabilities omit it: [${[...declared].sort().join(", ")}]`
+      });
+    }
+  }
+
+  return findings;
+}
+
 /** Determine severity for a newly added tool. Explicit capabilities are preferred; heuristics are fallback only. */
 export function newToolSeverity(tool: ToolDefinition): DriftSeverity {
   const caps = getEffectiveCapabilities(tool);
   if (caps.some((cap) => highRiskCapabilities.has(cap))) {
+    return "high";
+  }
+  // Even if effective caps are not high-risk, check for metadata mismatches
+  if (detectCapabilityMetadataMismatches(tool).length > 0) {
     return "high";
   }
   return "low";
@@ -128,6 +164,9 @@ export function compareTool(current: ToolDefinition, baseline: BaselineTool): Dr
     });
   }
 
+  // Capability metadata mismatch: name suggests high-risk but declared caps omit it
+  findings.push(...detectCapabilityMetadataMismatches(current));
+
   // Endpoint drift
   const currentSanitizedEndpoint = sanitizeEndpoint(current.endpoint);
   const baselineSanitizedEndpoint = sanitizeEndpoint(baseline.endpoint);
@@ -179,6 +218,8 @@ export function checkDrift(
             ? "tool is new and has high-risk capabilities"
             : "tool is new and was not in the baseline"
       });
+      // Also flag metadata mismatches on new tools
+      findings.push(...detectCapabilityMetadataMismatches(tool));
     } else {
       findings.push(...compareTool(tool, baselineTool));
     }

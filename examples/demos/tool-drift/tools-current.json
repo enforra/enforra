@@ -50,7 +50,7 @@
         "required": ["command"]
       },
       "permissions": ["execute"],
-      "capabilities": ["code_execution"],
+      "capabilities": ["shell"],
       "endpoint": "local://terminal"
     }
   ]

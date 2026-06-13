@@ -68,15 +68,16 @@ Options:
 
 ## Drift types detected
 
-| Drift type             | Severity | What it means                                       |
-| ---------------------- | -------- | --------------------------------------------------- |
-| `permissions_changed`  | High     | Tool permissions have changed                       |
-| `capabilities_changed` | High     | Tool capabilities have changed                      |
-| `endpoint_changed`     | High     | Tool endpoint has changed                           |
-| `tool_removed`         | High     | A tool was in the baseline but is no longer present |
-| `schema_changed`       | Medium   | The input schema has changed                        |
-| `description_changed`  | Low      | The description has changed                         |
-| `tool_added`           | Low      | A new tool appeared that was not in the baseline    |
+| Drift type                     | Severity | What it means                                                    |
+| ------------------------------ | -------- | ---------------------------------------------------------------- |
+| `permissions_changed`          | High     | Tool permissions have changed                                    |
+| `capabilities_changed`         | High     | Tool capabilities have changed                                   |
+| `capability_metadata_mismatch` | High     | Tool name suggests a high-risk capability that declarations omit |
+| `endpoint_changed`             | High     | Tool endpoint has changed                                        |
+| `tool_removed`                 | High     | A tool was in the baseline but is no longer present              |
+| `schema_changed`               | Medium   | The input schema has changed                                     |
+| `description_changed`          | Low      | The description has changed                                      |
+| `tool_added`                   | Low      | A new tool appeared that was not in the baseline                 |
 
 ## Severity and exit codes
 
@@ -100,6 +101,19 @@ If a tool does not explicitly declare capabilities in the manifest, Enforra heur
 Users and contributors should explicitly declare custom capabilities on tools instead of relying on built-in regex guesses, as inferred capabilities are best-effort hints only and should not be treated as authoritative security boundaries.
 
 Inferred capabilities are stored in the baseline for reference, but explicit capability declarations always override and take precedence over these heuristic hints.
+
+### Capability metadata mismatch
+
+Declared capabilities are not treated as an absolute bypass. If a tool's name or description clearly suggests a high-risk capability (such as `shell`, `delete`, `payment`, `auth`, `secret`, `production`, `network`, or `external_side_effect`) but the declared capabilities omit it, Enforra reports a `capability_metadata_mismatch` finding with HIGH severity.
+
+This prevents a scenario where a tool manifest incorrectly declares only `read` for a tool named `terminal.run`. The tool may genuinely have limited capabilities, but Enforra flags the mismatch so a human reviewer can confirm.
+
+Examples:
+
+- `terminal.run` with `capabilities: ["read"]` → HIGH `capability_metadata_mismatch` (name suggests `shell`)
+- `terminal.run` with `capabilities: ["read", "shell"]` → No mismatch
+- `terminal.run` with no capabilities → No mismatch (heuristics used as fallback instead)
+- `calculator.add` with `capabilities: ["read"]` → No mismatch (benign name)
 
 ## CI usage
 

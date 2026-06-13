@@ -9,6 +9,7 @@ import {
   checkDrift,
   compareTool,
   createBaselineTool,
+  detectCapabilityMetadataMismatches,
   deterministicHash,
   driftSeverity,
   formatDriftMarkdown,
@@ -110,6 +111,82 @@ describe("drift", () => {
     });
   });
 
+  describe("detectCapabilityMetadataMismatches", () => {
+    it("flags shell tool with only read declared", () => {
+      const findings = detectCapabilityMetadataMismatches({
+        name: "terminal.run",
+        capabilities: ["read"]
+      });
+      expect(findings.length).toBeGreaterThanOrEqual(1);
+      const shellMismatch = findings.find((f) => f.detail.includes("shell"));
+      expect(shellMismatch).toBeDefined();
+      expect(shellMismatch?.severity).toBe("high");
+      expect(shellMismatch?.type).toBe("capability_metadata_mismatch");
+    });
+
+    it("returns no findings when shell is declared", () => {
+      const findings = detectCapabilityMetadataMismatches({
+        name: "terminal.run",
+        capabilities: ["read", "shell"]
+      });
+      const shellMismatch = findings.find((f) => f.detail.includes("shell"));
+      expect(shellMismatch).toBeUndefined();
+    });
+
+    it("returns no findings when capabilities is undefined", () => {
+      const findings = detectCapabilityMetadataMismatches({
+        name: "terminal.run"
+      });
+      expect(findings).toEqual([]);
+    });
+
+    it("returns no findings when capabilities is empty", () => {
+      const findings = detectCapabilityMetadataMismatches({
+        name: "terminal.run",
+        capabilities: []
+      });
+      expect(findings).toEqual([]);
+    });
+
+    it("returns no findings for benign tool with read capability", () => {
+      const findings = detectCapabilityMetadataMismatches({
+        name: "calculator.add",
+        capabilities: ["read"]
+      });
+      expect(findings).toEqual([]);
+    });
+
+    it("flags delete tool with only write declared", () => {
+      const findings = detectCapabilityMetadataMismatches({
+        name: "filesystem.delete",
+        capabilities: ["write"]
+      });
+      const deleteMismatch = findings.find((f) => f.detail.includes("delete"));
+      expect(deleteMismatch).toBeDefined();
+      expect(deleteMismatch?.severity).toBe("high");
+    });
+
+    it("flags payment tool with only read declared", () => {
+      const findings = detectCapabilityMetadataMismatches({
+        name: "stripe.charge",
+        capabilities: ["read"]
+      });
+      const paymentMismatch = findings.find((f) => f.detail.includes("payment"));
+      expect(paymentMismatch).toBeDefined();
+      expect(paymentMismatch?.severity).toBe("high");
+    });
+
+    it("flags network tool with only read declared", () => {
+      const findings = detectCapabilityMetadataMismatches({
+        name: "http.request",
+        capabilities: ["read"]
+      });
+      const networkMismatch = findings.find((f) => f.detail.includes("network"));
+      expect(networkMismatch).toBeDefined();
+      expect(networkMismatch?.severity).toBe("high");
+    });
+  });
+
   describe("driftSeverity", () => {
     it("classifies permissions_changed as high", () => {
       expect(driftSeverity("permissions_changed")).toBe("high");
@@ -137,6 +214,10 @@ describe("drift", () => {
 
     it("classifies tool_added as low", () => {
       expect(driftSeverity("tool_added")).toBe("low");
+    });
+
+    it("classifies capability_metadata_mismatch as high", () => {
+      expect(driftSeverity("capability_metadata_mismatch")).toBe("high");
     });
   });
 
@@ -194,6 +275,14 @@ describe("drift", () => {
       expect(newToolSeverity({ name: "database.query", capabilities: ["production"] })).toBe(
         "high"
       );
+    });
+
+    it("returns high for terminal.run with only read capability (metadata mismatch)", () => {
+      expect(newToolSeverity({ name: "terminal.run", capabilities: ["read"] })).toBe("high");
+    });
+
+    it("returns low for terminal.run with shell capability declared", () => {
+      expect(newToolSeverity({ name: "terminal.run", capabilities: ["shell"] })).toBe("high");
     });
   });
 
@@ -349,6 +438,41 @@ describe("drift", () => {
       expect(findings[0]?.type).toBe("description_changed");
       expect(findings[0]?.severity).toBe("low");
     });
+
+    it("detects capability_metadata_mismatch when name suggests shell but caps omit it", () => {
+      const tool: ToolDefinition = {
+        name: "terminal.run",
+        capabilities: ["read"]
+      };
+      const baseline = createBaselineTool(tool);
+      const findings = compareTool(tool, baseline);
+
+      const mismatch = findings.filter((f) => f.type === "capability_metadata_mismatch");
+      expect(mismatch.length).toBeGreaterThanOrEqual(1);
+      expect(mismatch[0]?.severity).toBe("high");
+      expect(mismatch[0]?.detail).toContain("shell");
+    });
+
+    it("no mismatch when tool declares the suggested high-risk capability", () => {
+      const tool: ToolDefinition = {
+        name: "terminal.run",
+        capabilities: ["read", "shell"]
+      };
+      const baseline = createBaselineTool(tool);
+      const findings = compareTool(tool, baseline);
+
+      const mismatch = findings.filter((f) => f.type === "capability_metadata_mismatch");
+      expect(mismatch).toEqual([]);
+    });
+
+    it("no mismatch when tool has no explicit capabilities (heuristics used as fallback)", () => {
+      const tool: ToolDefinition = { name: "terminal.run" };
+      const baseline = createBaselineTool(tool);
+      const findings = compareTool(tool, baseline);
+
+      const mismatch = findings.filter((f) => f.type === "capability_metadata_mismatch");
+      expect(mismatch).toEqual([]);
+    });
   });
 
   describe("checkDrift", () => {
@@ -425,6 +549,39 @@ describe("drift", () => {
       expect(result.summary.high).toBe(1);
       expect(result.summary.low).toBe(1);
       expect(result.summary.total).toBe(2);
+    });
+
+    it("detects capability_metadata_mismatch on new tools with explicit caps", () => {
+      const original: ToolManifest = { tools: [{ name: "a.tool" }] };
+      const baseline = buildBaseline(original);
+      const current: ToolManifest = {
+        tools: [{ name: "a.tool" }, { name: "terminal.run", capabilities: ["read"] }]
+      };
+      const result = checkDrift(current, baseline, "tools.json", "baseline.json");
+
+      const addedFinding = result.findings.find(
+        (f) => f.tool === "terminal.run" && f.type === "tool_added"
+      );
+      expect(addedFinding?.severity).toBe("high");
+
+      const mismatchFinding = result.findings.find(
+        (f) => f.tool === "terminal.run" && f.type === "capability_metadata_mismatch"
+      );
+      expect(mismatchFinding).toBeDefined();
+      expect(mismatchFinding?.severity).toBe("high");
+      expect(mismatchFinding?.detail).toContain("shell");
+    });
+
+    it("detects capability_metadata_mismatch on existing tools with explicit caps", () => {
+      const manifest: ToolManifest = {
+        tools: [{ name: "terminal.run", capabilities: ["read"] }]
+      };
+      const baseline = buildBaseline(manifest);
+      const result = checkDrift(manifest, baseline, "tools.json", "baseline.json");
+
+      const mismatch = result.findings.filter((f) => f.type === "capability_metadata_mismatch");
+      expect(mismatch.length).toBeGreaterThanOrEqual(1);
+      expect(mismatch[0]?.severity).toBe("high");
     });
   });
 

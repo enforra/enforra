@@ -39,6 +39,7 @@ export type DriftType =
   | "schema_changed"
   | "permissions_changed"
   | "capabilities_changed"
+  | "capability_metadata_mismatch"
   | "endpoint_changed"
   | "description_changed"
   | "tool_added"
