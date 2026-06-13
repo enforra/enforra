@@ -1020,6 +1020,49 @@ describe("drift CLI", () => {
     expect(text).toContain("drift baseline");
     expect(text).toContain("drift check");
   });
+
+  it("drift check supports optional --lint-metadata flag", async () => {
+    const dir = await createTempDir();
+    const toolsPath = join(dir, "tools.json");
+
+    // A tool named terminal.run declaring only 'read' capability
+    const manifest = {
+      tools: [
+        {
+          name: "terminal.run",
+          capabilities: ["read"]
+        }
+      ]
+    };
+
+    await writeFile(toolsPath, JSON.stringify(manifest), "utf8");
+    await runCli(["drift", "baseline", "--tools", toolsPath], {
+      cwd: dir,
+      stdout: createOutput().stdout
+    });
+
+    // 1. Without --lint-metadata, no drift/warnings should be found
+    const outputNoLint = createOutput();
+    const exitCodeNoLint = await runCli(["drift", "check", "--tools", toolsPath], {
+      cwd: dir,
+      stdout: outputNoLint.stdout
+    });
+    expect(exitCodeNoLint).toBe(0);
+    expect(outputNoLint.lines.join("\n")).toContain("No drift detected.");
+
+    // 2. With --lint-metadata, capability_metadata_mismatch should be flagged
+    const outputWithLint = createOutput();
+    const exitCodeWithLint = await runCli(
+      ["drift", "check", "--tools", toolsPath, "--lint-metadata"],
+      {
+        cwd: dir,
+        stdout: outputWithLint.stdout
+      }
+    );
+    expect(exitCodeWithLint).toBe(1); // Mismatch is HIGH severity, exits non-zero (medium threshold)
+    expect(outputWithLint.lines.join("\n")).toContain("capability_metadata_mismatch");
+    expect(outputWithLint.lines.join("\n")).toContain("terminal.run");
+  });
 });
 
 // ---------------------------------------------------------------------------

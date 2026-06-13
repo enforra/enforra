@@ -236,12 +236,18 @@ export function compareTool(current: ToolDefinition, baseline: BaselineTool): Dr
     baseline as unknown as Record<string, unknown>
   );
   const coreFindings = coreCompareTool(current, normalizedBaseline as unknown as BaselineTool);
-  return coreFindings.map((f) => ({
+  const findings = coreFindings.map((f) => ({
     tool: f.tool,
     type: mapDriftTypeToOld(f.type) as DriftType,
     severity: f.severity,
     detail: f.detail
   }));
+
+  // Compatibility: append mismatches manually since coreCompareTool is purely manifest-based
+  const mismatches = detectCapabilityMetadataMismatches(current);
+  findings.push(...mismatches);
+
+  return findings;
 }
 
 function mapDriftTypeToOld(type: string): string {

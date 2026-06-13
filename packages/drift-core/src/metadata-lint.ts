@@ -10,10 +10,10 @@ export interface CapabilityRule {
   capability: string;
 }
 
-export const CAPABILITY_RULES: CapabilityRule[] = [
+export const DEFAULT_METADATA_LINT_RULES: CapabilityRule[] = [
   // shell (high risk code execution)
   {
-    pattern: /(?:^|[^a-zA-Z])(terminal|shell|bash|exec|command|run|process|spawn)(?:$|[^a-zA-Z])/i,
+    pattern: /(?:^|[^a-zA-Z])(terminal|shell|bash|exec|command|spawn)(?:$|[^a-zA-Z])/i,
     capability: "shell"
   },
   // delete (high risk data modification)
@@ -23,17 +23,17 @@ export const CAPABILITY_RULES: CapabilityRule[] = [
   },
   // write
   {
-    pattern: /(?:^|[^a-zA-Z])(write|create|post|put|update|modify|set|save)(?:$|[^a-zA-Z])/i,
+    pattern: /(?:^|[^a-zA-Z])(write|create|post|put|update|modify|save)(?:$|[^a-zA-Z])/i,
     capability: "write"
   },
   // read
   {
-    pattern: /(?:^|[^a-zA-Z])(read|get|view|list|fetch|show|load)(?:$|[^a-zA-Z])/i,
+    pattern: /(?:^|[^a-zA-Z])(read|view|list)(?:$|[^a-zA-Z])/i,
     capability: "read"
   },
   // network
   {
-    pattern: /(?:^|[^a-zA-Z])(network|http|fetch|request|api|url|curl|wget)(?:$|[^a-zA-Z])/i,
+    pattern: /(?:^|[^a-zA-Z])(network|http|request|url|curl|wget)(?:$|[^a-zA-Z])/i,
     capability: "network"
   },
   // database (e.g. database schema/tables)
@@ -44,7 +44,7 @@ export const CAPABILITY_RULES: CapabilityRule[] = [
   // payment
   {
     pattern:
-      /(?:^|[^a-zA-Z])(pay|payment|charge|refund|stripe|billing|checkout|invoice|card)(?:$|[^a-zA-Z])/i,
+      /(?:^|[^a-zA-Z])(pay|payment|charge|refund|stripe|billing|checkout|invoice)(?:$|[^a-zA-Z])/i,
     capability: "payment"
   },
   // auth
@@ -61,11 +61,13 @@ export const CAPABILITY_RULES: CapabilityRule[] = [
   },
   // external_side_effect
   {
-    pattern:
-      /(?:^|[^a-zA-Z])(email|mail|send|notify|notification|slack|webhook|sms)(?:$|[^a-zA-Z])/i,
+    pattern: /(?:^|[^a-zA-Z])(email|mail|notify|notification|slack|webhook|sms)(?:$|[^a-zA-Z])/i,
     capability: "external_side_effect"
   }
 ];
+
+// Alias for backwards compatibility
+export const CAPABILITY_RULES = DEFAULT_METADATA_LINT_RULES;
 
 /**
  * Heuristically guess capabilities from tool metadata (name and description) using regex keyword patterns.
@@ -73,12 +75,13 @@ export const CAPABILITY_RULES: CapabilityRule[] = [
  */
 export function guessCapabilitiesFromToolMetadata(
   name: string,
-  description?: string
+  description?: string,
+  rules: CapabilityRule[] = DEFAULT_METADATA_LINT_RULES
 ): SuggestedCapability[] {
   const text = `${name} ${description ?? ""}`;
   const suggestions: SuggestedCapability[] = [];
 
-  for (const { pattern, capability } of CAPABILITY_RULES) {
+  for (const { pattern, capability } of rules) {
     if (pattern.test(text)) {
       suggestions.push({
         capability,
@@ -113,7 +116,8 @@ export const HIGH_RISK_CAPABILITIES = new Set([
  * declared list. Returns HIGH findings for shell/delete/payment/auth/secret/production/network.
  */
 export function detectCapabilityMetadataMismatches(
-  tool: ToolDefinition | BaselineTool
+  tool: ToolDefinition | BaselineTool,
+  rules: CapabilityRule[] = DEFAULT_METADATA_LINT_RULES
 ): MetadataWarning[] {
   // Only applies when the tool explicitly declares capabilities
   if (tool.capabilities === undefined || tool.capabilities.length === 0) {
@@ -122,7 +126,8 @@ export function detectCapabilityMetadataMismatches(
   const declared = new Set(tool.capabilities);
   const guesses = guessCapabilitiesFromToolMetadata(
     tool.name,
-    (tool as ToolDefinition).description
+    (tool as ToolDefinition).description,
+    rules
   );
   const warnings: MetadataWarning[] = [];
 
@@ -143,10 +148,14 @@ export function detectCapabilityMetadataMismatches(
 /**
  * Public entry point for linting tool metadata.
  */
-export function lintToolMetadata(manifest: { tools: ToolDefinition[] }): MetadataWarning[] {
+export function lintToolMetadata(input: {
+  manifest: { tools: ToolDefinition[] };
+  rules?: CapabilityRule[];
+}): MetadataWarning[] {
+  const { manifest, rules = DEFAULT_METADATA_LINT_RULES } = input;
   const warnings: MetadataWarning[] = [];
   for (const tool of manifest.tools) {
-    warnings.push(...detectCapabilityMetadataMismatches(tool));
+    warnings.push(...detectCapabilityMetadataMismatches(tool, rules));
   }
   return warnings;
 }

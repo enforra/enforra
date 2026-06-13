@@ -28,11 +28,13 @@ export interface DriftCliIo {
 
 export interface DriftParsedOptions {
   values: Map<string, string>;
+  flags: Set<string>;
 }
 
 export interface DriftOptionSpec {
   commandName: string;
   values?: string[];
+  flags?: string[];
 }
 
 const failLevelRank: Record<DriftFailLevel, number> = {
@@ -126,14 +128,15 @@ export async function runDriftCheck(args: string[], io: DriftCliIo = {}): Promis
   try {
     const options = parseDriftOptions(args, {
       commandName: "drift check",
-      values: ["--tools", "--baseline", "--format", "--fail-on", "--policy"]
+      values: ["--tools", "--baseline", "--format", "--fail-on", "--policy"],
+      flags: ["--lint-metadata"]
     });
 
     const toolsPathInput = options.values.get("--tools");
     if (toolsPathInput === undefined) {
       stderr.error("--tools is required");
       stderr.error(
-        "Usage: enforra drift check --tools tools.json [--baseline baseline.json] [--format text|json|markdown] [--fail-on none|low|medium|high] [--policy policy.yaml]"
+        "Usage: enforra drift check --tools tools.json [--baseline baseline.json] [--format text|json|markdown] [--fail-on none|low|medium|high] [--policy policy.yaml] [--lint-metadata]"
       );
       return 1;
     }
@@ -143,6 +146,7 @@ export async function runDriftCheck(args: string[], io: DriftCliIo = {}): Promis
     const baselinePath = resolvePath(cwd, baselinePathInput);
     const format = parseDriftReportFormat(options.values.get("--format") ?? "text");
     const failOn = parseDriftFailLevel(options.values.get("--fail-on") ?? "medium");
+    const lintMetadata = options.flags.has("--lint-metadata");
 
     let toolsContents: string;
     try {
@@ -199,7 +203,7 @@ export async function runDriftCheck(args: string[], io: DriftCliIo = {}): Promis
       baseline,
       currentManifest: manifest,
       policyDocument,
-      lintMetadata: true
+      lintMetadata
     });
 
     const findings = coreResult.drifts.map((f) => ({
@@ -243,10 +247,11 @@ export async function runDriftCheck(args: string[], io: DriftCliIo = {}): Promis
     return 1;
   }
 }
-
 function parseDriftOptions(args: string[], spec: DriftOptionSpec): DriftParsedOptions {
   const values = new Map<string, string>();
+  const flags = new Set<string>();
   const allowedValues = new Set(spec.values ?? []);
+  const allowedFlags = new Set(spec.flags ?? []);
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
@@ -264,12 +269,17 @@ function parseDriftOptions(args: string[], spec: DriftOptionSpec): DriftParsedOp
       continue;
     }
 
+    if (allowedFlags.has(arg)) {
+      flags.add(arg);
+      continue;
+    }
+
     if (arg.startsWith("--")) {
       throw new Error(`Unsupported option for ${spec.commandName}: ${arg}`);
     }
   }
 
-  return { values };
+  return { values, flags };
 }
 
 function parseDriftReportFormat(format: string): DriftReportFormat {

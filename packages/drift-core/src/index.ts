@@ -15,7 +15,8 @@ export {
   detectCapabilityMetadataMismatches,
   lintToolMetadata,
   HIGH_RISK_CAPABILITIES,
-  CAPABILITY_RULES
+  CAPABILITY_RULES,
+  DEFAULT_METADATA_LINT_RULES
 } from "./metadata-lint.js";
 export type { CapabilityRule } from "./metadata-lint.js";
 export { driftSeverity, newToolSeverity } from "./severity.js";

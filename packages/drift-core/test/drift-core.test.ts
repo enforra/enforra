@@ -41,6 +41,32 @@ describe("drift-core", () => {
       expect(guesses.some((g) => g.capability === "read")).toBe(true);
       expect(guesses.some((g) => g.capability === "write")).toBe(true);
     });
+
+    it("does not match broad keywords in default rules (e.g. run)", () => {
+      const guesses = guessCapabilitiesFromToolMetadata("runTool", "Process some input");
+      expect(guesses).toEqual([]);
+    });
+
+    it("respects custom rules", () => {
+      const customRules = [
+        {
+          pattern: /calculator/i,
+          capability: "math"
+        }
+      ];
+      const guesses = guessCapabilitiesFromToolMetadata(
+        "calculator.add",
+        "Add numbers",
+        customRules
+      );
+      expect(guesses).toEqual([
+        {
+          capability: "math",
+          source: "heuristic",
+          confidence: "low"
+        }
+      ]);
+    });
   });
 
   describe("detectCapabilityMetadataMismatches", () => {
@@ -61,6 +87,24 @@ describe("drift-core", () => {
         capabilities: ["shell"]
       });
       expect(warnings.length).toBe(0);
+    });
+
+    it("respects custom rules configuration", () => {
+      const customRules = [
+        {
+          pattern: /superSecret/i,
+          capability: "secret"
+        }
+      ];
+      const warnings = detectCapabilityMetadataMismatches(
+        {
+          name: "superSecretTool",
+          capabilities: ["read"]
+        },
+        customRules
+      );
+      expect(warnings.length).toBe(1);
+      expect(warnings[0].detail).toContain("secret");
     });
   });
 

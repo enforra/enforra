@@ -65,19 +65,20 @@ Options:
 - `--baseline`: Path to the baseline file. Default: `.enforra/tool-baseline.json`.
 - `--format`: Output format. One of `text`, `json`, `markdown`. Default: `text`.
 - `--fail-on`: Minimum severity that causes a non-zero exit code. One of `none`, `low`, `medium`, `high`. Default: `medium`.
+- `--lint-metadata`: Optional flag to enable heuristic metadata linting (checks for capability metadata mismatches).
 
 ## Drift types detected
 
-| Drift type                     | Severity | What it means                                                    |
-| ------------------------------ | -------- | ---------------------------------------------------------------- |
-| `permissions_changed`          | High     | Tool permissions have changed                                    |
-| `capabilities_changed`         | High     | Tool capabilities have changed                                   |
-| `capability_metadata_mismatch` | High     | Tool name suggests a high-risk capability that declarations omit |
-| `endpoint_changed`             | High     | Tool endpoint has changed                                        |
-| `tool_removed`                 | High     | A tool was in the baseline but is no longer present              |
-| `schema_changed`               | Medium   | The input schema has changed                                     |
-| `description_changed`          | Low      | The description has changed                                      |
-| `tool_added`                   | Low      | A new tool appeared that was not in the baseline                 |
+| Drift type                     | Severity | What it means                                                                                 |
+| ------------------------------ | -------- | --------------------------------------------------------------------------------------------- |
+| `permissions_changed`          | High     | Tool permissions have changed                                                                 |
+| `capabilities_changed`         | High     | Tool capabilities have changed                                                                |
+| `capability_metadata_mismatch` | High     | Tool name suggests a high-risk capability that declarations omit (requires `--lint-metadata`) |
+| `endpoint_changed`             | High     | Tool endpoint has changed                                                                     |
+| `tool_removed`                 | High     | A tool was in the baseline but is no longer present                                           |
+| `schema_changed`               | Medium   | The input schema has changed                                                                  |
+| `description_changed`          | Low      | The description has changed                                                                   |
+| `tool_added`                   | Low      | A new tool appeared that was not in the baseline                                              |
 
 ## Severity and exit codes
 
@@ -92,23 +93,23 @@ The `--fail-on` flag controls when the check command exits with a non-zero code:
 
 Default: `medium`.
 
-## Capability inference
+## Pure Manifest-Based Drift Detection
 
-Explicitly declared tool capabilities are the preferred source of truth in Enforra.
+Drift detection is manifest based. Metadata lint is optional and best-effort. For accurate results, declare capabilities, permissions, and riskTags explicitly.
 
-If a tool does not explicitly declare capabilities in the manifest, Enforra heuristically guesses capabilities from tool names and descriptions as a best-effort fallback hint. For example, a tool named `terminal.run` is guessed to have the `shell` capability.
+If a tool does not explicitly declare capabilities in the manifest, Enforra does not automatically run heuristic checking by default. The default check runs strictly against declared manifest fields.
 
-Users and contributors should explicitly declare custom capabilities on tools instead of relying on built-in regex guesses, as inferred capabilities are best-effort hints only and should not be treated as authoritative security boundaries.
+## Heuristic Metadata Linting
 
-Inferred capabilities are stored in the baseline for reference, but explicit capability declarations always override and take precedence over these heuristic hints.
+If the optional `--lint-metadata` flag is passed, Enforra performs a best-effort heuristic check comparing declared capabilities against tool names and descriptions.
 
 ### Capability metadata mismatch
 
-Declared capabilities are not treated as an absolute bypass. If a tool's name or description clearly suggests a high-risk capability (such as `shell`, `delete`, `payment`, `auth`, `secret`, `production`, `network`, or `external_side_effect`) but the declared capabilities omit it, Enforra reports a `capability_metadata_mismatch` finding with HIGH severity.
+Under `--lint-metadata`, if a tool's name or description suggests a high-risk capability (such as `shell`, `delete`, `payment`, `auth`, `secret`, `production`, `network`, or `external_side_effect`) but the declared capabilities omit it, Enforra reports a `capability_metadata_mismatch` finding with HIGH severity.
 
 This prevents a scenario where a tool manifest incorrectly declares only `read` for a tool named `terminal.run`. The tool may genuinely have limited capabilities, but Enforra flags the mismatch so a human reviewer can confirm.
 
-Examples:
+Examples (under `--lint-metadata`):
 
 - `terminal.run` with `capabilities: ["read"]` → HIGH `capability_metadata_mismatch` (name suggests `shell`)
 - `terminal.run` with `capabilities: ["read", "shell"]` → No mismatch

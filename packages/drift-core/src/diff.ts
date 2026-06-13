@@ -162,24 +162,12 @@ export function compareTool(current: ToolDefinition, baseline: BaselineTool): Dr
       detail: "metadata has changed since baseline"
     });
   }
-
-  // 10. Capability metadata mismatch
-  const mismatches = detectCapabilityMetadataMismatches(current);
-  for (const mm of mismatches) {
-    findings.push({
-      tool: current.name,
-      type: "capability_metadata_mismatch",
-      severity: mm.severity,
-      detail: mm.detail
-    });
-  }
-
   return findings;
 }
 
 /** Check tool definition drift from baseline. */
 export function checkToolDrift(input: CheckToolDriftInput): DriftCheckResult {
-  const { baseline, currentManifest, policyDocument, lintMetadata = true } = input;
+  const { baseline, currentManifest, policyDocument, lintMetadata = false } = input;
   const drifts: DriftFinding[] = [];
   const metadataWarnings: MetadataWarning[] = [];
 
@@ -221,6 +209,14 @@ export function checkToolDrift(input: CheckToolDriftInput): DriftCheckResult {
       if (lintMetadata) {
         const mismatches = detectCapabilityMetadataMismatches(tool);
         metadataWarnings.push(...mismatches);
+        for (const mm of mismatches) {
+          drifts.push({
+            tool: tool.name,
+            type: "capability_metadata_mismatch",
+            severity: mm.severity,
+            detail: mm.detail
+          });
+        }
       }
     }
   }
