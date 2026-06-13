@@ -2,72 +2,9 @@ import type {
   ToolDefinition,
   BaselineTool,
   SuggestedCapability,
-  MetadataWarning
+  MetadataWarning,
+  CapabilityRule
 } from "./types.js";
-
-export interface CapabilityRule {
-  pattern: RegExp;
-  capability: string;
-}
-
-export const DEFAULT_METADATA_LINT_RULES: CapabilityRule[] = [
-  // shell (high risk code execution)
-  {
-    pattern: /(?:^|[^a-zA-Z])(terminal|shell|bash|exec|command|spawn)(?:$|[^a-zA-Z])/i,
-    capability: "shell"
-  },
-  // delete (high risk data modification)
-  {
-    pattern: /(?:^|[^a-zA-Z])(delete|remove|destroy|wipe|drop|clear|purge)(?:$|[^a-zA-Z])/i,
-    capability: "delete"
-  },
-  // write
-  {
-    pattern: /(?:^|[^a-zA-Z])(write|create|post|put|update|modify|save)(?:$|[^a-zA-Z])/i,
-    capability: "write"
-  },
-  // read
-  {
-    pattern: /(?:^|[^a-zA-Z])(read|view|list)(?:$|[^a-zA-Z])/i,
-    capability: "read"
-  },
-  // network
-  {
-    pattern: /(?:^|[^a-zA-Z])(network|http|request|url|curl|wget)(?:$|[^a-zA-Z])/i,
-    capability: "network"
-  },
-  // database (e.g. database schema/tables)
-  {
-    pattern: /(?:^|[^a-zA-Z])(db|database|sql|table|collection)(?:$|[^a-zA-Z])/i,
-    capability: "database"
-  },
-  // payment
-  {
-    pattern:
-      /(?:^|[^a-zA-Z])(pay|payment|charge|refund|stripe|billing|checkout|invoice)(?:$|[^a-zA-Z])/i,
-    capability: "payment"
-  },
-  // auth
-  { pattern: /(?:^|[^a-zA-Z])(auth|login|jwt)(?:$|[^a-zA-Z])/i, capability: "auth" },
-  // secret (credentials)
-  {
-    pattern: /(?:^|[^a-zA-Z])(secret|key|token|password|credential)(?:$|[^a-zA-Z])/i,
-    capability: "secret"
-  },
-  // production
-  {
-    pattern: /(?:^|[^a-zA-Z])(prod|production|live|release|deploy|publish)(?:$|[^a-zA-Z])/i,
-    capability: "production"
-  },
-  // external_side_effect
-  {
-    pattern: /(?:^|[^a-zA-Z])(email|mail|notify|notification|slack|webhook|sms)(?:$|[^a-zA-Z])/i,
-    capability: "external_side_effect"
-  }
-];
-
-// Alias for backwards compatibility
-export const CAPABILITY_RULES = DEFAULT_METADATA_LINT_RULES;
 
 /**
  * Heuristically guess capabilities from tool metadata (name and description) using regex keyword patterns.
@@ -76,7 +13,7 @@ export const CAPABILITY_RULES = DEFAULT_METADATA_LINT_RULES;
 export function guessCapabilitiesFromToolMetadata(
   name: string,
   description?: string,
-  rules: CapabilityRule[] = DEFAULT_METADATA_LINT_RULES
+  rules: CapabilityRule[] = []
 ): SuggestedCapability[] {
   const text = `${name} ${description ?? ""}`;
   const suggestions: SuggestedCapability[] = [];
@@ -117,7 +54,7 @@ export const HIGH_RISK_CAPABILITIES = new Set([
  */
 export function detectCapabilityMetadataMismatches(
   tool: ToolDefinition | BaselineTool,
-  rules: CapabilityRule[] = DEFAULT_METADATA_LINT_RULES
+  rules: CapabilityRule[] = []
 ): MetadataWarning[] {
   // Only applies when the tool explicitly declares capabilities
   if (tool.capabilities === undefined || tool.capabilities.length === 0) {
@@ -152,7 +89,7 @@ export function lintToolMetadata(input: {
   manifest: { tools: ToolDefinition[] };
   rules?: CapabilityRule[];
 }): MetadataWarning[] {
-  const { manifest, rules = DEFAULT_METADATA_LINT_RULES } = input;
+  const { manifest, rules = [] } = input;
   const warnings: MetadataWarning[] = [];
   for (const tool of manifest.tools) {
     warnings.push(...detectCapabilityMetadataMismatches(tool, rules));

@@ -6,10 +6,15 @@ import {
   parseBaselineFile,
   createToolBaseline
 } from "@enforra/drift-core";
-import type { ToolManifest, BaselineFile, PolicyDocumentRef } from "@enforra/drift-core";
+import type {
+  ToolManifest,
+  BaselineFile,
+  PolicyDocumentRef,
+  CapabilityRule
+} from "@enforra/drift-core";
 import { loadPolicyFile } from "@enforra/policy-core";
 import { formatDriftMarkdown, formatDriftText } from "./format.js";
-import type { DriftCheckResult, DriftType } from "./shims.js";
+import type { CliDriftReport } from "./format.js";
 
 const severityRank = {
   low: 1,
@@ -45,23 +50,13 @@ const failLevelRank: Record<DriftFailLevel, number> = {
 };
 
 /** Returns true if the result should cause a non-zero exit code. */
-export function shouldFail(result: DriftCheckResult, failLevel: DriftFailLevel): boolean {
+export function shouldFail(result: CliDriftReport, failLevel: DriftFailLevel): boolean {
   if (failLevel === "none") {
     return false;
   }
 
   const threshold = failLevelRank[failLevel];
-  return result.findings.some((f) => severityRank[f.severity] >= threshold);
-}
-
-function mapDriftTypeToOld(type: string): string {
-  if (type === "new_tool") return "tool_added";
-  if (type === "removed_tool") return "tool_removed";
-  if (type === "permissions_expanded" || type === "permissions_reduced")
-    return "permissions_changed";
-  if (type === "capabilities_expanded" || type === "capabilities_reduced")
-    return "capabilities_changed";
-  return type;
+  return result.drifts.some((f) => severityRank[f.severity] >= threshold);
 }
 
 const defaultBaselinePath = ".enforra/tool-baseline.json";
@@ -128,15 +123,14 @@ export async function runDriftCheck(args: string[], io: DriftCliIo = {}): Promis
   try {
     const options = parseDriftOptions(args, {
       commandName: "drift check",
-      values: ["--tools", "--baseline", "--format", "--fail-on", "--policy"],
-      flags: ["--lint-metadata"]
+      values: ["--tools", "--baseline", "--format", "--fail-on", "--policy", "--lint-rules"]
     });
 
     const toolsPathInput = options.values.get("--tools");
     if (toolsPathInput === undefined) {
       stderr.error("--tools is required");
       stderr.error(
-        "Usage: enforra drift check --tools tools.json [--baseline baseline.json] [--format text|json|markdown] [--fail-on none|low|medium|high] [--policy policy.yaml] [--lint-metadata]"
+        "Usage: enforra drift check --tools tools.json [--baseline baseline.json] [--format text|json|markdown] [--fail-on none|low|medium|high] [--policy policy.yaml] [--lint-rules rules.json]"
       );
       return 1;
     }
@@ -146,7 +140,6 @@ export async function runDriftCheck(args: string[], io: DriftCliIo = {}): Promis
     const baselinePath = resolvePath(cwd, baselinePathInput);
     const format = parseDriftReportFormat(options.values.get("--format") ?? "text");
     const failOn = parseDriftFailLevel(options.values.get("--fail-on") ?? "medium");
-    const lintMetadata = options.flags.has("--lint-metadata");
 
     let toolsContents: string;
     try {
@@ -199,34 +192,44 @@ export async function runDriftCheck(args: string[], io: DriftCliIo = {}): Promis
       }
     }
 
+    const rulesPathInput = options.values.get("--lint-rules");
+    let rules: CapabilityRule[] | undefined = undefined;
+    if (rulesPathInput !== undefined) {
+      const resolvedRulesPath = resolvePath(cwd, rulesPathInput);
+      try {
+        const rawRules = JSON.parse(await readFile(resolvedRulesPath, "utf8"));
+        if (Array.isArray(rawRules)) {
+          rules = rawRules.map((r: unknown) => {
+            const rule = r as Record<string, unknown>;
+            if (typeof rule.pattern !== "string" || typeof rule.capability !== "string") {
+              throw new Error("Invalid rule format: pattern and capability must be strings");
+            }
+            return {
+              pattern: new RegExp(rule.pattern, "i"),
+              capability: rule.capability
+            };
+          });
+        }
+      } catch (error) {
+        stderr.error(
+          `Failed to load/parse --lint-rules file: ${error instanceof Error ? error.message : String(error)}`
+        );
+        return 1;
+      }
+    }
+
     const coreResult = checkToolDrift({
       baseline,
       currentManifest: manifest,
       policyDocument,
-      lintMetadata
+      rules
     });
 
-    const findings = coreResult.drifts.map((f) => ({
-      tool: f.tool,
-      type: mapDriftTypeToOld(f.type) as DriftType,
-      severity: f.severity,
-      detail: f.detail
-    }));
-
-    const high = findings.filter((f) => f.severity === "high").length;
-    const medium = findings.filter((f) => f.severity === "medium").length;
-    const low = findings.filter((f) => f.severity === "low").length;
-
-    const result: DriftCheckResult = {
+    const result: CliDriftReport = {
+      ...coreResult,
       baselineFile: baselinePathInput,
       toolsFile: toolsPathInput,
-      checkedAt: new Date().toISOString(),
-      totalTools: manifest.tools.length,
-      baselineTools: baseline.tools.length,
-      findings,
-      summary: { high, medium, low, total: findings.length },
-      affectedPolicies: coreResult.affectedPolicies,
-      metadataWarnings: coreResult.metadataWarnings
+      checkedAt: new Date().toISOString()
     };
 
     if (format === "json") {

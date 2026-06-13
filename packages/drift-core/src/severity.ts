@@ -1,4 +1,4 @@
-import type { ToolDefinition, DriftType, DriftSeverity } from "./types.js";
+import type { ToolDefinition, DriftType, DriftSeverity, CapabilityRule } from "./types.js";
 import {
   HIGH_RISK_CAPABILITIES,
   detectCapabilityMetadataMismatches,
@@ -31,7 +31,7 @@ export function driftSeverity(type: DriftType): DriftSeverity {
 }
 
 /** Determine severity for a newly added tool. */
-export function newToolSeverity(tool: ToolDefinition): DriftSeverity {
+export function newToolSeverity(tool: ToolDefinition, rules: CapabilityRule[] = []): DriftSeverity {
   if (tool.capabilities !== undefined) {
     // If capabilities are explicitly declared
     const declared = new Set(tool.capabilities);
@@ -42,14 +42,14 @@ export function newToolSeverity(tool: ToolDefinition): DriftSeverity {
       }
     }
     // 2. Check if there are any metadata mismatches (e.g. name suggests high-risk cap but omitted)
-    if (detectCapabilityMetadataMismatches(tool).length > 0) {
+    if (detectCapabilityMetadataMismatches(tool, rules).length > 0) {
       return "high";
     }
     return "low";
   }
 
   // If no capabilities are declared, fall back to heuristic guesses
-  const guesses = guessCapabilitiesFromToolMetadata(tool.name, tool.description);
+  const guesses = guessCapabilitiesFromToolMetadata(tool.name, tool.description, rules);
   const hasHighRiskGuess = guesses.some((g) => HIGH_RISK_CAPABILITIES.has(g.capability));
   if (hasHighRiskGuess) {
     return "high";

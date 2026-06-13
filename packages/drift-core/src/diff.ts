@@ -164,12 +164,12 @@ export function compareTool(current: ToolDefinition, baseline: BaselineTool): Dr
   }
   return findings;
 }
-
 /** Check tool definition drift from baseline. */
 export function checkToolDrift(input: CheckToolDriftInput): DriftCheckResult {
-  const { baseline, currentManifest, policyDocument, lintMetadata = false } = input;
+  const { baseline, currentManifest, policyDocument, rules } = input;
   const drifts: DriftFinding[] = [];
   const metadataWarnings: MetadataWarning[] = [];
+  const runLint = rules && rules.length > 0;
 
   const baselineMap = new Map(baseline.tools.map((t) => [t.name, t]));
   const currentMap = new Map(currentManifest.tools.map((t) => [t.name, t]));
@@ -178,7 +178,7 @@ export function checkToolDrift(input: CheckToolDriftInput): DriftCheckResult {
   for (const tool of currentManifest.tools) {
     const baselineTool = baselineMap.get(tool.name);
     if (baselineTool === undefined) {
-      const severity = newToolSeverity(tool);
+      const severity = newToolSeverity(tool, rules);
       drifts.push({
         tool: tool.name,
         type: "new_tool",
@@ -190,8 +190,8 @@ export function checkToolDrift(input: CheckToolDriftInput): DriftCheckResult {
       });
 
       // Check metadata mismatches on new tools
-      if (lintMetadata) {
-        const mismatches = detectCapabilityMetadataMismatches(tool);
+      if (runLint) {
+        const mismatches = detectCapabilityMetadataMismatches(tool, rules);
         for (const mm of mismatches) {
           drifts.push({
             tool: tool.name,
@@ -206,8 +206,8 @@ export function checkToolDrift(input: CheckToolDriftInput): DriftCheckResult {
       const toolDrifts = compareTool(tool, baselineTool);
       drifts.push(...toolDrifts);
 
-      if (lintMetadata) {
-        const mismatches = detectCapabilityMetadataMismatches(tool);
+      if (runLint) {
+        const mismatches = detectCapabilityMetadataMismatches(tool, rules);
         metadataWarnings.push(...mismatches);
         for (const mm of mismatches) {
           drifts.push({

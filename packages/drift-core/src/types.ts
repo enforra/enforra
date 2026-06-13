@@ -105,6 +105,11 @@ export interface DriftFinding {
 // Metadata lint types
 // ---------------------------------------------------------------------------
 
+export interface CapabilityRule {
+  pattern: RegExp;
+  capability: string;
+}
+
 /** A suggested capability from heuristic analysis. */
 export interface SuggestedCapability {
   capability: string;
@@ -179,7 +184,7 @@ export interface CheckToolDriftInput {
   baseline: BaselineFile;
   currentManifest: ToolManifest;
   policyDocument?: PolicyDocumentRef;
-  lintMetadata?: boolean;
+  rules?: CapabilityRule[];
 }
 
 /** Input for analyzePolicyImpact. */

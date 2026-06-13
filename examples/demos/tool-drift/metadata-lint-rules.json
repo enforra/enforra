@@ -1,0 +1,46 @@
+[
+  {
+    "pattern": "(?:^|[^a-zA-Z])(terminal|shell|bash|exec|command|spawn)(?:$|[^a-zA-Z])",
+    "capability": "shell"
+  },
+  {
+    "pattern": "(?:^|[^a-zA-Z])(delete|remove|destroy|wipe|drop|clear|purge)(?:$|[^a-zA-Z])",
+    "capability": "delete"
+  },
+  {
+    "pattern": "(?:^|[^a-zA-Z])(write|create|post|put|update|modify|save)(?:$|[^a-zA-Z])",
+    "capability": "write"
+  },
+  {
+    "pattern": "(?:^|[^a-zA-Z])(read|view|list)(?:$|[^a-zA-Z])",
+    "capability": "read"
+  },
+  {
+    "pattern": "(?:^|[^a-zA-Z])(network|http|request|url|curl|wget)(?:$|[^a-zA-Z])",
+    "capability": "network"
+  },
+  {
+    "pattern": "(?:^|[^a-zA-Z])(db|database|sql|table|collection)(?:$|[^a-zA-Z])",
+    "capability": "database"
+  },
+  {
+    "pattern": "(?:^|[^a-zA-Z])(pay|payment|charge|refund|stripe|billing|checkout|invoice)(?:$|[^a-zA-Z])",
+    "capability": "payment"
+  },
+  {
+    "pattern": "(?:^|[^a-zA-Z])(auth|login|jwt)(?:$|[^a-zA-Z])",
+    "capability": "auth"
+  },
+  {
+    "pattern": "(?:^|[^a-zA-Z])(secret|key|token|password|credential)(?:$|[^a-zA-Z])",
+    "capability": "secret"
+  },
+  {
+    "pattern": "(?:^|[^a-zA-Z])(prod|production|live|release|deploy|publish)(?:$|[^a-zA-Z])",
+    "capability": "production"
+  },
+  {
+    "pattern": "(?:^|[^a-zA-Z])(email|mail|notify|notification|slack|webhook|sms)(?:$|[^a-zA-Z])",
+    "capability": "external_side_effect"
+  }
+]

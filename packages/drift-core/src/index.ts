@@ -14,10 +14,7 @@ export {
   guessCapabilitiesFromToolMetadata,
   detectCapabilityMetadataMismatches,
   lintToolMetadata,
-  HIGH_RISK_CAPABILITIES,
-  CAPABILITY_RULES,
-  DEFAULT_METADATA_LINT_RULES
+  HIGH_RISK_CAPABILITIES
 } from "./metadata-lint.js";
-export type { CapabilityRule } from "./metadata-lint.js";
 export { driftSeverity, newToolSeverity } from "./severity.js";
 export { analyzePolicyImpact } from "./policy-impact.js";

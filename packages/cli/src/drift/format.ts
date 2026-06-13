@@ -1,7 +1,13 @@
-import type { DriftCheckResult } from "./shims.js";
+import type { DriftCheckResult as CoreResult } from "@enforra/drift-core";
+
+export interface CliDriftReport extends CoreResult {
+  baselineFile: string;
+  toolsFile: string;
+  checkedAt: string;
+}
 
 /** Format the drift result into readable plain text. */
-export function formatDriftText(result: DriftCheckResult): string {
+export function formatDriftText(result: CliDriftReport): string {
   const lines = [
     "Enforra drift check",
     "",
@@ -9,21 +15,21 @@ export function formatDriftText(result: DriftCheckResult): string {
     `Tools:    ${result.toolsFile}`,
     `Checked:  ${result.checkedAt}`,
     "",
-    `Baseline tools: ${result.baselineTools}`,
-    `Current tools:  ${result.totalTools}`,
+    `Baseline tools: ${result.summary.baselineTools}`,
+    `Current tools:  ${result.summary.currentTools}`,
     "",
     "Summary:",
     `  High:   ${result.summary.high}`,
     `  Medium: ${result.summary.medium}`,
     `  Low:    ${result.summary.low}`,
-    `  Total:  ${result.summary.total}`
+    `  Total:  ${result.summary.driftFound}`
   ];
 
-  if (result.findings.length === 0) {
+  if (result.drifts.length === 0) {
     lines.push("", "No drift detected.");
   } else {
     lines.push("", "Findings:");
-    for (const finding of result.findings) {
+    for (const finding of result.drifts) {
       lines.push(`  [${finding.severity.toUpperCase()}] ${finding.tool}: ${finding.type}`);
       lines.push(`    ${finding.detail}`);
     }
@@ -44,7 +50,7 @@ export function formatDriftText(result: DriftCheckResult): string {
 }
 
 /** Format the drift result into GitHub-flavored Markdown. */
-export function formatDriftMarkdown(result: DriftCheckResult): string {
+export function formatDriftMarkdown(result: CliDriftReport): string {
   const lines = [
     "# Enforra Drift Check",
     "",
@@ -59,14 +65,14 @@ export function formatDriftMarkdown(result: DriftCheckResult): string {
     `| High | ${result.summary.high} |`,
     `| Medium | ${result.summary.medium} |`,
     `| Low | ${result.summary.low} |`,
-    `| **Total** | **${result.summary.total}** |`
+    `| **Total** | **${result.summary.driftFound}** |`
   ];
 
-  if (result.findings.length === 0) {
+  if (result.drifts.length === 0) {
     lines.push("", "No drift detected.");
   } else {
     lines.push("", "## Findings", "");
-    for (const finding of result.findings) {
+    for (const finding of result.drifts) {
       lines.push(`- **[${finding.severity.toUpperCase()}]** \`${finding.tool}\`: ${finding.type}`);
       lines.push(`  - ${finding.detail}`);
     }
