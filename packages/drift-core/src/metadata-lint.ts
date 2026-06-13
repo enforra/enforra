@@ -1,3 +1,10 @@
+import type {
+  ToolDefinition,
+  BaselineTool,
+  SuggestedCapability,
+  MetadataWarning
+} from "./types.js";
+
 export interface CapabilityRule {
   pattern: RegExp;
   capability: string;
@@ -60,12 +67,9 @@ export const CAPABILITY_RULES: CapabilityRule[] = [
   }
 ];
 
-import type { SuggestedCapability } from "./types.js";
-
 /**
  * Heuristically guess capabilities from tool metadata (name and description) using regex keyword patterns.
  * IMPORTANT: This is a best-effort heuristic fallback hint only. It is NOT authoritative security logic.
- * OSS users and contributors should explicitly declare custom capabilities on tools instead of relying on regex guesses.
  */
 export function guessCapabilitiesFromToolMetadata(
   name: string,
@@ -87,13 +91,62 @@ export function guessCapabilitiesFromToolMetadata(
   return suggestions;
 }
 
+/** Capabilities that make a new tool high-risk. */
+export const HIGH_RISK_CAPABILITIES = new Set([
+  "shell",
+  "delete",
+  "payment",
+  "auth",
+  "secret",
+  "production",
+  "network",
+  "external_side_effect",
+  // Backwards compatibility aliases
+  "code_execution",
+  "secrets_access",
+  "deployment"
+]);
+
 /**
- * Infer capabilities from a tool name and optional description.
- * @deprecated Prefer explicit capability declarations on tool metadata/manifests, or use guessCapabilitiesFromToolMetadata.
- * This is a best-effort heuristic fallback only.
+ * Detect capability metadata mismatches: when a tool has explicit capabilities but
+ * its name/description suggests high-risk capabilities that are missing from the
+ * declared list. Returns HIGH findings for shell/delete/payment/auth/secret/production/network.
  */
-export function inferCapabilities(name: string, description?: string): string[] {
-  const guesses = guessCapabilitiesFromToolMetadata(name, description);
-  const capabilities = guesses.map((g) => g.capability);
-  return [...new Set(capabilities)].sort();
+export function detectCapabilityMetadataMismatches(
+  tool: ToolDefinition | BaselineTool
+): MetadataWarning[] {
+  // Only applies when the tool explicitly declares capabilities
+  if (tool.capabilities === undefined || tool.capabilities.length === 0) {
+    return [];
+  }
+  const declared = new Set(tool.capabilities);
+  const guesses = guessCapabilitiesFromToolMetadata(
+    tool.name,
+    (tool as ToolDefinition).description
+  );
+  const warnings: MetadataWarning[] = [];
+
+  for (const guess of guesses) {
+    if (HIGH_RISK_CAPABILITIES.has(guess.capability) && !declared.has(guess.capability)) {
+      warnings.push({
+        tool: tool.name,
+        type: "capability_metadata_mismatch",
+        severity: "high",
+        detail: `tool name/description suggests '${guess.capability}' but declared capabilities omit it: [${[...declared].sort().join(", ")}]`
+      });
+    }
+  }
+
+  return warnings;
+}
+
+/**
+ * Public entry point for linting tool metadata.
+ */
+export function lintToolMetadata(manifest: { tools: ToolDefinition[] }): MetadataWarning[] {
+  const warnings: MetadataWarning[] = [];
+  for (const tool of manifest.tools) {
+    warnings.push(...detectCapabilityMetadataMismatches(tool));
+  }
+  return warnings;
 }

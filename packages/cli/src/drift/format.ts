@@ -1,4 +1,4 @@
-import type { DriftCheckResult } from "./types.js";
+import type { DriftCheckResult } from "./shims.js";
 
 /** Format the drift result into readable plain text. */
 export function formatDriftText(result: DriftCheckResult): string {
@@ -26,6 +26,17 @@ export function formatDriftText(result: DriftCheckResult): string {
     for (const finding of result.findings) {
       lines.push(`  [${finding.severity.toUpperCase()}] ${finding.tool}: ${finding.type}`);
       lines.push(`    ${finding.detail}`);
+    }
+  }
+
+  if (result.affectedPolicies && result.affectedPolicies.length > 0) {
+    lines.push("", "Affected Policies:");
+    for (const policy of result.affectedPolicies) {
+      lines.push(
+        `  [${policy.severity.toUpperCase()}] Policy Rule '${policy.policyId}' (tool: ${policy.tool})`
+      );
+      lines.push(`    Reason: ${policy.reason}`);
+      lines.push(`    Action: ${policy.suggestedAction}`);
     }
   }
 
@@ -58,6 +69,17 @@ export function formatDriftMarkdown(result: DriftCheckResult): string {
     for (const finding of result.findings) {
       lines.push(`- **[${finding.severity.toUpperCase()}]** \`${finding.tool}\`: ${finding.type}`);
       lines.push(`  - ${finding.detail}`);
+    }
+  }
+
+  if (result.affectedPolicies && result.affectedPolicies.length > 0) {
+    lines.push("", "## Affected Policies", "");
+    for (const policy of result.affectedPolicies) {
+      lines.push(
+        `- **[${policy.severity.toUpperCase()}]** Policy Rule \`${policy.policyId}\` (tool: \`${policy.tool}\`)`
+      );
+      lines.push(`  - Reason: ${policy.reason}`);
+      lines.push(`  - Action: ${policy.suggestedAction}`);
     }
   }
 

@@ -1,18 +1,15 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, resolve } from "node:path";
-import type {
-  DriftCliIo,
-  DriftOptionSpec,
-  DriftParsedOptions,
-  DriftReportFormat,
-  DriftFailLevel,
-  ToolManifest,
-  BaselineFile,
-  DriftCheckResult
-} from "./types.js";
-import { parseToolManifest, parseBaselineFile, buildBaseline } from "./normalize.js";
-import { checkDrift } from "./compare.js";
+import {
+  checkToolDrift,
+  parseToolManifest,
+  parseBaselineFile,
+  createToolBaseline
+} from "@enforra/drift-core";
+import type { ToolManifest, BaselineFile, PolicyDocumentRef } from "@enforra/drift-core";
+import { loadPolicyFile } from "@enforra/policy-core";
 import { formatDriftMarkdown, formatDriftText } from "./format.js";
+import type { DriftCheckResult, DriftType } from "./shims.js";
 
 const severityRank = {
   low: 1,
@@ -20,7 +17,25 @@ const severityRank = {
   high: 3
 };
 
-const failLevelRank = {
+export type DriftReportFormat = "text" | "json" | "markdown";
+export type DriftFailLevel = "none" | "low" | "medium" | "high";
+
+export interface DriftCliIo {
+  stdout?: Pick<typeof console, "log">;
+  stderr?: Pick<typeof console, "error">;
+  cwd?: string;
+}
+
+export interface DriftParsedOptions {
+  values: Map<string, string>;
+}
+
+export interface DriftOptionSpec {
+  commandName: string;
+  values?: string[];
+}
+
+const failLevelRank: Record<DriftFailLevel, number> = {
   none: 0,
   low: 1,
   medium: 2,
@@ -35,6 +50,16 @@ export function shouldFail(result: DriftCheckResult, failLevel: DriftFailLevel):
 
   const threshold = failLevelRank[failLevel];
   return result.findings.some((f) => severityRank[f.severity] >= threshold);
+}
+
+function mapDriftTypeToOld(type: string): string {
+  if (type === "new_tool") return "tool_added";
+  if (type === "removed_tool") return "tool_removed";
+  if (type === "permissions_expanded" || type === "permissions_reduced")
+    return "permissions_changed";
+  if (type === "capabilities_expanded" || type === "capabilities_reduced")
+    return "capabilities_changed";
+  return type;
 }
 
 const defaultBaselinePath = ".enforra/tool-baseline.json";
@@ -79,7 +104,7 @@ export async function runDriftBaseline(args: string[], io: DriftCliIo = {}): Pro
       return 1;
     }
 
-    const baseline = buildBaseline(manifest);
+    const baseline = createToolBaseline(manifest);
     await mkdir(dirname(outPath), { recursive: true });
     await writeFile(outPath, JSON.stringify(baseline, null, 2) + "\n", "utf8");
 
@@ -101,14 +126,14 @@ export async function runDriftCheck(args: string[], io: DriftCliIo = {}): Promis
   try {
     const options = parseDriftOptions(args, {
       commandName: "drift check",
-      values: ["--tools", "--baseline", "--format", "--fail-on"]
+      values: ["--tools", "--baseline", "--format", "--fail-on", "--policy"]
     });
 
     const toolsPathInput = options.values.get("--tools");
     if (toolsPathInput === undefined) {
       stderr.error("--tools is required");
       stderr.error(
-        "Usage: enforra drift check --tools tools.json [--baseline baseline.json] [--format text|json|markdown] [--fail-on none|low|medium|high]"
+        "Usage: enforra drift check --tools tools.json [--baseline baseline.json] [--format text|json|markdown] [--fail-on none|low|medium|high] [--policy policy.yaml]"
       );
       return 1;
     }
@@ -156,7 +181,49 @@ export async function runDriftCheck(args: string[], io: DriftCliIo = {}): Promis
       return 1;
     }
 
-    const result = checkDrift(manifest, baseline, toolsPathInput, baselinePathInput);
+    const policyPathInput = options.values.get("--policy");
+    let policyDocument: PolicyDocumentRef | undefined = undefined;
+    if (policyPathInput !== undefined) {
+      const policyPath = resolvePath(cwd, policyPathInput);
+      try {
+        policyDocument = (await loadPolicyFile(policyPath)) as unknown as PolicyDocumentRef;
+      } catch (error) {
+        stderr.error(
+          `Failed to load policy file: ${error instanceof Error ? error.message : String(error)}`
+        );
+        return 1;
+      }
+    }
+
+    const coreResult = checkToolDrift({
+      baseline,
+      currentManifest: manifest,
+      policyDocument,
+      lintMetadata: true
+    });
+
+    const findings = coreResult.drifts.map((f) => ({
+      tool: f.tool,
+      type: mapDriftTypeToOld(f.type) as DriftType,
+      severity: f.severity,
+      detail: f.detail
+    }));
+
+    const high = findings.filter((f) => f.severity === "high").length;
+    const medium = findings.filter((f) => f.severity === "medium").length;
+    const low = findings.filter((f) => f.severity === "low").length;
+
+    const result: DriftCheckResult = {
+      baselineFile: baselinePathInput,
+      toolsFile: toolsPathInput,
+      checkedAt: new Date().toISOString(),
+      totalTools: manifest.tools.length,
+      baselineTools: baseline.tools.length,
+      findings,
+      summary: { high, medium, low, total: findings.length },
+      affectedPolicies: coreResult.affectedPolicies,
+      metadataWarnings: coreResult.metadataWarnings
+    };
 
     if (format === "json") {
       stdout.log(JSON.stringify(result, null, 2));

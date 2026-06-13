@@ -25,7 +25,9 @@
   },
   "dependencies": {
     "@enforra/local-audit": "^0.2.1",
-    "@enforra/policy-simulator": "^0.1.1"
+    "@enforra/policy-simulator": "^0.1.1",
+    "@enforra/drift-core": "workspace:*",
+    "@enforra/policy-core": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.5.0",

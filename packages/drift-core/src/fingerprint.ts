@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 
-/** Create a deterministic hash of a value using sorted keys. */
+/** Create a deterministic SHA-256 hash of a value using sorted keys. */
 export function deterministicHash(value: unknown): string {
-  if (value === undefined) {
+  if (value === undefined || value === null) {
     return "";
   }
   const normalized = JSON.stringify(sortKeys(value));
