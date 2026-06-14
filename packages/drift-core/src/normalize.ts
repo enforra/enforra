@@ -19,7 +19,20 @@ export function sanitizeEndpoint(endpoint: string | undefined): string | undefin
   } catch {
     // Non-URL endpoints (e.g. "local://filesystem"): strip query/hash and userinfo naively
     const base = endpoint.split(/[?#]/)[0] ?? "";
-    return base.replace(/(\/\/)?[^@/]+@/, (match, proto) => proto ?? "");
+    const protoIndex = base.indexOf("://");
+    const authStartIndex = protoIndex !== -1 ? protoIndex + 3 : 0;
+    const firstSlashIndex = base.indexOf("/", authStartIndex);
+    const authEndIndex = firstSlashIndex !== -1 ? firstSlashIndex : base.length;
+
+    const authority = base.substring(authStartIndex, authEndIndex);
+    const atIndex = authority.indexOf("@");
+    if (atIndex !== -1) {
+      const cleanAuth = authority.substring(atIndex + 1);
+      const proto = protoIndex !== -1 ? base.substring(0, authStartIndex) : "";
+      const path = firstSlashIndex !== -1 ? base.substring(firstSlashIndex) : "";
+      return proto + cleanAuth + path;
+    }
+    return base;
   }
 }
 
