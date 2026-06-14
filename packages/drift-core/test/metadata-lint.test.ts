@@ -111,12 +111,18 @@ describe("metadata-lint", () => {
       expect(isSafeRegex("abc")).toBe(true);
       expect(isSafeRegex("terminal|shell")).toBe(true);
       expect(isSafeRegex("(?:^|[^a-zA-Z])(terminal|shell)(?:$|[^a-zA-Z])")).toBe(true);
+      expect(isSafeRegex("literal\\*escaped")).toBe(true);
+      expect(isSafeRegex("literal\\+escaped")).toBe(true);
     });
 
     it("identifies unsafe regular expressions (nested quantifiers/extreme length)", () => {
       expect(isSafeRegex("(a+)+")).toBe(false);
       expect(isSafeRegex("a".repeat(501))).toBe(false);
       expect(isSafeRegex("(a*)+")).toBe(false);
+      expect(isSafeRegex("(a|aa)+")).toBe(false);
+      expect(isSafeRegex("a*")).toBe(false);
+      expect(isSafeRegex("a+")).toBe(false);
+      expect(isSafeRegex("a{1,2}")).toBe(false);
     });
   });
 });

@@ -100,10 +100,10 @@ export function isSafeRegex(pattern: string): boolean {
   if (pattern.length > 500) {
     return false;
   }
-  // Flag nested repetitions: e.g., (a+)+, (a*)*, (a+)*, (a*)+, (a{1,2})+
-  // Look for parenthesized expressions containing a quantifier, followed by another quantifier.
-  const nestedRepetition = /\((?:[^()]*[*+?{][^()]*)\)[*+?{]/;
-  if (nestedRepetition.test(pattern)) {
+  // Disallow unescaped repetition quantifiers (*, +, and {) to entirely prevent ReDoS/catastrophic backtracking.
+  // Literal characters like \* or \+ are allowed since they are escaped and match exactly.
+  const hasUnescapedQuantifier = /(?<!\\)(?:\\\\)*[*+{]/;
+  if (hasUnescapedQuantifier.test(pattern)) {
     return false;
   }
   return true;

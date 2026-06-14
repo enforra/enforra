@@ -352,6 +352,29 @@ describe("policy-core", () => {
     expect(result.matchedPolicyId).toBe("allow-health-check");
   });
 
+  it("matches on tool wildcard '*' matching any tool", () => {
+    const result = evaluatePolicy(
+      {
+        version: 1,
+        policies: [
+          {
+            id: "wildcard-tool-allow",
+            match: { agent: "ops-agent", tool: "*" },
+            decision: "allow"
+          }
+        ]
+      },
+      {
+        agent: "ops-agent",
+        tool: "some.random.tool",
+        args: {}
+      }
+    );
+
+    expect(result.decision).toBe("allow");
+    expect(result.matchedPolicyId).toBe("wildcard-tool-allow");
+  });
+
   it("blocks large refunds", () => {
     const result = evaluatePolicy(refundPolicy, {
       agent: "support-agent",
