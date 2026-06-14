@@ -17,8 +17,9 @@ export function sanitizeEndpoint(endpoint: string | undefined): string | undefin
     url.password = "";
     return url.toString();
   } catch {
-    // Non-URL endpoints (e.g. "local://filesystem"): strip query/hash naively
-    return endpoint.split(/[?#]/)[0];
+    // Non-URL endpoints (e.g. "local://filesystem"): strip query/hash and userinfo naively
+    const base = endpoint.split(/[?#]/)[0] ?? "";
+    return base.replace(/(\/\/)?[^@/]+@/, (match, proto) => proto ?? "");
   }
 }
 

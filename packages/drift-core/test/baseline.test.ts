@@ -64,5 +64,14 @@ describe("baseline", () => {
         deterministicHash("https://api.example.com/v1/data")
       );
     });
+
+    it("sanitizes non-URL endpoints (removes credentials and query/hash)", () => {
+      const tool: ToolDefinition = {
+        name: "test",
+        endpoint: "local://user:pass@filesystem/path?query=secret#frag"
+      };
+      const entry = createBaselineTool(tool);
+      expect(entry.server?.endpointFingerprint).toBe(deterministicHash("local://filesystem/path"));
+    });
   });
 });
