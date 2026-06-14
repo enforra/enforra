@@ -13,7 +13,8 @@ export { compareTool, checkToolDrift } from "./diff.js";
 export {
   guessCapabilitiesFromToolMetadata,
   detectCapabilityMetadataMismatches,
-  lintToolMetadata
+  lintToolMetadata,
+  isSafeRegex
 } from "./metadata-lint.js";
-export { driftSeverity, newToolSeverity } from "./severity.js";
+export { driftSeverity, newToolSeverity, validateRiskProfile } from "./severity.js";
 export { analyzePolicyImpact } from "./policy-impact.js";

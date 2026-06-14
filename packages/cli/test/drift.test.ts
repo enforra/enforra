@@ -407,6 +407,66 @@ describe("drift CLI", () => {
     expect(outputWithLint.lines.join("\n")).toContain("capability_metadata_mismatch");
     expect(outputWithLint.lines.join("\n")).toContain("terminal.run");
   });
+
+  it("drift check rejects invalid configurations and unsafe regex", async () => {
+    const dir = await createTempDir();
+    const toolsPath = join(dir, "tools.json");
+    const manifest = { tools: [] };
+    await writeFile(toolsPath, JSON.stringify(manifest), "utf8");
+
+    // Create baseline
+    await runCli(["drift", "baseline", "--tools", toolsPath], {
+      cwd: dir,
+      stdout: createOutput().stdout
+    });
+
+    // 1. Non-array rules file
+    const invalidRulesPath = join(dir, "invalid-rules.json");
+    await writeFile(
+      invalidRulesPath,
+      JSON.stringify({ pattern: "abc", capability: "shell" }),
+      "utf8"
+    );
+    const outputInvalidRules = createOutput();
+    const codeInvalidRules = await runCli(
+      ["drift", "check", "--tools", toolsPath, "--lint-rules", invalidRulesPath],
+      { cwd: dir, stderr: outputInvalidRules.stderr }
+    );
+    expect(codeInvalidRules).toBe(1);
+    expect(outputInvalidRules.errors.join("\n")).toContain("Rules file must contain a JSON array");
+
+    // 2. Unsafe ReDoS regex in rules file
+    const unsafeRulesPath = join(dir, "unsafe-rules.json");
+    await writeFile(
+      unsafeRulesPath,
+      JSON.stringify([{ pattern: "(a+)+", capability: "shell" }]),
+      "utf8"
+    );
+    const outputUnsafeRules = createOutput();
+    const codeUnsafeRules = await runCli(
+      ["drift", "check", "--tools", toolsPath, "--lint-rules", unsafeRulesPath],
+      { cwd: dir, stderr: outputUnsafeRules.stderr }
+    );
+    expect(codeUnsafeRules).toBe(1);
+    expect(outputUnsafeRules.errors.join("\n")).toContain("potentially unsafe");
+
+    // 3. Malformed risk profile
+    const invalidProfilePath = join(dir, "invalid-profile.json");
+    await writeFile(
+      invalidProfilePath,
+      JSON.stringify({ highRiskCapabilities: "should-be-array" }),
+      "utf8"
+    );
+    const outputInvalidProfile = createOutput();
+    const codeInvalidProfile = await runCli(
+      ["drift", "check", "--tools", toolsPath, "--risk-profile", invalidProfilePath],
+      { cwd: dir, stderr: outputInvalidProfile.stderr }
+    );
+    expect(codeInvalidProfile).toBe(1);
+    expect(outputInvalidProfile.errors.join("\n")).toContain(
+      "highRiskCapabilities must be an array"
+    );
+  });
 });
 
 async function createTempDir(): Promise<string> {

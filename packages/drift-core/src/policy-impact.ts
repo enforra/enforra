@@ -16,7 +16,7 @@ export function analyzePolicyImpact(input: AnalyzePolicyImpactInput): AffectedPo
 
     // Find rules that match this tool (either directly or via wildcard)
     const matchingRules = policyDocument.policies.filter(
-      (rule) => rule.match.tool === tool || rule.match.tool === "*"
+      (rule) => rule.match.tool === tool || rule.match.tool === "*" || rule.match.tool === undefined
     );
 
     const hasDirectMatch = policyDocument.policies.some((rule) => rule.match.tool === tool);
@@ -24,11 +24,11 @@ export function analyzePolicyImpact(input: AnalyzePolicyImpactInput): AffectedPo
     // 1. Analyze matching rules for allow decisions on drifted tools
     for (const rule of matchingRules) {
       if (rule.decision.toLowerCase() === "allow") {
-        if (rule.match.tool === "*") {
+        if (rule.match.tool === "*" || rule.match.tool === undefined) {
           affected.push({
             policyId: rule.id,
             tool,
-            reason: `Policy rule allows all tools via wildcard, which covers drifted tool '${tool}' (${driftType})`,
+            reason: `Policy rule allows all tools via wildcard or unconstrained match, which covers drifted tool '${tool}' (${driftType})`,
             severity: driftSeverity,
             suggestedAction:
               "Restrict wildcard policy to specific approved tools or update baseline."
@@ -46,22 +46,29 @@ export function analyzePolicyImpact(input: AnalyzePolicyImpactInput): AffectedPo
       }
     }
 
+    const isAlreadyAffected = (policyId: string) =>
+      affected.some((a) => a.policyId === policyId && a.tool === tool);
+
     // 2. Analyze new high-risk tools with no specific policy rules
     if (driftType === "new_tool" && driftSeverity === "high") {
       if (!hasDirectMatch) {
         // Check if allowed by wildcard
         const wildcardAllowRule = policyDocument.policies.find(
-          (rule) => rule.match.tool === "*" && rule.decision.toLowerCase() === "allow"
+          (rule) =>
+            (rule.match.tool === "*" || rule.match.tool === undefined) &&
+            rule.decision.toLowerCase() === "allow"
         );
 
         if (wildcardAllowRule) {
-          affected.push({
-            policyId: wildcardAllowRule.id,
-            tool,
-            reason: `New high-risk tool '${tool}' has no specific policy rule and is allowed by wildcard rule '${wildcardAllowRule.id}'`,
-            severity: "high",
-            suggestedAction: "Add an explicit policy rule to govern this new tool."
-          });
+          if (!isAlreadyAffected(wildcardAllowRule.id)) {
+            affected.push({
+              policyId: wildcardAllowRule.id,
+              tool,
+              reason: `New high-risk tool '${tool}' has no specific policy rule and is allowed by wildcard or unconstrained rule '${wildcardAllowRule.id}'`,
+              severity: "high",
+              suggestedAction: "Add an explicit policy rule to govern this new tool."
+            });
+          }
         } else if (policyDocument.defaults?.decision?.toLowerCase() === "allow") {
           affected.push({
             policyId: "default",

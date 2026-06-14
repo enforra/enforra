@@ -96,7 +96,7 @@ Default: `medium`.
 
 ## Pure Manifest-Based Drift Detection
 
-Drift core is manifest based. Severity is applied through a risk profile. Enforra includes example starter profiles, but teams should define their own capabilities, permissions, and risk tags.
+Drift core is manifest-based. Severity is applied through a risk profile. Enforra includes example starter profiles, but teams should define their own capabilities, permissions, and risk tags.
 
 By default, Enforra drift core is neutral and does not ship with any default risk model. Severity classification and metadata capability linting are strictly opt-in:
 

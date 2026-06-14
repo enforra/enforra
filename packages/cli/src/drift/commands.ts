@@ -4,7 +4,9 @@ import {
   checkToolDrift,
   parseToolManifest,
   parseBaselineFile,
-  createToolBaseline
+  createToolBaseline,
+  validateRiskProfile,
+  isSafeRegex
 } from "@enforra/drift-core";
 import type {
   ToolManifest,
@@ -207,18 +209,27 @@ export async function runDriftCheck(args: string[], io: DriftCliIo = {}): Promis
       const resolvedRulesPath = resolvePath(cwd, rulesPathInput);
       try {
         const rawRules = JSON.parse(await readFile(resolvedRulesPath, "utf8"));
-        if (Array.isArray(rawRules)) {
-          rules = rawRules.map((r: unknown) => {
-            const rule = r as Record<string, unknown>;
-            if (typeof rule.pattern !== "string" || typeof rule.capability !== "string") {
-              throw new Error("Invalid rule format: pattern and capability must be strings");
-            }
-            return {
-              pattern: new RegExp(rule.pattern, "i"),
-              capability: rule.capability
-            };
-          });
+        if (!Array.isArray(rawRules)) {
+          throw new Error("Rules file must contain a JSON array of rule objects");
         }
+        rules = rawRules.map((r: unknown) => {
+          if (typeof r !== "object" || r === null) {
+            throw new Error("Invalid rule format: rule must be a JSON object");
+          }
+          const rule = r as Record<string, unknown>;
+          if (typeof rule.pattern !== "string" || typeof rule.capability !== "string") {
+            throw new Error("Invalid rule format: pattern and capability must be strings");
+          }
+          if (!isSafeRegex(rule.pattern)) {
+            throw new Error(
+              `Invalid rule pattern: Regex pattern '${rule.pattern}' is potentially unsafe (catastrophic backtracking risk)`
+            );
+          }
+          return {
+            pattern: new RegExp(rule.pattern, "i"),
+            capability: rule.capability
+          };
+        });
       } catch (error) {
         stderr.error(
           `Failed to load/parse --lint-rules file: ${error instanceof Error ? error.message : String(error)}`
@@ -231,7 +242,8 @@ export async function runDriftCheck(args: string[], io: DriftCliIo = {}): Promis
     if (riskProfilePathInput !== undefined) {
       const resolvedRiskProfilePath = resolvePath(cwd, riskProfilePathInput);
       try {
-        riskProfile = JSON.parse(await readFile(resolvedRiskProfilePath, "utf8")) as RiskProfile;
+        const parsedProfile = JSON.parse(await readFile(resolvedRiskProfilePath, "utf8"));
+        riskProfile = validateRiskProfile(parsedProfile);
       } catch (error) {
         stderr.error(
           `Failed to load/parse --risk-profile file: ${error instanceof Error ? error.message : String(error)}`

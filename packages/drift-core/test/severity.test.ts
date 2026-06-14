@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { driftSeverity, newToolSeverity } from "../src/index.js";
+import { driftSeverity, newToolSeverity, validateRiskProfile } from "../src/index.js";
 
 describe("severity", () => {
   const riskProfile = {
@@ -33,6 +33,11 @@ describe("severity", () => {
     expect(
       newToolSeverity({ name: "db.query", capabilities: ["production"] }, riskProfile, rules)
     ).toBe("high");
+
+    // Treat empty capabilities as undeclared -> falls back to heuristic check
+    expect(newToolSeverity({ name: "terminal.run", capabilities: [] }, riskProfile, rules)).toBe(
+      "high"
+    );
   });
 
   it("returns undefined if no risk profile is provided", () => {
@@ -48,5 +53,28 @@ describe("severity", () => {
     expect(driftSeverity("metadata_changed", riskProfile)).toBe("low");
     expect(driftSeverity("removed_tool", riskProfile)).toBe("high");
     expect(driftSeverity("new_tool", riskProfile)).toBe("low");
+  });
+
+  describe("validateRiskProfile", () => {
+    it("accepts valid risk profiles", () => {
+      const valid = {
+        highRiskCapabilities: ["shell"],
+        highRiskRiskTags: ["production"],
+        highRiskPermissions: ["admin"],
+        driftSeverities: {
+          schema_changed: "medium" as const
+        }
+      };
+      expect(validateRiskProfile(valid)).toBe(valid);
+    });
+
+    it("throws on invalid risk profiles", () => {
+      expect(() => validateRiskProfile(null)).toThrow("Risk profile must be a JSON object");
+      expect(() => validateRiskProfile([])).toThrow("Risk profile must be a JSON object");
+      expect(() => validateRiskProfile({ highRiskCapabilities: "shell" })).toThrow();
+      expect(() =>
+        validateRiskProfile({ driftSeverities: { schema_changed: "invalid-severity" } })
+      ).toThrow();
+    });
   });
 });
