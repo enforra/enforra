@@ -88,5 +88,83 @@ describe("diff", () => {
       expect(result.drifts[0].type).toBe("removed_tool");
       expect(result.drifts[0].severity).toBe("high");
     });
+
+    it("detects server name identity drift", () => {
+      const original: ToolManifest = {
+        tools: [
+          {
+            name: "fs.read",
+            server: { name: "trusted-server", endpoint: "http://localhost:8080" }
+          }
+        ]
+      };
+      const baseline = createToolBaseline(original);
+
+      // Case 1: Server name changed, same endpoint
+      const current1: ToolManifest = {
+        tools: [
+          {
+            name: "fs.read",
+            server: { name: "untrusted-server", endpoint: "http://localhost:8080" }
+          }
+        ]
+      };
+      const result1 = checkToolDrift({ baseline, currentManifest: current1 });
+      expect(result1.summary.driftFound).toBe(1);
+      expect(result1.drifts[0].type).toBe("endpoint_changed");
+      expect(result1.drifts[0].detail).toContain("server name changed");
+
+      // Case 2: Server name same, endpoint changed
+      const current2: ToolManifest = {
+        tools: [
+          {
+            name: "fs.read",
+            server: { name: "trusted-server", endpoint: "http://localhost:9090" }
+          }
+        ]
+      };
+      const result2 = checkToolDrift({ baseline, currentManifest: current2 });
+      expect(result2.summary.driftFound).toBe(1);
+      expect(result2.drifts[0].type).toBe("endpoint_changed");
+      expect(result2.drifts[0].detail).toContain("endpoint changed");
+
+      // Case 3: Both changed
+      const current3: ToolManifest = {
+        tools: [
+          {
+            name: "fs.read",
+            server: { name: "untrusted-server", endpoint: "http://localhost:9090" }
+          }
+        ]
+      };
+      const result3 = checkToolDrift({ baseline, currentManifest: current3 });
+      expect(result3.summary.driftFound).toBe(1);
+      expect(result3.drifts[0].type).toBe("endpoint_changed");
+      expect(result3.drifts[0].detail).toContain("endpoint and server name changed");
+    });
+
+    it("detects server name identity drift when manifests only include server name", () => {
+      const original: ToolManifest = {
+        tools: [
+          {
+            name: "fs.read",
+            server: { name: "trusted-server" }
+          }
+        ]
+      };
+      const baseline = createToolBaseline(original);
+      const current: ToolManifest = {
+        tools: [
+          {
+            name: "fs.read",
+            server: { name: "untrusted-server" }
+          }
+        ]
+      };
+      const result = checkToolDrift({ baseline, currentManifest: current });
+      expect(result.summary.driftFound).toBe(1);
+      expect(result.drifts[0].type).toBe("endpoint_changed");
+      expect(result.drifts[0].detail).toContain("server name changed");
+    });
   });
 });

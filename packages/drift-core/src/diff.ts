@@ -148,12 +148,26 @@ export function compareTool(
   const currentEndpoint = sanitizeEndpoint(current.server?.endpoint ?? current.endpoint);
   const currentEndpointHash = currentEndpoint ? deterministicHash(currentEndpoint) : undefined;
   const baselineEndpointHash = baseline.server?.endpointFingerprint;
-  if ((currentEndpointHash ?? "") !== (baselineEndpointHash ?? "")) {
+  const currentServerName = current.server?.name;
+  const baselineServerName = baseline.server?.name;
+
+  if (
+    (currentEndpointHash ?? "") !== (baselineEndpointHash ?? "") ||
+    (currentServerName ?? "") !== (baselineServerName ?? "")
+  ) {
+    let detail = `endpoint changed: baseline=${baselineEndpointHash ? "changed" : "(none)"} current=${currentEndpoint ? currentEndpoint : "(none)"}`;
+    if ((currentServerName ?? "") !== (baselineServerName ?? "")) {
+      if ((currentEndpointHash ?? "") !== (baselineEndpointHash ?? "")) {
+        detail = `endpoint and server name changed: baselineEndpoint=${baselineEndpointHash ? "changed" : "(none)"} currentEndpoint=${currentEndpoint ? currentEndpoint : "(none)"}, baselineServer=${baselineServerName ?? "(none)"} currentServer=${currentServerName ?? "(none)"}`;
+      } else {
+        detail = `server name changed: baseline=${baselineServerName ?? "(none)"} current=${currentServerName ?? "(none)"}`;
+      }
+    }
     findings.push({
       tool: current.name,
       type: "endpoint_changed",
       severity: driftSeverity("endpoint_changed", riskProfile),
-      detail: `endpoint changed: baseline=${baselineEndpointHash ? "changed" : "(none)"} current=${currentEndpoint ? currentEndpoint : "(none)"}`
+      detail
     });
   }
 
