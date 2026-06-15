@@ -52,28 +52,29 @@ No drift detected.
 
 ### 3. Detect Drift
 
-Check the current manifest against the baseline:
+Check the current manifest against the baseline with a risk profile to assign severities:
 
 ```bash
-node packages/cli/dist/cli.js drift check --tools examples/demos/tool-drift/tools-current.json
+node packages/cli/dist/cli.js drift check --tools examples/demos/tool-drift/tools-current.json --risk-profile examples/demos/tool-drift/risk-profile.json
 ```
 
 This will report:
 
-- `[HIGH] terminal.run: tool_added` (new tool with high-risk shell capabilities)
-- `[MEDIUM] filesystem.read: schema_changed` (gained `sudo` option)
-- `[HIGH] database.query: capabilities_changed` (gained `production-risk` capability)
+- `[MEDIUM] filesystem.read: schema_changed` (input schema has changed since baseline)
+- `[MEDIUM] filesystem.read: sensitive_args_added` (sensitive arguments added: [sudo])
+- `[HIGH] database.query: capabilities_expanded` (capabilities expanded: added [production-risk])
+- `[HIGH] terminal.run: new_tool` (tool is new and has high-risk capabilities)
 
 ### 4. Output Formats
 
 You can export findings in JSON or Markdown format:
 
 ```bash
-node packages/cli/dist/cli.js drift check --tools examples/demos/tool-drift/tools-current.json --format json
-node packages/cli/dist/cli.js drift check --tools examples/demos/tool-drift/tools-current.json --format markdown
+node packages/cli/dist/cli.js drift check --tools examples/demos/tool-drift/tools-current.json --risk-profile examples/demos/tool-drift/risk-profile.json --format json
+node packages/cli/dist/cli.js drift check --tools examples/demos/tool-drift/tools-current.json --risk-profile examples/demos/tool-drift/risk-profile.json --format markdown
 ```
 
-### 5. Configurable Severity and Heuristic Metadata Linting
+### 5. Heuristic Metadata Linting
 
 By default, Enforra's drift engine is neutral and manifest-based. To enable risk severity classification and heuristic capability checking, pass the optional `--risk-profile` and `--lint-rules` configurations:
 
