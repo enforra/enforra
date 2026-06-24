@@ -12,6 +12,9 @@ export default defineConfig({
       ),
       "@enforra/sdk-node": fileURLToPath(
         new URL("./packages/sdk-node/src/index.ts", import.meta.url)
+      ),
+      "@enforra/drift-core": fileURLToPath(
+        new URL("./packages/drift-core/src/index.ts", import.meta.url)
       )
     }
   }

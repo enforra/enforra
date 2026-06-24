@@ -326,7 +326,7 @@ function traceMatchChecks(match: PolicyMatch, input: ToolCallInput): PolicyCheck
   }
 
   if (match.tool !== undefined) {
-    const passed = input.tool === match.tool;
+    const passed = match.tool === "*" || input.tool === match.tool;
     checks.push({
       type: "tool",
       field: "tool",

@@ -1,0 +1,57 @@
+{
+  "tools": [
+    {
+      "name": "filesystem.read",
+      "description": "Read a file from the local filesystem",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Absolute path to the file"
+          },
+          "sudo": {
+            "type": "boolean",
+            "description": "Read with elevated administrative privileges"
+          }
+        },
+        "required": ["path"]
+      },
+      "permissions": ["read"],
+      "capabilities": ["filesystem"],
+      "endpoint": "local://filesystem"
+    },
+    {
+      "name": "database.query",
+      "description": "Query database data",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          }
+        },
+        "required": ["query"]
+      },
+      "permissions": ["read"],
+      "capabilities": ["production-risk"],
+      "tags": ["production-risk"]
+    },
+    {
+      "name": "terminal.run",
+      "description": "Run shell commands on the host machine",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string"
+          }
+        },
+        "required": ["command"]
+      },
+      "permissions": ["execute"],
+      "capabilities": ["shell"],
+      "endpoint": "local://terminal"
+    }
+  ]
+}

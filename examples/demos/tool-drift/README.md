@@ -1,0 +1,89 @@
+# Demo: Tool Baseline Drift Detection
+
+This demo showcases how Enforra CLI detects changes in schema, permissions, capabilities, endpoints, or risk from local manifests before tools are executed.
+
+## Setup
+
+First, ensure the project is built:
+
+```bash
+pnpm build
+```
+
+## Scenarios
+
+We have two tool manifests:
+
+- `tools-approved.json`: The authorized tool baseline representing trusted tool definitions.
+- `tools-current.json`: The current tool definitions, showing three types of drift:
+  1. **New Tool**: `terminal.run` (new shell execution tool).
+  2. **Sensitive Argument**: `filesystem.read` gains a `sudo` parameter.
+  3. **Risk Tag**: `database.query` declares a `production-risk` capability.
+
+## Running the Demo
+
+### 1. Record the Approved Baseline
+
+Generate a tool baseline snapshot from the approved definitions (writes to `.enforra/tool-baseline.json` by default):
+
+```bash
+node packages/cli/dist/cli.js drift baseline --tools examples/demos/tool-drift/tools-approved.json
+```
+
+### 2. Run Clean Check
+
+Checking the approved manifest against its own baseline will report no drift:
+
+```bash
+node packages/cli/dist/cli.js drift check --tools examples/demos/tool-drift/tools-approved.json
+```
+
+Output:
+
+```
+Enforra drift check
+Baseline file: .enforra/tool-baseline.json
+Tools file: examples/demos/tool-drift/tools-approved.json
+Checked at: ...
+Total tools: 2 (Baseline: 2)
+
+No drift detected.
+```
+
+### 3. Detect Drift
+
+Check the current manifest against the baseline with a risk profile to assign severities:
+
+```bash
+node packages/cli/dist/cli.js drift check --tools examples/demos/tool-drift/tools-current.json --risk-profile examples/demos/tool-drift/risk-profile.json
+```
+
+This will report:
+
+- `[MEDIUM] filesystem.read: schema_changed` (input schema has changed since baseline)
+- `[MEDIUM] filesystem.read: sensitive_args_added` (sensitive arguments added: [sudo])
+- `[HIGH] database.query: capabilities_expanded` (capabilities expanded: added [production-risk])
+- `[HIGH] terminal.run: new_tool` (tool is new and has high-risk capabilities)
+
+### 4. Output Formats
+
+You can export findings in JSON or Markdown format:
+
+```bash
+node packages/cli/dist/cli.js drift check --tools examples/demos/tool-drift/tools-current.json --risk-profile examples/demos/tool-drift/risk-profile.json --format json
+node packages/cli/dist/cli.js drift check --tools examples/demos/tool-drift/tools-current.json --risk-profile examples/demos/tool-drift/risk-profile.json --format markdown
+```
+
+### 5. Heuristic Metadata Linting
+
+By default, Enforra's drift engine is neutral and manifest-based. To enable risk severity classification and heuristic capability checking, pass the optional `--risk-profile` and `--lint-rules` configurations:
+
+```bash
+node packages/cli/dist/cli.js drift check \
+  --tools examples/demos/tool-drift/tools-current.json \
+  --risk-profile examples/demos/tool-drift/risk-profile.json \
+  --lint-rules examples/demos/tool-drift/metadata-lint-rules.json
+```
+
+- `risk-profile.json`: Defines high-risk capabilities, risk tags, permissions, and custom drift severity assignments.
+- `metadata-lint-rules.json`: Contains regex patterns to heuristically map tool names/descriptions to capabilities and flag metadata mismatches (e.g., if a tool suggests `shell` but declares only `read`). This is provided as an optional starter example.

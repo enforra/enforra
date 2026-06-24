@@ -39,6 +39,7 @@ Start here:
 - [demos/db-delete-video](demos/db-delete-video): Contrasts a direct database delete callback with the same callback protected by Enforra.
 - [demos/openai-style-tool-wrapper](demos/openai-style-tool-wrapper): Wrapper pattern for calling `enforceToolCall` before an application-owned tool callback.
 - [demos/cross-framework-governance](demos/cross-framework-governance): Shows one shared policy file enforcing the same decisions across Vercel AI SDK, LangGraph, and OpenAI Agents SDK style tool calls.
+- [demos/tool-drift](demos/tool-drift): Showcases baseline recording and local drift check commands for MCP and agent tools.
 
 ## Benchmarks
 

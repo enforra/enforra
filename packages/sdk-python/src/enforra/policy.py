@@ -261,7 +261,7 @@ def _policy_matches(
 ) -> bool:
     if policy.match.agent is not None and policy.match.agent != agent:
         return False
-    if policy.match.tool is not None and policy.match.tool != tool_name:
+    if policy.match.tool is not None and policy.match.tool != "*" and policy.match.tool != tool_name:
         return False
     return _conditions_match(policy.conditions, args=args, context=context)
 

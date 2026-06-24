@@ -70,6 +70,159 @@ pnpm verify:oss
 > [!IMPORTANT]
 > Run `pnpm format` _before_ running `git commit` to ensure formatting changes in TS/JS/Markdown/YAML files are staged and committed.
 
+## Testing requirements
+
+Tests are not optional. Every change to policy behavior, SDK execution semantics, audit behavior, redaction logic, or MCP wrapping must include tests. Agents must not submit a PR with untested logic.
+
+### Test file structure
+
+Each class or module must have its own dedicated test file. Do not consolidate unrelated tests.
+
+- `packages/policy-core/src/evaluator.ts` → `packages/policy-core/src/__tests__/evaluator.test.ts`
+- `packages/local-audit/src/redactor.ts` → `packages/local-audit/src/__tests__/redactor.test.ts`
+- `packages/sdk-node/src/enforce.ts` → `packages/sdk-node/src/__tests__/enforce.test.ts`
+- Python: `packages/sdk-python/enforra/enforce.py` → `packages/sdk-python/tests/test_enforce.py`
+
+One file per class. One `describe` block per class or function group.
+
+### Required coverage per test file
+
+For every function, method, or condition changed or added, tests must cover:
+
+| Category                | What to test                                                  |
+| ----------------------- | ------------------------------------------------------------- |
+| Positive / happy path   | Valid input, expected output, correct decision returned       |
+| Negative / failure path | Invalid input, missing fields, wrong types, bad policy config |
+| Edge cases              | Empty string, null, undefined, empty array, empty object      |
+| Boundary values         | Min value, max value, one below min, one above max            |
+| Every branch            | Every if, else, switch case, ternary, and early return        |
+| Every decision outcome  | allow, block, require_approval, log_only must each be tested  |
+| Error propagation       | Thrown errors, rejected promises, and error messages          |
+
+Do not write tests only for the happy path. If a function has 4 branches, there must be at least 4 test cases for it.
+
+### Policy evaluation tests (policy-core)
+
+Every policy rule change must include tests for:
+
+- A call that matches the rule and gets the expected decision.
+- A call that does not match and falls through to the next rule or default.
+- A call with missing or malformed arguments (null, undefined, wrong type).
+- A call that hits the minimum and maximum allowed argument values if bounded.
+- A call where multiple rules could match and the correct precedence is applied.
+- A call against an empty policy (no rules).
+- A call against a policy with only a default action.
+
+### Audit / redaction tests (local-audit)
+
+- Confirm fields containing token, secret, api_key, password, private_key are redacted.
+- Confirm fields that should not be redacted are not.
+- Confirm hash-chain integrity is preserved across sequential log writes.
+- Confirm an empty log and a single-entry log both verify correctly.
+- Confirm a tampered log entry fails verification.
+- Confirm redaction does not alter non-sensitive sibling fields.
+
+### SDK enforcement tests (sdk-node, sdk-python)
+
+- allow decision: execute callback is called, result is returned.
+- block decision: execute callback is not called, error or rejection returned.
+- require_approval decision: execute callback is not called until approval is granted.
+- log_only decision: execute callback is called, audit entry is written.
+- Missing policy: behavior is defined and tested (fail open or fail closed, document which).
+- Tool call with no arguments: does not crash, decision is deterministic.
+- Tool call with maximum argument payload size.
+- Tool call with deeply nested argument object.
+- Concurrent tool calls: no race condition in audit writes or policy evaluation.
+
+### MCP wrapper tests (packages/mcp)
+
+- Wrapping a tool that returns successfully passes result through unchanged.
+- Wrapping a tool that is blocked does not invoke the underlying handler.
+- Wrapping a tool with an invalid schema returns a clear error.
+- Metadata in the wrapped tool matches the original tool definition.
+
+### CLI tests (packages/cli)
+
+- `enforra init` creates expected output files.
+- `enforra test` runs policy simulator and returns correct exit code.
+- Invalid subcommand returns a non-zero exit code with a useful message.
+- Missing config file returns a clear error, not a crash.
+
+### Running tests
+
+TypeScript packages:
+
+```bash
+pnpm test
+```
+
+Single package:
+
+```bash
+cd packages/policy-core && pnpm test
+cd packages/sdk-node && pnpm test
+cd packages/local-audit && pnpm test
+```
+
+Python SDK:
+
+```bash
+cd packages/sdk-python
+python3 -m pip install -e ".[dev]"
+python3 -m pytest -v
+```
+
+Policy simulator:
+
+```bash
+pnpm policy:test:all
+```
+
+### Test quality rules
+
+- Test names must describe the scenario, not the implementation. Use: "blocks tool call when policy decision is block" not "test block case".
+- Do not use `any` in test assertions.
+- Do not mock the policy evaluator in SDK tests — use real policy fixtures.
+- Do not test implementation details. Test inputs, outputs, and side effects.
+- If a bug is fixed, a regression test for that exact scenario is required in the same PR.
+- Tests must pass with no skipped cases before a PR is submitted.
+
+## Code quality and architecture rules
+
+Agents must keep Enforra code simple, modular, and reviewable.
+
+Core rules:
+
+- Prefer small focused modules over large files or large classes.
+- Follow SOLID principles where practical, especially single responsibility and dependency inversion.
+- Do not create god classes, large procedural blocks, or long files that mix parsing, evaluation, IO, logging, and CLI behavior.
+- Keep policy evaluation logic data driven where possible. Avoid hardcoded chains of special case rules.
+- Do not hardcode product behavior, security decisions, tool names, package names, or severity mappings unless they are explicitly part of a documented policy, schema, or constant.
+- If a rule, decision, severity, or mapping can be represented as policy config, schema, fixture, or test case, prefer that over hardcoded logic.
+- Keep business logic separate from CLI formatting, file IO, audit writing, and demo code.
+- Prefer pure functions for policy evaluation, classification, redaction, and drift comparison.
+- Add or update tests when changing policy behavior, audit behavior, drift behavior, SDK execution semantics, or MCP wrapping behavior.
+- Do not make broad rewrites unless the task explicitly asks for refactoring.
+- If code starts becoming complex, split it into named helpers with clear inputs and outputs.
+
+Avoid:
+
+- Large classes with many responsibilities.
+- Long `if/else` or `switch` blocks for policy behavior.
+- Hardcoded demo-specific logic inside reusable packages.
+- Hidden defaults that change enforcement semantics.
+- Duplicated rule logic across packages.
+- Adding abstractions before there are at least two real use cases.
+
+Preferred pattern:
+
+1. Parse or load input.
+2. Validate against schema.
+3. Normalize into typed internal structures.
+4. Evaluate with small pure functions.
+5. Return explicit decisions.
+6. Keep logging, CLI output, and file writes outside the core evaluator.
+
 ### Python SDK Checks
 
 When Python code, docs, or examples have changed, install and test:

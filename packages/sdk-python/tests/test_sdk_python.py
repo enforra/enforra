@@ -425,6 +425,36 @@ def test_condition_operators_used_in_starter_policies_work(
     assert result.decision == expected_decision
 
 
+def test_wildcard_tool_matching(tmp_path: Path) -> None:
+    policy = """
+version: 1
+defaults:
+  decision: block
+policies:
+  - id: allow-all-tools
+    match:
+      agent: support-agent
+      tool: "*"
+    decision: allow
+"""
+    client = create_client(tmp_path, policy)
+    result1 = client.run_tool(
+        tool_name="stripe.refund",
+        args={"amount": 20},
+        handler=lambda: {"ok": True},
+    )
+    result2 = client.run_tool(
+        tool_name="some.other.tool",
+        args={},
+        handler=lambda: {"ok": True},
+    )
+
+    assert result1.decision == "allow"
+    assert result1.matched_policy_id == "allow-all-tools"
+    assert result2.decision == "allow"
+    assert result2.matched_policy_id == "allow-all-tools"
+
+
 def create_client(tmp_path: Path, policy_source: str, agent: str = "support-agent") -> EnforraClient:
     policy_path = tmp_path / "policy.yaml"
     policy_path.write_text(policy_source, encoding="utf-8")

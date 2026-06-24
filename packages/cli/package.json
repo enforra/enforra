@@ -19,13 +19,15 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsup src/index.ts src/cli.ts --format esm --dts --sourcemap",
+    "build": "tsup src/index.ts src/cli.ts src/drift.ts --format esm --dts --sourcemap",
     "prepack": "pnpm run build",
     "test": "vitest run"
   },
   "dependencies": {
     "@enforra/local-audit": "^0.2.1",
-    "@enforra/policy-simulator": "^0.1.1"
+    "@enforra/policy-simulator": "^0.1.1",
+    "@enforra/drift-core": "workspace:*",
+    "@enforra/policy-core": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.5.0",

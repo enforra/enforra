@@ -1,0 +1,32 @@
+{
+  "highRiskCapabilities": [
+    "shell",
+    "delete",
+    "payment",
+    "auth",
+    "secret",
+    "production",
+    "network",
+    "external_side_effect"
+  ],
+  "highRiskRiskTags": ["production", "credentials"],
+  "highRiskPermissions": ["admin", "root"],
+  "driftSeverities": {
+    "permissions_expanded": "high",
+    "capabilities_expanded": "high",
+    "capability_metadata_mismatch": "high",
+    "endpoint_changed": "high",
+    "removed_tool": "high",
+    "schema_changed": "medium",
+    "required_args_added": "medium",
+    "sensitive_args_added": "medium",
+    "risk_tags_added": "medium",
+    "description_changed": "low",
+    "permissions_reduced": "low",
+    "capabilities_reduced": "low",
+    "required_args_removed": "low",
+    "risk_tags_removed": "low",
+    "metadata_changed": "low",
+    "new_tool": "low"
+  }
+}
