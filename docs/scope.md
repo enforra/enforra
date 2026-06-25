@@ -14,6 +14,6 @@ It focuses on application-level action governance:
 
 This repository contains the open-source local runtime core. It does not include the hosted Enforra Cloud application, cloud dashboard, hosted audit retention, team approval workflows, billing, SSO, or organization management.
 
-It is not an MCP proxy, model firewall, kernel sandbox, or prompt-injection detector.
+The local runtime core is not a model firewall, kernel sandbox, or prompt-injection detector. The repository also includes an optional local MCP sidecar proxy in `@enforra/mcp`.
 
 Developers provide their own agent and tools. Enforra decides whether the local `execute` callback should run.

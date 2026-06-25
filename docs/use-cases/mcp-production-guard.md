@@ -4,7 +4,7 @@ MCP-style tool handlers in your server should not run risky tools in production 
 
 ## Problem
 
-When an agent invokes tools such as shell execution or filesystem access through MCP-style handlers, the risky moment is immediately before your handler body runs. Enforra is not an MCP gateway or transport proxy; it guards handlers you own in application code.
+When an agent invokes tools such as shell execution or filesystem access through MCP-style handlers, the risky moment is immediately before your handler body runs. This use case guards handlers you own in application code. For the optional local sidecar proxy path, see [MCP Integration](../mcp.md).
 
 ## What Enforra checks
 

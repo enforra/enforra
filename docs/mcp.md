@@ -1,14 +1,91 @@
 # Model Context Protocol (MCP) Integration
 
-Enforra MCP support wraps MCP tool handlers and enforces local policies before tool execution.
+Enforra MCP support has two modes:
+
+- Local MCP tool handler wrapping with local OSS policy evaluation.
+- A local/sidecar MCP proxy that calls Enforra Cloud before forwarding tool calls upstream.
 
 ## Architectural Overview
 
-> [!IMPORTANT]
-> **Enforra is not an MCP gateway or proxy.**
-> It does not sit between the client and the server as an intermediary, nor does it intercept network traffic or handle authentication/transport.
+### Local MCP Proxy
 
-Instead, `@enforra/mcp` provides lightweight helpers to **wrap MCP tool handlers inside the application/server**. The host application continues to own the execution, configuration, and transport (e.g., STDIO, SSE) of the MCP server.
+```text
+MCP client
+-> Enforra MCP proxy
+-> upstream MCP server
+```
+
+The proxy is useful when an MCP client can be configured to launch or connect to a proxy command instead of directly launching the upstream server.
+
+On `tools/list`, the proxy:
+
+1. Calls upstream MCP `tools/list`.
+2. Receives the original upstream tool definitions.
+3. Normalizes each tool into Enforra capability metadata.
+4. Registers those capabilities with Enforra Cloud using the project API key.
+5. Returns the original upstream MCP tool list to the MCP client.
+
+On `tools/call`, the proxy:
+
+1. Calls Enforra Cloud `/v1/decide`.
+2. For `allow` or `log_only`, forwards the original MCP tool call upstream.
+3. For `block` or `require_approval`, returns an MCP-compatible error result and does not forward upstream.
+
+OpenClaw can use this path if it supports configuring MCP servers/tools. This package is not OpenClaw-specific.
+
+#### Proxy Setup
+
+1. Create an Enforra project.
+2. Create a project API key.
+3. Start or configure the upstream MCP server.
+4. Create an upstream config file:
+
+```json
+{
+  "transport": "stdio",
+  "command": "node",
+  "args": ["./examples/fake-mcp-server/dist/server.js"],
+  "env": {}
+}
+```
+
+5. Start the Enforra MCP proxy:
+
+```bash
+ENFORRA_API_URL=https://api-staging.enforra.com \
+ENFORRA_API_KEY=<project api key> \
+ENFORRA_AGENT_KEY=openclaw-agent \
+ENFORRA_AGENT_NAME="OpenClaw Workspace Agent" \
+ENFORRA_AGENT_PURPOSE="Developer workspace agent" \
+ENFORRA_ENVIRONMENT=demo \
+ENFORRA_MCP_UPSTREAM_CONFIG=./mcp-upstream.json \
+enforra-mcp-proxy
+```
+
+6. Point the MCP client at the Enforra MCP proxy.
+7. Run `tools/list`.
+8. Check Agent Intelligence for MCP-discovered capabilities.
+9. Create policies.
+10. Run `tools/call`.
+11. Check Runtime Events.
+
+#### Explainable MCP Capability Inference
+
+The proxy uses deterministic rules and does not call AI.
+
+- `read`, `get`, `list`, `search`, `file` -> data touched includes `workspace data`, side effect `read`
+- `secret`, `token`, `key`, `env`, `credential` -> data touched includes `credentials`, side effect `sensitive read`
+- `terminal`, `shell`, `command`, `run`, `exec` -> data touched includes `local environment`, side effect `command_execution`
+- `write`, `update`, `create`, `delete`, `deploy`, `send`, `refund` -> side effect `external_or_destructive_action`
+- otherwise -> data touched `unknown`, side effect `unknown`
+
+#### Proxy Scope
+
+V1 supports stdio upstream MCP servers. It does not build a hosted MCP gateway, OAuth, secret storage, or an OpenClaw adapter.
+
+### In-Server Wrapping
+
+`@enforra/mcp` also provides lightweight helpers to wrap MCP tool handlers inside the application/server. The host application continues to own the execution, configuration, and transport of the MCP server.
 
 ```mermaid
 graph TD
@@ -22,7 +99,7 @@ graph TD
 
 ## Key Behavior
 
-1. **Local Guarding**: Policy evaluation runs locally before your tool handler executes.
+1. **Local Guarding**: Policy evaluation runs locally before your wrapped tool handler executes.
 2. **Execution Ownership**: Your application/server still runs the tool handler logic. Enforra does not execute tools remotely.
 3. **Decisions**:
    - `allow`: Executes the handler.

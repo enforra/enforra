@@ -1,43 +1,100 @@
 # @enforra/mcp
 
-Lightweight MCP-style tool handler enforcement for Enforra.
+MCP enforcement helpers and local MCP proxy support for Enforra.
 
-This package helps you wrap MCP-style tool handlers so Enforra policy is evaluated before the handler executes.
+This package supports two MCP paths:
 
-It is not an MCP gateway, MCP proxy, auth layer, connector framework, or hosted approval system. The application still owns tool execution.
+- In-server wrapping with `guardMcpTool` / `wrapMcpTool`.
+- Local sidecar proxying with the `enforra-mcp-proxy` CLI.
 
-## Install
+## Local MCP Proxy
 
-npm install @enforra/mcp @enforra/sdk-node
+The proxy sits between an MCP client and an upstream MCP server:
 
-## Usage
+```text
+MCP client
+-> Enforra MCP proxy
+-> upstream MCP server
+```
 
-Import createEnforraClient from @enforra/sdk-node and guardMcpTool from @enforra/mcp.
+On `tools/list`, the proxy asks the upstream server for its original MCP tool definitions, normalizes them into Enforra capability records, and registers them with Enforra Cloud's Agent Capability Registry.
 
-Create an Enforra client with a local policy path and audit path, then wrap your MCP-style tool handler with guardMcpTool.
+On `tools/call`, the proxy calls Enforra Cloud `/v1/decide` before forwarding the request upstream. If the decision is `block` or `require_approval`, the upstream MCP server is not called.
 
-If policy returns block or require_approval, the handler does not execute.
+### Setup
+
+1. Create an Enforra project.
+2. Create a project API key.
+3. Start or configure the upstream MCP server.
+4. Create an upstream config file:
+
+```json
+{
+  "transport": "stdio",
+  "command": "node",
+  "args": ["./examples/fake-mcp-server/dist/server.js"],
+  "env": {}
+}
+```
+
+5. Start the Enforra MCP proxy:
+
+```bash
+ENFORRA_API_URL=https://api-staging.enforra.com \
+ENFORRA_API_KEY=<project api key> \
+ENFORRA_AGENT_KEY=openclaw-agent \
+ENFORRA_AGENT_NAME="OpenClaw Workspace Agent" \
+ENFORRA_AGENT_PURPOSE="Developer workspace agent" \
+ENFORRA_ENVIRONMENT=demo \
+ENFORRA_MCP_UPSTREAM_CONFIG=./mcp-upstream.json \
+enforra-mcp-proxy
+```
+
+6. Point the MCP client at the proxy command.
+7. Run `tools/list`.
+8. Check Agent Intelligence for MCP-discovered capabilities.
+9. Create policies.
+10. Run `tools/call`.
+11. Check Runtime Events.
+
+OpenClaw can use this path if it supports configuring MCP servers/tools. This package is not OpenClaw-specific.
+
+### Capability Inference
+
+The proxy uses explainable MCP capability inference. It does not call AI.
+
+- `read`, `get`, `list`, `search`, `file` -> data touched includes `workspace data`, side effect `read`
+- `secret`, `token`, `key`, `env`, `credential` -> data touched includes `credentials`, side effect `sensitive read`
+- `terminal`, `shell`, `command`, `run`, `exec` -> data touched includes `local environment`, side effect `command_execution`
+- `write`, `update`, `create`, `delete`, `deploy`, `send`, `refund` -> side effect `external_or_destructive_action`
+- otherwise -> data touched `unknown`, side effect `unknown`
+
+### Demo
+
+```bash
+pnpm demo:mcp-proxy
+```
+
+The demo uses a fake upstream MCP server and fake Enforra Cloud decisions, so it does not require an API key.
+
+## In-Server Wrapping
+
+Import `createEnforraClient` from `@enforra/sdk-node` and `guardMcpTool` from `@enforra/mcp`.
+
+Create an Enforra client with a local policy path and audit path, then wrap your MCP-style tool handler with `guardMcpTool`.
+
+If policy returns `block` or `require_approval`, the handler does not execute.
 
 ## Decisions
 
-- allow: handler runs
-- log_only: handler runs and audit evidence is written
-- block: handler does not run
-- require_approval: handler does not run in the OSS runtime
+- `allow`: handler runs or proxy forwards upstream
+- `log_only`: handler runs or proxy forwards upstream
+- `block`: handler does not run and proxy does not forward upstream
+- `require_approval`: handler does not run and proxy does not forward upstream
 
 ## Scope
 
-@enforra/mcp wraps MCP-style tool handlers before execution.
-
-It does not provide:
-
-- MCP gateway/proxy behavior
-- OAuth or auth
-- hosted approvals
-- connectors
-- telemetry
-- cloud calls
-- remote tool execution
+The proxy is local and stdio-upstream only in v1. It does not provide hosted gateway behavior, OAuth, secret storage, hosted approvals, OpenClaw-specific adapters, telemetry, or remote tool execution.
 
 ## Docs
 

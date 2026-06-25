@@ -23,6 +23,7 @@
     "demo:approval-evidence": "pnpm --filter @enforra/example-approval-evidence-demo build && pnpm --filter @enforra/example-approval-evidence-demo start",
     "demo:audit-integrity": "pnpm --filter @enforra/example-audit-integrity-demo build && pnpm --filter @enforra/example-audit-integrity-demo start",
     "demo:mcp-guard": "pnpm --filter @enforra/example-mcp-tool-guard-demo build && pnpm --filter @enforra/example-mcp-tool-guard-demo start",
+    "demo:mcp-proxy": "pnpm --filter @enforra/mcp build && pnpm --filter @enforra/example-mcp-proxy-fake-server build && pnpm --filter @enforra/example-mcp-proxy-fake-client build && pnpm --filter @enforra/example-mcp-proxy-fake-client start",
     "demo:mcp-coding": "pnpm --filter @enforra/example-mcp-coding-agent build && pnpm --filter @enforra/example-mcp-coding-agent start",
     "demo:mcp-github": "pnpm --filter @enforra/example-mcp-github-agent build && pnpm --filter @enforra/example-mcp-github-agent start",
     "demo:mcp-governance": "pnpm --filter @enforra/example-mcp-server-governance build && pnpm --filter @enforra/example-mcp-server-governance start",

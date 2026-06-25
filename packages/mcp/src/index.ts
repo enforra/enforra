@@ -1,4 +1,5 @@
 import type { EnforraClient } from "@enforra/sdk-node";
+export * from "./proxy.js";
 
 type JsonObject = Record<string, unknown>;
 type McpTextContent = {

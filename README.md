@@ -365,7 +365,7 @@ This repository is focused on the open-source local runtime. Policy management, 
 
 ## Scope
 
-Enforra focuses on application-level action governance. It is not an MCP proxy, model firewall, kernel sandbox, or prompt-injection detector. It gives developers a local policy boundary around the tools their agents already call.
+Enforra focuses on application-level action governance. The local runtime core is not a model firewall, kernel sandbox, or prompt-injection detector. It gives developers a local policy boundary around the tools their agents already call. MCP users can also use the optional local `enforra-mcp-proxy` sidecar in `@enforra/mcp`.
 
 ## What this repository does not include
 

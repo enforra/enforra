@@ -3,8 +3,7 @@
 This guide provides an overview of the three Model Context Protocol (MCP) tool handler governance examples available in this repository.
 
 > [!IMPORTANT]
-> **Enforra is not an MCP gateway or proxy.**
-> These examples demonstrate how to guard MCP-style tool handlers _within_ your server code before execution happens. The client application still manages the actual tool runner, transport protocols, and gateway functionalities.
+> These examples demonstrate how to guard MCP-style tool handlers _within_ your server code before execution happens. For the optional local sidecar proxy path, see [MCP Integration](mcp.md).
 
 ---
 
