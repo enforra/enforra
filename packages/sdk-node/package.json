@@ -1,6 +1,6 @@
 {
   "name": "@enforra/sdk-node",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Node.js SDK for local Enforra tool-call enforcement.",
   "license": "Apache-2.0",
   "repository": {
@@ -27,8 +27,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@enforra/local-audit": "^0.2.1",
-    "@enforra/policy-core": "^0.2.1"
+    "@enforra/local-audit": "^0.2.2",
+    "@enforra/policy-core": "^0.3.0"
   },
   "devDependencies": {
     "tsup": "^8.5.0",

@@ -209,16 +209,16 @@ importers:
   packages/cli:
     dependencies:
       "@enforra/drift-core":
-        specifier: workspace:*
+        specifier: ^0.1.0
         version: link:../drift-core
       "@enforra/local-audit":
-        specifier: ^0.2.1
+        specifier: ^0.2.2
         version: link:../local-audit
       "@enforra/policy-core":
-        specifier: workspace:*
+        specifier: ^0.3.0
         version: link:../policy-core
       "@enforra/policy-simulator":
-        specifier: ^0.1.1
+        specifier: ^0.2.0
         version: link:../policy-simulator
     devDependencies:
       tsup:
@@ -240,7 +240,7 @@ importers:
   packages/local-audit:
     dependencies:
       "@enforra/policy-core":
-        specifier: ^0.2.1
+        specifier: ^0.3.0
         version: link:../policy-core
     devDependencies:
       tsup:
@@ -253,14 +253,14 @@ importers:
   packages/mcp:
     dependencies:
       "@enforra/sdk-node":
-        specifier: ^0.2.1
+        specifier: ^0.3.0
         version: link:../sdk-node
     devDependencies:
       "@enforra/local-audit":
-        specifier: workspace:*
+        specifier: ^0.2.2
         version: link:../local-audit
       "@enforra/policy-core":
-        specifier: workspace:*
+        specifier: ^0.3.0
         version: link:../policy-core
       tsup:
         specifier: ^8.5.0
@@ -288,7 +288,7 @@ importers:
   packages/policy-simulator:
     dependencies:
       "@enforra/policy-core":
-        specifier: ^0.2.1
+        specifier: ^0.3.0
         version: link:../policy-core
       yaml:
         specifier: ^2.8.1
@@ -307,10 +307,10 @@ importers:
   packages/sdk-node:
     dependencies:
       "@enforra/local-audit":
-        specifier: ^0.2.1
+        specifier: ^0.2.2
         version: link:../local-audit
       "@enforra/policy-core":
-        specifier: ^0.2.1
+        specifier: ^0.3.0
         version: link:../policy-core
     devDependencies:
       tsup:
