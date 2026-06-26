@@ -1,6 +1,6 @@
 {
   "name": "@enforra/cli",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Command line tools for local Enforra setup, policy testing, and audit verification.",
   "type": "module",
   "main": "./dist/index.js",
@@ -24,10 +24,10 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@enforra/local-audit": "^0.2.1",
-    "@enforra/policy-simulator": "^0.1.1",
-    "@enforra/drift-core": "workspace:*",
-    "@enforra/policy-core": "workspace:*"
+    "@enforra/local-audit": "^0.2.2",
+    "@enforra/policy-simulator": "^0.2.0",
+    "@enforra/drift-core": "^0.1.0",
+    "@enforra/policy-core": "^0.3.0"
   },
   "devDependencies": {
     "tsup": "^8.5.0",
