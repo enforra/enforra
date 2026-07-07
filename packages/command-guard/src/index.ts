@@ -19,8 +19,8 @@ import { filesDetector } from "./detectors/files.js";
 
 // Re-export all public types and defaults
 export * from "./types.js";
-export { DEFAULT_SENSITIVE_PATHS } from "./detectors/secrets.js";
-export { DEFAULT_INFRA_COMMANDS } from "./detectors/infra.js";
+export { DEFAULT_SENSITIVE_PATHS } from "./defaults.js";
+export { DEFAULT_INFRA_COMMANDS } from "./defaults.js";
 
 const BUILT_IN_DETECTORS: CommandDetector[] = [
   filesDetector,

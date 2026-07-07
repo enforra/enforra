@@ -1,10 +1,14 @@
+import {
+  PACKAGE_MANAGER_EXECUTABLES,
+  PACKAGE_INSTALL_SUBCOMMANDS,
+  PACKAGE_MUTATION_SUBCOMMANDS
+} from "../defaults.js";
 import type { CommandDetector, CommandSignal } from "../types.js";
 
 export const packageManagerDetector: CommandDetector = (input) => {
   const { executable, subcommand } = input;
-  const pmExecutables = ["npm", "pnpm", "yarn", "bun", "npx"];
 
-  if (!pmExecutables.includes(executable)) {
+  if (!PACKAGE_MANAGER_EXECUTABLES.includes(executable)) {
     return null;
   }
 
@@ -14,15 +18,12 @@ export const packageManagerDetector: CommandDetector = (input) => {
   let suggestedRisk: "low" | "medium" | "high" = "low";
   const signals: CommandSignal[] = [];
 
-  const installSubs = ["install", "i", "add", "ci", "setup"];
-  const mutationSubs = ["uninstall", "remove", "rm", "prune", "update", "upgrade"];
-
-  if (installSubs.includes(subcommand)) {
+  if (PACKAGE_INSTALL_SUBCOMMANDS.includes(subcommand)) {
     tool = "npm.install";
     category = "package_manager";
     signals.push("package_install", "package_mutation", "network_download");
     suggestedRisk = "medium";
-  } else if (mutationSubs.includes(subcommand)) {
+  } else if (PACKAGE_MUTATION_SUBCOMMANDS.includes(subcommand)) {
     tool = "npm.install";
     category = "package_manager";
     signals.push("package_mutation");

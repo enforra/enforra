@@ -1,15 +1,9 @@
+import {
+  DEFAULT_INFRA_COMMANDS,
+  INFRA_DELETE_OPERATIONS,
+  INFRA_WRITE_OPERATIONS
+} from "../defaults.js";
 import type { CommandDetector, CommandSignal } from "../types.js";
-
-export const DEFAULT_INFRA_COMMANDS = [
-  "aws",
-  "gcloud",
-  "az",
-  "kubectl",
-  "docker",
-  "ssh",
-  "terraform",
-  "helm"
-];
 
 export const infraDetector: CommandDetector = (input) => {
   const { executable, command, options } = input;
@@ -25,14 +19,14 @@ export const infraDetector: CommandDetector = (input) => {
   const category = "infrastructure_access";
 
   // Check delete operations
-  const deletePatterns = /\b(delete|destroy|terminate|rm)\b/;
-  if (deletePatterns.test(command)) {
+  const deleteRegex = new RegExp(`\\b(${INFRA_DELETE_OPERATIONS.join("|")})\\b`);
+  if (deleteRegex.test(command)) {
     signals.push("delete_operation");
   }
 
   // Check write/apply operations (including deploy, rollback)
-  const writePatterns = /\b(apply|create|update|put|set|deploy|rollback)\b/;
-  if (writePatterns.test(command)) {
+  const writeRegex = new RegExp(`\\b(${INFRA_WRITE_OPERATIONS.join("|")})\\b`);
+  if (writeRegex.test(command)) {
     signals.push("write_operation");
   }
 

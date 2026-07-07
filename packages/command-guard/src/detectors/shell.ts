@@ -1,44 +1,13 @@
+import { SHELL_EXECUTABLES, CODE_EXECUTABLES, PIPE_RUNTIMES } from "../defaults.js";
 import type { CommandDetector, CommandSignal } from "../types.js";
 
 export const shellDetector: CommandDetector = (input) => {
   const { executable, command } = input;
-  const shellExecutables = ["sh", "bash", "zsh", "ksh", "csh", "tcsh", "fish", "dash"];
-  const codeExecutables = [
-    "node",
-    "nodejs",
-    "python",
-    "python3",
-    "python2",
-    "ruby",
-    "perl",
-    "php",
-    "deno"
-  ];
 
-  const pipeRuntimes = [
-    "sh",
-    "bash",
-    "zsh",
-    "ksh",
-    "csh",
-    "tcsh",
-    "fish",
-    "dash",
-    "node",
-    "nodejs",
-    "python",
-    "python3",
-    "python2",
-    "ruby",
-    "perl",
-    "php",
-    "deno",
-    "bun"
-  ];
-  const runtimeRegex = new RegExp(`\\|\\s*(${pipeRuntimes.join("|")})\\b`);
+  const runtimeRegex = new RegExp(`\\|\\s*(${PIPE_RUNTIMES.join("|")})\\b`);
   const hasShellPipe = runtimeRegex.test(command);
-  const isShell = shellExecutables.includes(executable);
-  const isCodeExec = codeExecutables.includes(executable) || executable === "bun";
+  const isShell = SHELL_EXECUTABLES.includes(executable);
+  const isCodeExec = CODE_EXECUTABLES.includes(executable) || executable === "bun";
 
   if (!isShell && !hasShellPipe && !isCodeExec) {
     return null;

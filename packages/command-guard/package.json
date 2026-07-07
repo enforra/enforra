@@ -1,7 +1,7 @@
 {
   "name": "@enforra/command-guard",
   "version": "0.1.0",
-  "description": "Local command-risk classification for Enforra agent runtime controls.",
+  "description": "Local command signal classification for Enforra agent runtime controls.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",

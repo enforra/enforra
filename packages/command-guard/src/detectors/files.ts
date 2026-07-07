@@ -1,3 +1,10 @@
+import {
+  FILE_READ_EXECUTABLES,
+  FILE_DELETE_EXECUTABLES,
+  FILE_WRITE_EXECUTABLES,
+  SHELL_GLOBAL_DESTRUCTIVE_PATTERNS,
+  SHELL_EXECUTABLES
+} from "../defaults.js";
 import type { CommandDetector, CommandSignal } from "../types.js";
 
 function isRecursiveRm(executable: string, argv: string[]): boolean {
@@ -19,25 +26,20 @@ function isRecursiveRm(executable: string, argv: string[]): boolean {
 
 export const filesDetector: CommandDetector = (input) => {
   const { executable, command, argv } = input;
-  const readExecs = ["cat", "less", "head", "tail", "more"];
-  const deleteExecs = ["rm", "rmdir"];
-  const writeExecs = ["cp", "mv", "touch", "mkdir", "dd", "mkfs"];
 
-  const shellExecutables = ["sh", "bash", "zsh", "ksh", "csh", "tcsh", "fish", "dash"];
   const isShellOrUnknown =
-    shellExecutables.includes(executable) || executable === "" || executable === "command.exec";
+    SHELL_EXECUTABLES.includes(executable) || executable === "" || executable === "command.exec";
 
-  const destructivePatterns = ["rm -rf", "rm -fr", "dd if=", "mkfs"];
   const hasGlobalDestructive =
     isShellOrUnknown &&
-    (destructivePatterns.some((p) => command.includes(p)) ||
+    (SHELL_GLOBAL_DESTRUCTIVE_PATTERNS.some((p) => command.includes(p)) ||
       /\brm\s+-[a-zA-Z]*[rR]\b/.test(command) ||
       /\brm\s+--recursive\b/.test(command));
 
   const matchesExecutable =
-    readExecs.includes(executable) ||
-    deleteExecs.includes(executable) ||
-    writeExecs.includes(executable);
+    FILE_READ_EXECUTABLES.includes(executable) ||
+    FILE_DELETE_EXECUTABLES.includes(executable) ||
+    FILE_WRITE_EXECUTABLES.includes(executable);
 
   if (!matchesExecutable && !hasGlobalDestructive) {
     return null;
@@ -57,12 +59,12 @@ export const filesDetector: CommandDetector = (input) => {
   }
 
   if (matchesExecutable) {
-    if (readExecs.includes(executable)) {
+    if (FILE_READ_EXECUTABLES.includes(executable)) {
       if (!signals.includes("file_read")) signals.push("file_read");
       tool = "file.read";
       category = "file_access";
       if (suggestedRisk !== "high") suggestedRisk = "low";
-    } else if (deleteExecs.includes(executable)) {
+    } else if (FILE_DELETE_EXECUTABLES.includes(executable)) {
       if (!signals.includes("file_delete")) signals.push("file_delete");
       if (!signals.includes("delete_operation")) signals.push("delete_operation");
       tool = "file.delete";
@@ -76,7 +78,7 @@ export const filesDetector: CommandDetector = (input) => {
       } else {
         if (suggestedRisk !== "high") suggestedRisk = "medium";
       }
-    } else if (writeExecs.includes(executable)) {
+    } else if (FILE_WRITE_EXECUTABLES.includes(executable)) {
       if (!signals.includes("file_write")) signals.push("file_write");
       tool = "file.write";
       category = "file_access";

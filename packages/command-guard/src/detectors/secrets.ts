@@ -1,46 +1,15 @@
+import {
+  DEFAULT_SENSITIVE_PATHS,
+  SENSITIVE_FILE_BASENAMES,
+  SENSITIVE_DIRECTORY_NAMES,
+  SENSITIVE_PROVIDER_PATHS
+} from "../defaults.js";
 import type { CommandDetector, CommandSignal } from "../types.js";
-
-export const DEFAULT_SENSITIVE_PATHS = [
-  "/etc/passwd",
-  "/etc/shadow",
-  "/root",
-  "~/.ssh",
-  ".ssh",
-  "id_rsa",
-  "id_ed25519",
-  ".env",
-  ".npmrc",
-  ".pypirc",
-  ".aws/credentials",
-  "aws/credentials",
-  "kubeconfig",
-  "~/.aws",
-  "~/.azure",
-  "~/.config/gcloud"
-];
 
 function isSensitivePathToken(token: string, extraSensitivePaths: string[]): boolean {
   if (!token) return false;
 
-  const exactSensitive = [
-    "/etc/passwd",
-    "/etc/shadow",
-    "/root",
-    "~/.ssh",
-    ".ssh",
-    "id_rsa",
-    "id_ed25519",
-    ".env",
-    ".npmrc",
-    ".pypirc",
-    ".aws/credentials",
-    "aws/credentials",
-    "kubeconfig",
-    "~/.aws",
-    "~/.azure",
-    "~/.config/gcloud",
-    ...extraSensitivePaths
-  ];
+  const exactSensitive = [...DEFAULT_SENSITIVE_PATHS, ...extraSensitivePaths];
 
   if (exactSensitive.includes(token)) {
     return true;
@@ -53,34 +22,15 @@ function isSensitivePathToken(token: string, extraSensitivePaths: string[]): boo
     const seg = segments[i];
     if (!seg) continue;
 
-    if (seg === ".env") return true;
-    if (seg === "id_rsa") return true;
-    if (seg === "id_ed25519") return true;
-    if (seg === ".npmrc") return true;
-    if (seg === ".pypirc") return true;
-    if (seg === "kubeconfig") return true;
-    if (seg === ".ssh") return true;
-    if (seg === ".aws") return true;
-    if (seg === ".azure") return true;
+    if (SENSITIVE_FILE_BASENAMES.includes(seg)) return true;
+    if (SENSITIVE_DIRECTORY_NAMES.includes(seg)) return true;
 
-    // Check etc/passwd or etc/shadow
-    if (seg === "passwd" || seg === "shadow") {
-      if (i > 0 && segments[i - 1] === "etc") {
-        return true;
-      }
-    }
-
-    // Check credentials under aws/.aws
-    if (seg === "credentials") {
-      if (i > 0 && (segments[i - 1] === "aws" || segments[i - 1] === ".aws")) {
-        return true;
-      }
-    }
-
-    // Check gcloud under .config
-    if (seg === "gcloud") {
-      if (i > 0 && segments[i - 1] === ".config") {
-        return true;
+    // Check specific provider path segment rules (e.g. passwd under etc)
+    for (const rule of SENSITIVE_PROVIDER_PATHS) {
+      if (seg === rule.name) {
+        if (i > 0 && segments[i - 1] === rule.parent) {
+          return true;
+        }
       }
     }
   }

@@ -1,3 +1,9 @@
+import {
+  GIT_READ_SUBCOMMANDS,
+  GIT_WRITE_SUBCOMMANDS,
+  GIT_NETWORK_READ_SUBCOMMANDS,
+  GIT_EXTERNAL_TRANSFER_SUBCOMMANDS
+} from "../defaults.js";
 import type { CommandDetector, CommandSignal } from "../types.js";
 
 export const gitDetector: CommandDetector = (input) => {
@@ -12,17 +18,14 @@ export const gitDetector: CommandDetector = (input) => {
   const tool = "git.exec";
   const category = "source_control";
 
-  const readSubs = ["clone", "pull", "fetch", "checkout", "diff", "log", "status"];
-  const writeSubs = ["push", "commit", "add", "branch", "merge", "rebase", "tag"];
-
-  if (readSubs.includes(subcommand)) {
+  if (GIT_READ_SUBCOMMANDS.includes(subcommand)) {
     signals.push("source_control_read");
-    if (["clone", "pull", "fetch"].includes(subcommand)) {
+    if (GIT_NETWORK_READ_SUBCOMMANDS.includes(subcommand)) {
       signals.push("network_download");
     }
-  } else if (writeSubs.includes(subcommand)) {
+  } else if (GIT_WRITE_SUBCOMMANDS.includes(subcommand)) {
     signals.push("source_control_write");
-    if (subcommand === "push") {
+    if (GIT_EXTERNAL_TRANSFER_SUBCOMMANDS.includes(subcommand)) {
       signals.push("external_transfer");
     }
   }

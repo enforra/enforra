@@ -1,14 +1,19 @@
+import {
+  PRIVILEGE_EXECUTABLES,
+  PRIVILEGE_COMMAND_TOKENS,
+  DANGEROUS_CHMOD_MODES
+} from "../defaults.js";
 import type { CommandDetector, CommandSignal } from "../types.js";
 
 function isPrivilegeChange(executable: string, argv: string[]): boolean {
-  if (executable === "sudo" || executable === "su" || executable === "chown") {
+  if (PRIVILEGE_EXECUTABLES.includes(executable) && executable !== "chmod") {
     return true;
   }
   // Check argv tokens for standalone sudo, su, or chown
   for (let i = 0; i < argv.length; i++) {
     const token = argv[i];
     if (!token) continue;
-    if (token === "sudo" || token === "su" || token === "chown") {
+    if (PRIVILEGE_COMMAND_TOKENS.includes(token)) {
       return true;
     }
   }
@@ -17,8 +22,9 @@ function isPrivilegeChange(executable: string, argv: string[]): boolean {
   if (executable === "chmod") {
     for (let i = 1; i < argv.length; i++) {
       const arg = argv[i];
-      if (arg && (arg === "777" || arg.includes("777") || arg === "a+w" || arg === "o+w")) {
-        return true;
+      if (arg) {
+        const hasDangerousMode = DANGEROUS_CHMOD_MODES.some((m) => arg === m || arg.includes(m));
+        if (hasDangerousMode) return true;
       }
     }
   } else {
@@ -27,8 +33,11 @@ function isPrivilegeChange(executable: string, argv: string[]): boolean {
       if (argv[i] === "chmod") {
         for (let j = i + 1; j < argv.length; j++) {
           const arg = argv[j];
-          if (arg && (arg === "777" || arg.includes("777") || arg === "a+w" || arg === "o+w")) {
-            return true;
+          if (arg) {
+            const hasDangerousMode = DANGEROUS_CHMOD_MODES.some(
+              (m) => arg === m || arg.includes(m)
+            );
+            if (hasDangerousMode) return true;
           }
         }
       }
@@ -43,16 +52,18 @@ function checkCommandStringPrivilege(command: string): boolean {
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i];
     if (!token) continue;
-    // Strip quotes or enclosing characters
     const cleanToken = token.replace(/^['"]|['"]$/g, "");
-    if (cleanToken === "sudo" || cleanToken === "su" || cleanToken === "chown") {
+    if (PRIVILEGE_COMMAND_TOKENS.includes(cleanToken)) {
       return true;
     }
     if (cleanToken === "chmod") {
       for (let j = i + 1; j < tokens.length; j++) {
         const next = tokens[j]?.replace(/^['"]|['"]$/g, "");
-        if (next && (next === "777" || next.includes("777") || next === "a+w" || next === "o+w")) {
-          return true;
+        if (next) {
+          const hasDangerousMode = DANGEROUS_CHMOD_MODES.some(
+            (m) => next === m || next.includes(m)
+          );
+          if (hasDangerousMode) return true;
         }
       }
     }

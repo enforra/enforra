@@ -1,24 +1,18 @@
+import {
+  NETWORK_DOWNLOAD_EXECUTABLES,
+  EXTERNAL_TRANSFER_EXECUTABLES,
+  CURL_UPLOAD_FLAGS,
+  CURL_UPLOAD_SHORT_FLAGS,
+  WGET_UPLOAD_FLAGS
+} from "../defaults.js";
 import type { CommandDetector, CommandSignal } from "../types.js";
 
 function isNetworkUpload(executable: string, argv: string[]): boolean {
   if (executable === "curl") {
-    const curlUploadFlags = [
-      "-d",
-      "--data",
-      "--data-raw",
-      "--data-binary",
-      "--data-urlencode",
-      "-F",
-      "--form",
-      "--form-string",
-      "-T",
-      "--upload-file",
-      "--json"
-    ];
     for (let i = 1; i < argv.length; i++) {
       const arg = argv[i];
       if (!arg) continue;
-      if (curlUploadFlags.includes(arg)) {
+      if (CURL_UPLOAD_FLAGS.includes(arg)) {
         return true;
       }
       if (arg === "-X" || arg === "--request") {
@@ -29,21 +23,22 @@ function isNetworkUpload(executable: string, argv: string[]): boolean {
       // Also match compound single-dash flags or direct values, e.g. -Ffile=@... or -d...
       if (arg.startsWith("-") && !arg.startsWith("--")) {
         const firstChar = arg[1];
-        if (firstChar === "d" || firstChar === "F" || firstChar === "T") {
+        if (firstChar && CURL_UPLOAD_SHORT_FLAGS.includes(firstChar)) {
           return true;
         }
       }
     }
   } else if (executable === "wget") {
-    const wgetUploadFlags = ["--post-data", "--post-file"];
     for (let i = 1; i < argv.length; i++) {
       const arg = argv[i];
       if (!arg) continue;
-      if (wgetUploadFlags.includes(arg)) {
+      if (WGET_UPLOAD_FLAGS.includes(arg)) {
         return true;
       }
-      if (arg.startsWith("--post-data=") || arg.startsWith("--post-file=")) {
-        return true;
+      for (const flag of WGET_UPLOAD_FLAGS) {
+        if (arg.startsWith(flag + "=")) {
+          return true;
+        }
       }
     }
   }
@@ -52,10 +47,11 @@ function isNetworkUpload(executable: string, argv: string[]): boolean {
 
 export const networkDetector: CommandDetector = (input) => {
   const { executable, command, argv } = input;
-  const netDownloadExecs = ["curl", "wget"];
-  const exfilExecs = ["nc", "netcat", "ncat", "scp", "rsync"];
 
-  if (!netDownloadExecs.includes(executable) && !exfilExecs.includes(executable)) {
+  if (
+    !NETWORK_DOWNLOAD_EXECUTABLES.includes(executable) &&
+    !EXTERNAL_TRANSFER_EXECUTABLES.includes(executable)
+  ) {
     return null;
   }
 
@@ -64,7 +60,7 @@ export const networkDetector: CommandDetector = (input) => {
   const tool = "network.exec";
   let category = "network_download";
 
-  if (netDownloadExecs.includes(executable)) {
+  if (NETWORK_DOWNLOAD_EXECUTABLES.includes(executable)) {
     signals.push("network_download");
 
     const hasStringUpload =
@@ -87,7 +83,7 @@ export const networkDetector: CommandDetector = (input) => {
       category = "external_transfer";
       suggestedRisk = "high";
     }
-  } else if (exfilExecs.includes(executable)) {
+  } else if (EXTERNAL_TRANSFER_EXECUTABLES.includes(executable)) {
     signals.push("external_transfer");
     category = "external_transfer";
     suggestedRisk = "high";

@@ -89,6 +89,10 @@ The package converts inputs into a stable set of string signals:
 - `privilege_change` (e.g. running `sudo`, modifying permissions with `chmod 777`)
 - `unknown_command` (e.g. command not recognized by any default detector)
 
+## Built-in Defaults Catalog
+
+Command Guard ships with a small built-in signal catalog for common command families, paths, flags, and operations. The catalog is kept separate from detector logic so it is easy to audit and easy to contribute to. Policy decisions still happen in `@enforra/policy-core`.
+
 ## Override options
 
 Options let you easily tailor detectors programmatically without managing custom DSLs or YAML configuration files:
