@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@enforra/sdk-node": "workspace:*",
-    "ai": "^6.0.191",
+    "ai": "^7.0.16",
     "zod": "^4.4.3"
   },
   "devDependencies": {
