@@ -15,6 +15,9 @@ export default defineConfig({
       ),
       "@enforra/drift-core": fileURLToPath(
         new URL("./packages/drift-core/src/index.ts", import.meta.url)
+      ),
+      "@enforra/command-guard": fileURLToPath(
+        new URL("./packages/command-guard/src/index.ts", import.meta.url)
       )
     }
   }

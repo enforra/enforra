@@ -1,0 +1,33 @@
+{
+  "name": "@enforra/command-guard",
+  "version": "0.1.0",
+  "description": "Local command-risk classification for Enforra agent runtime controls.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/enforra/enforra.git",
+    "directory": "packages/command-guard"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --sourcemap",
+    "prepack": "pnpm run build",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.6"
+  }
+}
