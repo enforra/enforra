@@ -78,11 +78,7 @@ export function classifyCommand(
         }
       }
       if (res.suggestedRisk) {
-        // Keep the highest risk level or first mapped
-        if (
-          riskLevelOrder[res.suggestedRisk] > riskLevelOrder[suggestedRisk] ||
-          matchedDetectorsSet.size === 0
-        ) {
+        if (riskLevelOrder[res.suggestedRisk] > riskLevelOrder[suggestedRisk]) {
           suggestedRisk = res.suggestedRisk;
         }
       }
@@ -102,10 +98,7 @@ export function classifyCommand(
         if (mapping.tool) tool = mapping.tool;
         if (mapping.category) category = mapping.category;
         if (mapping.suggestedRisk) {
-          if (
-            riskLevelOrder[mapping.suggestedRisk] > riskLevelOrder[suggestedRisk] ||
-            matchedDetectorsSet.size === 0
-          ) {
+          if (riskLevelOrder[mapping.suggestedRisk] > riskLevelOrder[suggestedRisk]) {
             suggestedRisk = mapping.suggestedRisk;
           }
         }

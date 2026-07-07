@@ -28,9 +28,16 @@ export const packageManagerDetector: CommandDetector = (input) => {
     signals.push("package_mutation");
     suggestedRisk = "medium";
   } else if (executable === "npx") {
-    tool = "npm.exec";
-    category = "package_metadata";
-    suggestedRisk = "low";
+    if (subcommand && !subcommand.startsWith("-")) {
+      tool = "npm.exec";
+      category = "package_execution";
+      signals.push("package_execution", "network_download", "code_execution");
+      suggestedRisk = "medium";
+    } else {
+      tool = "npm.exec";
+      category = "package_metadata";
+      suggestedRisk = "low";
+    }
   }
 
   return {

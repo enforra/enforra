@@ -19,13 +19,111 @@ export const DEFAULT_SENSITIVE_PATHS = [
   "~/.config/gcloud"
 ];
 
+function isSensitivePathToken(token: string, extraSensitivePaths: string[]): boolean {
+  if (!token) return false;
+
+  const exactSensitive = [
+    "/etc/passwd",
+    "/etc/shadow",
+    "/root",
+    "~/.ssh",
+    ".ssh",
+    "id_rsa",
+    "id_ed25519",
+    ".env",
+    ".npmrc",
+    ".pypirc",
+    ".aws/credentials",
+    "aws/credentials",
+    "kubeconfig",
+    "~/.aws",
+    "~/.azure",
+    "~/.config/gcloud",
+    ...extraSensitivePaths
+  ];
+
+  if (exactSensitive.includes(token)) {
+    return true;
+  }
+
+  // Split by path separator
+  const segments = token.split(/[/\\]/);
+
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    if (!seg) continue;
+
+    if (seg === ".env") return true;
+    if (seg === "id_rsa") return true;
+    if (seg === "id_ed25519") return true;
+    if (seg === ".npmrc") return true;
+    if (seg === ".pypirc") return true;
+    if (seg === "kubeconfig") return true;
+    if (seg === ".ssh") return true;
+    if (seg === ".aws") return true;
+    if (seg === ".azure") return true;
+
+    // Check etc/passwd or etc/shadow
+    if (seg === "passwd" || seg === "shadow") {
+      if (i > 0 && segments[i - 1] === "etc") {
+        return true;
+      }
+    }
+
+    // Check credentials under aws/.aws
+    if (seg === "credentials") {
+      if (i > 0 && (segments[i - 1] === "aws" || segments[i - 1] === ".aws")) {
+        return true;
+      }
+    }
+
+    // Check gcloud under .config
+    if (seg === "gcloud") {
+      if (i > 0 && segments[i - 1] === ".config") {
+        return true;
+      }
+    }
+  }
+
+  for (const p of extraSensitivePaths) {
+    if (
+      token === p ||
+      token.startsWith(p + "/") ||
+      token.startsWith(p + "\\") ||
+      token.endsWith(p)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function containsSensitivePath(
+  command: string,
+  argv: string[],
+  extraSensitivePaths: string[]
+): boolean {
+  for (const token of argv) {
+    if (isSensitivePathToken(token, extraSensitivePaths)) {
+      return true;
+    }
+  }
+  const tokens = command.split(/\s+/);
+  for (const token of tokens) {
+    const cleanToken = token.replace(/^['"]|['"]$/g, "");
+    if (isSensitivePathToken(cleanToken, extraSensitivePaths)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export const secretsDetector: CommandDetector = (input) => {
-  const { executable, command, options } = input;
+  const { executable, command, argv, options } = input;
   const isBareEnv = executable === "env" || executable === "printenv";
 
-  // Combine default sensitive paths with user-configured extraSensitivePaths
-  const sensitivePaths = [...DEFAULT_SENSITIVE_PATHS, ...options.extraSensitivePaths];
-  const touchesSensitive = sensitivePaths.some((p) => command.includes(p));
+  const touchesSensitive = containsSensitivePath(command, argv, options.extraSensitivePaths);
 
   const shellExecs = ["sh", "bash", "zsh", "ksh", "csh", "tcsh", "fish", "dash"];
   const hasSubEnv = shellExecs.includes(executable) && /\benv\b/.test(command);

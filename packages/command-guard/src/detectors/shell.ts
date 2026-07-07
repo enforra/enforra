@@ -15,9 +15,30 @@ export const shellDetector: CommandDetector = (input) => {
     "deno"
   ];
 
-  const hasShellPipe = /\|\s*(sh|bash|zsh|ksh|csh|tcsh|fish|dash)\b/.test(command);
+  const pipeRuntimes = [
+    "sh",
+    "bash",
+    "zsh",
+    "ksh",
+    "csh",
+    "tcsh",
+    "fish",
+    "dash",
+    "node",
+    "nodejs",
+    "python",
+    "python3",
+    "python2",
+    "ruby",
+    "perl",
+    "php",
+    "deno",
+    "bun"
+  ];
+  const runtimeRegex = new RegExp(`\\|\\s*(${pipeRuntimes.join("|")})\\b`);
+  const hasShellPipe = runtimeRegex.test(command);
   const isShell = shellExecutables.includes(executable);
-  const isCodeExec = codeExecutables.includes(executable);
+  const isCodeExec = codeExecutables.includes(executable) || executable === "bun";
 
   if (!isShell && !hasShellPipe && !isCodeExec) {
     return null;
@@ -48,11 +69,15 @@ export const shellDetector: CommandDetector = (input) => {
 
   const hasCurlOrWget = /\b(curl|wget)\b/.test(command);
   if (hasShellPipe && hasCurlOrWget) {
-    signals.push("network_download", "download_and_execute", "code_execution");
+    if (!signals.includes("network_download")) signals.push("network_download");
+    if (!signals.includes("download_and_execute")) signals.push("download_and_execute");
+    if (!signals.includes("code_execution")) signals.push("code_execution");
     suggestedRisk = "high";
     category = "download_and_execute";
+    tool = "network.exec";
   } else if (hasShellPipe) {
-    signals.push("download_and_execute", "code_execution");
+    if (!signals.includes("download_and_execute")) signals.push("download_and_execute");
+    if (!signals.includes("code_execution")) signals.push("code_execution");
     suggestedRisk = "high";
     category = "download_and_execute";
   }

@@ -3,6 +3,7 @@ export type CommandRisk = "low" | "medium" | "high";
 export type CommandSignal =
   | "code_execution"
   | "shell_execution"
+  | "package_execution"
   | "package_install"
   | "package_mutation"
   | "network_download"
