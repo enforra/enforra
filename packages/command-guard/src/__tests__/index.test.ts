@@ -2,8 +2,6 @@ import { describe, it, expect } from "vitest";
 import {
   classifyCommand,
   inferToolAndRisk,
-  DEFAULT_SENSITIVE_PATHS,
-  DEFAULT_INFRA_COMMANDS,
   type CommandClassification,
   type CommandDetector
 } from "../index.js";
@@ -339,9 +337,9 @@ describe("Regression tests (Fixes 1, 2, 3)", () => {
           tool: "infra.exec",
           category: "deployment",
           signals: ["deployment"],
-          suggestedRisk: "medium",
-        },
-      ],
+          suggestedRisk: "medium"
+        }
+      ]
     });
 
     expect(result.signals).toContain("deployment");
@@ -359,9 +357,9 @@ describe("Regression tests (Fixes 1, 2, 3)", () => {
           tool: "infra.exec",
           category: "deployment",
           signals: ["infra_tool"],
-          suggestedRisk: "high",
-        },
-      ],
+          suggestedRisk: "high"
+        }
+      ]
     });
 
     expect(result.signals).toContain("infra_tool");
@@ -377,9 +375,9 @@ describe("Regression tests (Fixes 1, 2, 3)", () => {
           tool: "infra.exec",
           category: "deployment",
           signals: ["infra_tool"],
-          suggestedRisk: "medium",
-        },
-      ],
+          suggestedRisk: "medium"
+        }
+      ]
     });
 
     expect(result.tool).toBe("infra.exec");

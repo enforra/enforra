@@ -12,8 +12,8 @@ import { packageManagerDetector } from "./detectors/package-manager.js";
 import { shellDetector } from "./detectors/shell.js";
 import { gitDetector } from "./detectors/git.js";
 import { networkDetector } from "./detectors/network.js";
-import { secretsDetector, DEFAULT_SENSITIVE_PATHS } from "./detectors/secrets.js";
-import { infraDetector, DEFAULT_INFRA_COMMANDS } from "./detectors/infra.js";
+import { secretsDetector } from "./detectors/secrets.js";
+import { infraDetector } from "./detectors/infra.js";
 import { privilegeDetector } from "./detectors/privilege.js";
 import { filesDetector } from "./detectors/files.js";
 

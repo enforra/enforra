@@ -8,7 +8,7 @@ export const gitDetector: CommandDetector = (input) => {
   }
 
   const signals: CommandSignal[] = [];
-  let suggestedRisk: "low" | "medium" | "high" = "medium";
+  const suggestedRisk: "low" | "medium" | "high" = "medium";
   const tool = "git.exec";
   const category = "source_control";
 
