@@ -2,7 +2,7 @@ import { SHELL_EXECUTABLES, CODE_EXECUTABLES, PIPE_RUNTIMES } from "../defaults.
 import type { CommandDetector, CommandSignal } from "../types.js";
 
 export const shellDetector: CommandDetector = (input) => {
-  const { executable, command } = input;
+  const { executable, command, argv } = input;
 
   const runtimeRegex = new RegExp(`\\|\\s*(${PIPE_RUNTIMES.join("|")})\\b`);
   const hasShellPipe = runtimeRegex.test(command);
@@ -29,11 +29,54 @@ export const shellDetector: CommandDetector = (input) => {
     if (executable === "node" || executable === "nodejs") {
       tool = "node.exec";
       category = "code_execution";
+      suggestedRisk = "low";
+
+      // Look for inline evaluation payload
+      let code: string | undefined;
+      for (let i = 1; i < argv.length; i++) {
+        const arg = argv[i];
+        if (!arg) continue;
+        if (arg === "-e" || arg === "--eval" || arg === "-p" || arg === "--print") {
+          if (i + 1 < argv.length) {
+            code = argv[i + 1];
+            break;
+          }
+        }
+        if (arg.startsWith("-") && !arg.startsWith("--") && arg.length > 1) {
+          if (arg.includes("e") || arg.includes("p")) {
+            if (i + 1 < argv.length) {
+              code = argv[i + 1];
+              break;
+            }
+          }
+        }
+      }
+
+      if (code) {
+        if (code.includes("process.env")) {
+          tool = "secrets.read";
+          category = "secret_access";
+          signals.push("secrets_read_attempt");
+          suggestedRisk = "high";
+        }
+        if (code.includes("readFileSync") && code.includes("/etc/passwd")) {
+          tool = "file.read";
+          category = "file_access";
+          signals.push("sensitive_file_read_attempt");
+          suggestedRisk = "high";
+        }
+        if (code.includes("child_process")) {
+          tool = "command.exec";
+          category = "code_execution";
+          signals.push("child_process_exec_attempt");
+          suggestedRisk = "high";
+        }
+      }
     } else {
       tool = "command.exec";
       category = "code_execution";
+      suggestedRisk = "low";
     }
-    suggestedRisk = "low";
   }
 
   const hasCurlOrWget = /\b(curl|wget)\b/.test(command);

@@ -124,8 +124,12 @@ export function classifyCommand(
   const matchedDetectors = Array.from(matchedDetectorsSet);
 
   const destructiveOperation = signals.includes("delete_operation") && suggestedRisk === "high";
-  const touchesSensitivePath = signals.includes("sensitive_path_access");
-  const readsSecrets = signals.includes("secret_read") || signals.includes("environment_read");
+  const touchesSensitivePath =
+    signals.includes("sensitive_path_access") || signals.includes("sensitive_file_read_attempt");
+  const readsSecrets =
+    signals.includes("secret_read") ||
+    signals.includes("environment_read") ||
+    signals.includes("secrets_read_attempt");
   const writesSecrets = false; // not set by default
   const packageInstall = signals.includes("package_install");
   const packageMutation = signals.includes("package_mutation");
@@ -140,7 +144,8 @@ export function classifyCommand(
       command.includes("secret") ||
       command.includes("iam") ||
       command.includes("auth"));
-  const privilegeEscalation = signals.includes("privilege_change");
+  const privilegeEscalation =
+    signals.includes("privilege_change") || signals.includes("child_process_exec_attempt");
   const workspaceWrite = false; // not set by default
   const unknownCommand = signals.includes("unknown_command");
 

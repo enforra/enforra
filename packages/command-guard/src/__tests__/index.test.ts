@@ -512,3 +512,65 @@ describe("inferToolAndRisk", () => {
     expect(risk).toBe("low");
   });
 });
+
+describe("Node inline eval/print classification", () => {
+  it("classifies process.env as secrets.read and high risk", () => {
+    const r1 = classifyCommand(["node", "-e", "console.log(process.env)"]);
+    expect(r1.tool).toBe("secrets.read");
+    expect(r1.suggestedRisk).toBe("high");
+    expect(r1.risk).toBe("high");
+    expect(r1.readsSecrets).toBe(true);
+    expect(r1.signals).toContain("secrets_read_attempt");
+
+    const r2 = classifyCommand(["node", "--eval", "process.env"]);
+    expect(r2.tool).toBe("secrets.read");
+    expect(r2.suggestedRisk).toBe("high");
+    expect(r2.readsSecrets).toBe(true);
+    expect(r2.signals).toContain("secrets_read_attempt");
+
+    const r3 = classifyCommand(["node", "-p", "process.env.MY_VAR"]);
+    expect(r3.tool).toBe("secrets.read");
+    expect(r3.suggestedRisk).toBe("high");
+    expect(r3.readsSecrets).toBe(true);
+    expect(r3.signals).toContain("secrets_read_attempt");
+
+    const r4 = classifyCommand(["nodejs", "--print", "process.env"]);
+    expect(r4.tool).toBe("secrets.read");
+    expect(r4.suggestedRisk).toBe("high");
+    expect(r4.readsSecrets).toBe(true);
+    expect(r4.signals).toContain("secrets_read_attempt");
+  });
+
+  it("classifies readFileSync /etc/passwd as file.read and high risk", () => {
+    const r1 = classifyCommand(["node", "-e", "require('fs').readFileSync('/etc/passwd')"]);
+    expect(r1.tool).toBe("file.read");
+    expect(r1.suggestedRisk).toBe("high");
+    expect(r1.touchesSensitivePath).toBe(true);
+    expect(r1.signals).toContain("sensitive_file_read_attempt");
+  });
+
+  it("classifies child_process as command.exec and high risk", () => {
+    const r1 = classifyCommand(["node", "-e", "require('child_process').execSync('whoami')"]);
+    expect(r1.tool).toBe("command.exec");
+    expect(r1.suggestedRisk).toBe("high");
+    expect(r1.privilegeEscalation).toBe(true);
+    expect(r1.signals).toContain("child_process_exec_attempt");
+  });
+
+  it("keeps normal node inline code low risk", () => {
+    const r1 = classifyCommand(["node", "-e", "console.log('hello')"]);
+    expect(r1.tool).toBe("node.exec");
+    expect(r1.suggestedRisk).toBe("low");
+    expect(r1.readsSecrets).toBe(false);
+    expect(r1.touchesSensitivePath).toBe(false);
+    expect(r1.privilegeEscalation).toBe(false);
+
+    const r2 = classifyCommand(["node", "--eval", "console.log('hello')"]);
+    expect(r2.tool).toBe("node.exec");
+    expect(r2.suggestedRisk).toBe("low");
+
+    const r3 = classifyCommand(["node", "-p", "1 + 1"]);
+    expect(r3.tool).toBe("node.exec");
+    expect(r3.suggestedRisk).toBe("low");
+  });
+});

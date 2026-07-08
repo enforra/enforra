@@ -22,7 +22,10 @@ export type CommandSignal =
   | "write_operation"
   | "delete_operation"
   | "privilege_change"
-  | "unknown_command";
+  | "unknown_command"
+  | "secrets_read_attempt"
+  | "sensitive_file_read_attempt"
+  | "child_process_exec_attempt";
 
 export type CommandClassification = {
   executable: string;
