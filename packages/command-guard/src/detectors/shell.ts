@@ -1,11 +1,69 @@
 import { SHELL_EXECUTABLES, CODE_EXECUTABLES, PIPE_RUNTIMES } from "../defaults.js";
 import type { CommandDetector, CommandSignal } from "../types.js";
 
+const RUNTIME_REGEX = new RegExp(`\\|\\s*(${PIPE_RUNTIMES.join("|")})\\b`);
+
+function isNodeExecutable(executable: string): boolean {
+  return executable === "node" || executable === "nodejs";
+}
+
+function extractNodeInlineCode(argv: string[]): string | null {
+  for (let i = 1; i < argv.length; i++) {
+    const arg = argv[i];
+    if (!arg) continue;
+    if (arg === "-e" || arg === "--eval" || arg === "-p" || arg === "--print") {
+      if (i + 1 < argv.length) {
+        return argv[i + 1];
+      }
+    }
+    if (arg.startsWith("-") && !arg.startsWith("--") && arg.length > 1) {
+      if (arg.includes("e") || arg.includes("p")) {
+        if (i + 1 < argv.length) {
+          return argv[i + 1];
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function classifyNodeInlineCode(code: string): {
+  tool: string;
+  category: string;
+  suggestedRisk: "high";
+  signals: CommandSignal[];
+} | null {
+  if (code.includes("process.env")) {
+    return {
+      tool: "secrets.read",
+      category: "secret_access",
+      suggestedRisk: "high",
+      signals: ["secrets_read_attempt"]
+    };
+  }
+  if (code.includes("readFileSync") && code.includes("/etc/passwd")) {
+    return {
+      tool: "file.read",
+      category: "file_access",
+      suggestedRisk: "high",
+      signals: ["sensitive_file_read_attempt"]
+    };
+  }
+  if (code.includes("child_process")) {
+    return {
+      tool: "command.exec",
+      category: "code_execution",
+      suggestedRisk: "high",
+      signals: ["child_process_exec_attempt"]
+    };
+  }
+  return null;
+}
+
 export const shellDetector: CommandDetector = (input) => {
   const { executable, command, argv } = input;
 
-  const runtimeRegex = new RegExp(`\\|\\s*(${PIPE_RUNTIMES.join("|")})\\b`);
-  const hasShellPipe = runtimeRegex.test(command);
+  const hasShellPipe = RUNTIME_REGEX.test(command);
   const isShell = SHELL_EXECUTABLES.includes(executable);
   const isCodeExec = CODE_EXECUTABLES.includes(executable) || executable === "bun";
 
@@ -26,50 +84,21 @@ export const shellDetector: CommandDetector = (input) => {
 
   if (isCodeExec) {
     signals.push("code_execution");
-    if (executable === "node" || executable === "nodejs") {
+    if (isNodeExecutable(executable)) {
       tool = "node.exec";
       category = "code_execution";
       suggestedRisk = "low";
 
-      // Look for inline evaluation payload
-      let code: string | undefined;
-      for (let i = 1; i < argv.length; i++) {
-        const arg = argv[i];
-        if (!arg) continue;
-        if (arg === "-e" || arg === "--eval" || arg === "-p" || arg === "--print") {
-          if (i + 1 < argv.length) {
-            code = argv[i + 1];
-            break;
-          }
-        }
-        if (arg.startsWith("-") && !arg.startsWith("--") && arg.length > 1) {
-          if (arg.includes("e") || arg.includes("p")) {
-            if (i + 1 < argv.length) {
-              code = argv[i + 1];
-              break;
-            }
-          }
-        }
-      }
-
+      const code = extractNodeInlineCode(argv);
       if (code) {
-        if (code.includes("process.env")) {
-          tool = "secrets.read";
-          category = "secret_access";
-          signals.push("secrets_read_attempt");
-          suggestedRisk = "high";
-        }
-        if (code.includes("readFileSync") && code.includes("/etc/passwd")) {
-          tool = "file.read";
-          category = "file_access";
-          signals.push("sensitive_file_read_attempt");
-          suggestedRisk = "high";
-        }
-        if (code.includes("child_process")) {
-          tool = "command.exec";
-          category = "code_execution";
-          signals.push("child_process_exec_attempt");
-          suggestedRisk = "high";
+        const inlineResult = classifyNodeInlineCode(code);
+        if (inlineResult) {
+          tool = inlineResult.tool;
+          category = inlineResult.category;
+          suggestedRisk = inlineResult.suggestedRisk;
+          for (const sig of inlineResult.signals) {
+            signals.push(sig);
+          }
         }
       }
     } else {
