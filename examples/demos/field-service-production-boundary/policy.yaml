@@ -1,0 +1,55 @@
+version: 1
+defaults:
+  decision: block
+policies:
+  - id: allow-job-history-read
+    description: Allow operational job history reads
+    match:
+      agent: field-service-operations-agent
+      tool: jobs.read
+    decision: allow
+
+  - id: allow-estimate-drafts
+    description: Allow estimates to be created as drafts
+    match:
+      agent: field-service-operations-agent
+      tool: estimates.create
+    conditions:
+      - field: args.status
+        operator: eq
+        value: draft
+    decision: allow
+
+  - id: approve-high-value-quotes
+    description: Require human approval before sending high-value quotes
+    match:
+      agent: field-service-operations-agent
+      tool: quotes.send
+    conditions:
+      - field: args.amount
+        operator: gt
+        value: 10000
+    decision: require_approval
+
+  - id: allow-standard-quotes
+    description: Allow lower-value quotes
+    priority: 10
+    match:
+      agent: field-service-operations-agent
+      tool: quotes.send
+    conditions:
+      - field: args.amount
+        operator: lte
+        value: 10000
+    decision: allow
+
+  - id: block-unapproved-customer-export
+    description: Block customer data exports to unapproved destinations
+    match:
+      agent: field-service-operations-agent
+      tool: customers.export
+    conditions:
+      - field: args.destinationClass
+        operator: eq
+        value: unapproved_external
+    decision: block
