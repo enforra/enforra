@@ -1,0 +1,57 @@
+version: 1
+cases:
+  - name: job history read is allowed
+    input:
+      agent: field-service-operations-agent
+      tool: jobs.read
+      args:
+        jobId: job_1042
+      context:
+        environment: production
+        cloneEvalStatus: passed
+    expect:
+      decision: allow
+      matchedPolicyId: allow-job-history-read
+
+  - name: estimate draft is allowed
+    input:
+      agent: field-service-operations-agent
+      tool: estimates.create
+      args:
+        jobId: job_1042
+        amount: 4800
+        status: draft
+      context:
+        environment: production
+        cloneEvalStatus: passed
+    expect:
+      decision: allow
+      matchedPolicyId: allow-estimate-drafts
+
+  - name: high value quote requires approval
+    input:
+      agent: field-service-operations-agent
+      tool: quotes.send
+      args:
+        jobId: job_1042
+        amount: 12500
+      context:
+        environment: production
+        cloneEvalStatus: passed
+    expect:
+      decision: require_approval
+      matchedPolicyId: approve-high-value-quotes
+
+  - name: unapproved customer export is blocked
+    input:
+      agent: field-service-operations-agent
+      tool: customers.export
+      args:
+        customerId: customer_772
+        destinationClass: unapproved_external
+      context:
+        environment: production
+        cloneEvalStatus: passed
+    expect:
+      decision: block
+      matchedPolicyId: block-unapproved-customer-export
