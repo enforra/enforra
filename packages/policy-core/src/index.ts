@@ -478,10 +478,22 @@ function evaluateCondition(condition: PolicyCondition, actual: unknown): boolean
     case "lte":
       return compareNumbers(actual, condition.value, (left, right) => left <= right);
     case "contains":
-      return typeof actual === "string" && actual.includes(String(condition.value));
+      return isContainable(actual) && containsValue(actual, condition.value);
     case "not_contains":
-      return typeof actual === "string" && !actual.includes(String(condition.value));
+      return isContainable(actual) && !containsValue(actual, condition.value);
   }
+}
+
+function isContainable(actual: unknown): actual is string | unknown[] {
+  return typeof actual === "string" || Array.isArray(actual);
+}
+
+function containsValue(actual: string | unknown[], expected: string | number | boolean): boolean {
+  if (typeof actual === "string") {
+    return actual.includes(String(expected));
+  }
+
+  return actual.some((item) => item === expected);
 }
 
 function compareNumbers(
