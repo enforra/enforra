@@ -24,6 +24,35 @@ Supported condition operators are `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contai
 
 Condition fields use dot paths rooted at `args` or `context`, such as `args.amount`, `args.recipient`, or `context.environment`. A flat condition array means all conditions must pass. Grouped conditions can express `all`, `any`, or both.
 
+## `contains` and `not_contains`
+
+For strings, `contains` and `not_contains` perform substring checks.
+
+For arrays, they perform strict scalar membership checks without coercion. This makes structured signal arrays from packages such as `@enforra/command-guard` directly usable in policy:
+
+```yaml
+policies:
+  - id: block-secret-reading-commands
+    match:
+      agent: coding-agent
+    conditions:
+      - field: args.signals
+        operator: contains
+        value: secret_read
+    decision: block
+
+  - id: allow-read-only-command
+    match:
+      agent: coding-agent
+    conditions:
+      - field: args.signals
+        operator: not_contains
+        value: write_operation
+    decision: allow
+```
+
+A missing field or a value that is neither a string nor an array does not satisfy either operator.
+
 ## Policy reference
 
 - `match.agent`: optional exact string match on the incoming agent name.
