@@ -308,10 +308,34 @@ def _evaluate_condition(
     if condition.operator == "lte":
         return _compare_numbers(actual, condition.value, lambda left, right: left <= right)
     if condition.operator == "contains":
-        return isinstance(actual, str) and str(condition.value) in actual
+        return _is_containable(actual) and _contains_value(actual, condition.value)
     if condition.operator == "not_contains":
-        return isinstance(actual, str) and str(condition.value) not in actual
+        return _is_containable(actual) and not _contains_value(actual, condition.value)
     raise ValueError(f"unsupported operator {condition.operator}")
+
+
+def _is_containable(actual: Any) -> bool:
+    return isinstance(actual, (str, list))
+
+
+def _contains_value(actual: str | list[Any], expected: str | int | float | bool) -> bool:
+    if isinstance(actual, str):
+        return _stringify_condition_value(expected) in actual
+    return any(_strict_scalar_equal(item, expected) for item in actual)
+
+
+def _strict_scalar_equal(actual: Any, expected: Any) -> bool:
+    if isinstance(actual, bool) or isinstance(expected, bool):
+        return type(actual) is type(expected) and actual == expected
+    if isinstance(actual, (int, float)) and isinstance(expected, (int, float)):
+        return actual == expected
+    return type(actual) is type(expected) and actual == expected
+
+
+def _stringify_condition_value(value: str | int | float | bool) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    return str(value)
 
 
 def _compare_numbers(actual: Any, expected: Any, compare: Any) -> bool:
