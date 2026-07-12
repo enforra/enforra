@@ -32,60 +32,42 @@
     {
       "name": "command signals array contains matching signal",
       "operator": "contains",
-      "actual": [
-        "package_install",
-        "package_mutation",
-        "network_download"
-      ],
+      "actual": ["package_install", "package_mutation", "network_download"],
       "value": "package_mutation",
       "expected": true
     },
     {
       "name": "command signals array rejects missing signal",
       "operator": "contains",
-      "actual": [
-        "file_read",
-        "sensitive_path_access",
-        "secret_read"
-      ],
+      "actual": ["file_read", "sensitive_path_access", "secret_read"],
       "value": "external_transfer",
       "expected": false
     },
     {
       "name": "array not_contains accepts missing scalar",
       "operator": "not_contains",
-      "actual": [
-        "infra_tool",
-        "write_operation"
-      ],
+      "actual": ["infra_tool", "write_operation"],
       "value": "delete_operation",
       "expected": true
     },
     {
       "name": "array not_contains rejects matching scalar",
       "operator": "not_contains",
-      "actual": [
-        "infra_tool",
-        "delete_operation"
-      ],
+      "actual": ["infra_tool", "delete_operation"],
       "value": "delete_operation",
       "expected": false
     },
     {
       "name": "array membership uses strict scalar equality",
       "operator": "contains",
-      "actual": [
-        1
-      ],
+      "actual": [1],
       "value": "1",
       "expected": false
     },
     {
       "name": "boolean array membership does not coerce numbers",
       "operator": "contains",
-      "actual": [
-        true
-      ],
+      "actual": [true],
       "value": 1,
       "expected": false
     },
